@@ -1,0 +1,368 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CHATCOMMERCE CRM AFRICA - MULTI-TENANT SAAS
+// ============================================
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  country     String
+  plan        String   @default("starter") // starter, business, enterprise
+  whatsappNumber String?
+  whatsappToken  String?
+  whatsappPhoneId String?
+  isActive    Boolean  @default(true)
+  maxContacts Int     @default(500)
+  maxAgents   Int     @default(3)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  contacts    Contact[]
+  leads       Lead[]
+  conversations Conversation[]
+  products    Product[]
+  categories  Category[]
+  orders      Order[]
+  invoices    Invoice[]
+  automations Automation[]
+  campaigns   Campaign[]
+  activityLogs ActivityLog[]
+  notifications Notification[]
+  subscriptions Subscription[]
+
+  @@index([slug])
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String
+  passwordHash  String
+  name          String
+  avatar        String?
+  phone         String?
+  role          String   @default("agent") // super_admin, company_admin, manager, agent
+  isActive      Boolean  @default(true)
+  emailVerified Boolean  @default(false)
+  resetToken    String?
+  resetTokenExp DateTime?
+  verifyToken   String?
+  companyId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  assignedConversations Conversation[] @relation("AssignedAgent")
+  assignedLeads  Lead[]    @relation("LeadAssignee")
+  createdOrders  Order[]   @relation("OrderCreator")
+  activityLogs  ActivityLog[]
+
+  @@unique([email, companyId])
+  @@index([companyId])
+}
+
+model Contact {
+  id            String   @id @default(cuid())
+  companyId     String
+  name          String
+  phone         String
+  email         String?
+  avatar        String?
+  tags          String   @default("") // comma-separated tags
+  notes         String?
+  source        String   @default("whatsapp") // whatsapp, manual, import, website
+  city          String?
+  country       String?
+  isLead        Boolean  @default(false)
+  totalSpent    Float    @default(0)
+  orderCount    Int      @default(0)
+  lastMessageAt DateTime?
+  lastSeenAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  conversations Conversation[]
+  orders        Order[]
+  leads         Lead[]
+  activityLogs  ActivityLog[]
+
+  @@index([companyId])
+  @@index([phone])
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  companyId     String
+  contactId     String?
+  status        String   @default("new") // new, contacted, qualified, converted, lost
+  source        String   @default("whatsapp")
+  value         Float    @default(0)
+  notes         String?
+  assignedToId  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  contact       Contact? @relation(fields: [contactId], references: [id])
+  assignedTo    User?    @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  activityLogs  ActivityLog[]
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  companyId     String
+  contactId     String
+  status        String   @default("new") // new, open, waiting, closed
+  assignedToId  String?
+  lastMessage   String?
+  lastMessageAt DateTime?
+  unreadCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  assignedTo    User?    @relation("AssignedAgent", fields: [assignedToId], references: [id])
+  messages      Message[]
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([status])
+}
+
+model Message {
+  id              String   @id @default(cuid())
+  conversationId  String
+  body            String
+  direction       String   // inbound, outbound
+  type            String   @default("text") // text, image, document, audio, video
+  senderType      String   @default("customer") // customer, agent, system, bot
+  senderId        String?
+  waMessageId     String?  // WhatsApp message ID
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  companyId   String
+  categoryId  String?
+  name        String
+  description String?
+  price       Float
+  compareAtPrice Float?
+  sku         String?
+  barcode     String?
+  image       String?
+  images      String?  // JSON array of image URLs
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company   @relation(fields: [companyId], references: [id])
+  category    Category? @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+
+  @@index([companyId])
+  @@index([categoryId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  image       String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company   @relation(fields: [companyId], references: [id])
+  products    Product[]
+
+  @@index([companyId])
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  companyId     String
+  contactId     String
+  orderNumber   String
+  status        String   @default("pending") // pending, confirmed, preparing, ready, delivered, cancelled
+  subtotal      Float
+  tax           Float    @default(0)
+  total         Float
+  currency      String   @default("XAF")
+  paymentMethod String?
+  paymentStatus String   @default("pending") // pending, paid, failed, refunded
+  notes         String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  createdBy     User?    @relation("OrderCreator", fields: [createdById], references: [id])
+  items         OrderItem[]
+  invoices      Invoice[]
+  activityLogs  ActivityLog[]
+
+  @@unique([companyId, orderNumber])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([status])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  quantity    Int
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  companyId     String
+  orderId       String
+  invoiceNumber String
+  status        String   @default("draft") // draft, sent, paid, overdue, cancelled
+  subtotal      Float
+  tax           Float    @default(0)
+  total         Float
+  dueDate       DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+  order         Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  companyId     String
+  plan          String   // starter, business, enterprise
+  status        String   @default("active") // active, past_due, cancelled, trialing
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  stripeSubscriptionId String?
+  stripeCustomerId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  companyId   String
+  userId      String?
+  title       String
+  message     String
+  type        String   @default("info") // info, success, warning, error
+  isRead      Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model Automation {
+  id            String   @id @default(cuid())
+  companyId     String
+  name          String
+  type          String   // welcome, abandoned_order, reactivation, scheduled
+  trigger       String   // conversation_created, order_abandoned, etc.
+  messageTemplate String
+  isActive      Boolean  @default(true)
+  delayMinutes  Int      @default(0)
+  filter        String?  // JSON filter conditions
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([type])
+}
+
+model Campaign {
+  id            String   @id @default(cuid())
+  companyId     String
+  name          String
+  message       String
+  status        String   @default("draft") // draft, scheduled, running, completed, failed
+  recipientCount Int     @default(0)
+  sentCount     Int      @default(0)
+  deliveredCount Int     @default(0)
+  repliedCount  Int      @default(0)
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  companyId   String
+  userId      String?
+  contactId   String?
+  leadId      String?
+  orderId     String?
+  action      String
+  details     String?
+  createdAt   DateTime @default(now())
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  lead        Lead?    @relation(fields: [leadId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([createdAt])
+}
