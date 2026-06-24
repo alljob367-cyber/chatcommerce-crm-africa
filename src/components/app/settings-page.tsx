@@ -35,7 +35,7 @@ export default function SettingsPage() {
       period: "/mois",
       features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"],
       current: plan === "starter",
-      color: "border-gray-200",
+      color: "border-border",
     },
     {
       name: "Business",
@@ -90,13 +90,13 @@ export default function SettingsPage() {
                 </select>
               </div>
             </div>
-            <Button className="mt-4 bg-[#0F172A]">Sauvegarder</Button>
+            <Button className="mt-4 bg-primary">Sauvegarder</Button>
           </CardContent>
         </Card>
 
         {/* Subscription Plans */}
         <div>
-          <h3 className="text-sm font-semibold text-[#0F172A] mb-4">Abonnement</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Abonnement</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((p) => (
               <Card key={p.name} className={`border-2 ${p.color} shadow-sm relative ${p.current ? "ring-2 ring-[#25D366] ring-offset-2" : ""}`}>
@@ -107,28 +107,28 @@ export default function SettingsPage() {
                 )}
                 <CardContent className="p-5">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
-                      <p.icon className="w-5 h-5 text-gray-600" />
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <p.icon className="w-5 h-5 text-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-[#0F172A]">{p.name}</p>
+                      <p className="font-semibold text-foreground">{p.name}</p>
                       {p.current && <Badge variant="outline" className="text-[9px]">Plan actuel</Badge>}
                     </div>
                   </div>
                   <div className="mb-4">
-                    <span className="text-2xl font-bold text-[#0F172A]">{p.price}</span>
-                    <span className="text-sm text-gray-400"> FCFA{p.period}</span>
+                    <span className="text-2xl font-bold text-foreground">{p.price}</span>
+                    <span className="text-sm text-muted-foreground"> FCFA{p.period}</span>
                   </div>
                   <ul className="space-y-2 mb-5">
                     {p.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <li key={f} className="flex items-center gap-2 text-sm text-foreground">
                         <Check className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
                         {f}
                       </li>
                     ))}
                   </ul>
                   <Button
-                    className={`w-full ${p.current ? "bg-gray-100 text-gray-500" : "bg-[#0F172A] hover:bg-[#1e293b]"}`}
+                    className={`w-full ${p.current ? "bg-muted text-muted-foreground" : "bg-primary hover:bg-primary/90"}`}
                     disabled={p.current}
                   >
                     {p.current ? "Plan actuel" : "Changer de plan"}
@@ -173,14 +173,14 @@ export default function SettingsPage() {
                 { name: "Paul Essomba", email: "manager@chatcommerce.africa", role: "Manager" },
                 { name: "Amina Diallo", email: "agent@chatcommerce.africa", role: "Agent" },
               ].map((m) => (
-                <div key={m.email} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={m.email} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#0F172A] text-white flex items-center justify-center text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
                       {m.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                     </div>
                     <div>
                       <p className="text-sm font-medium">{m.name}</p>
-                      <p className="text-xs text-gray-400">{m.email}</p>
+                      <p className="text-xs text-muted-foreground">{m.email}</p>
                     </div>
                   </div>
                   <Badge variant="outline">{m.role}</Badge>

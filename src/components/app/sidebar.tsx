@@ -50,28 +50,28 @@ export default function Sidebar() {
     : "CC";
 
   const planColors: Record<string, string> = {
-    starter: "bg-gray-100 text-gray-700",
-    business: "bg-blue-50 text-blue-700",
-    enterprise: "bg-purple-50 text-purple-700",
+    starter: "bg-muted text-muted-foreground",
+    business: "bg-blue-500/10 text-blue-500 dark:text-blue-400",
+    enterprise: "bg-purple-500/10 text-purple-500 dark:text-purple-400",
   };
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-full bg-white border-r border-gray-100 flex flex-col z-40 transition-all duration-300",
+        "fixed left-0 top-0 h-full bg-background border-r border-border flex flex-col z-40 transition-all duration-300",
         sidebarOpen ? "w-64" : "w-[72px]"
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-gray-50 shrink-0">
+      <div className="h-16 flex items-center px-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-[#25D366] rounded-xl flex items-center justify-center shrink-0">
             <MessageCircle className="w-5 h-5 text-white" />
           </div>
           {sidebarOpen && (
             <div className="animate-fade-in">
-              <h2 className="font-bold text-[#0F172A] text-sm leading-tight">ChatCommerce</h2>
-              <p className="text-[10px] text-gray-400 font-medium">CRM Africa</p>
+              <h2 className="font-bold text-foreground text-sm leading-tight">ChatCommerce</h2>
+              <p className="text-[10px] text-muted-foreground font-medium">CRM Africa</p>
             </div>
           )}
         </div>
@@ -89,14 +89,14 @@ export default function Sidebar() {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
                     isActive
-                      ? "sidebar-active text-[#0F172A]"
-                      : "text-gray-500 hover:text-[#0F172A] hover:bg-gray-50"
+                      ? "sidebar-active text-foreground dark:text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
                   <Icon
                     className={cn(
                       "w-5 h-5 shrink-0 transition-colors",
-                      isActive ? "text-[#25D366]" : "text-gray-400 group-hover:text-gray-600"
+                      isActive ? "text-[#25D366]" : "text-muted-foreground group-hover:text-foreground"
                     )}
                   />
                   {sidebarOpen && (
@@ -125,20 +125,20 @@ export default function Sidebar() {
       </nav>
 
       {/* User / Collapse */}
-      <div className="border-t border-gray-50 p-3 shrink-0">
+      <div className="border-t border-border p-3 shrink-0">
         {sidebarOpen ? (
           <div className="animate-fade-in">
             <div className="flex items-center gap-3 mb-3 px-1">
               <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-[#0F172A] text-white text-xs font-semibold">
+                <AvatarFallback className="bg-foreground text-background text-xs font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#0F172A] truncate">{user?.name}</p>
-                <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+                <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-red-500" onClick={logout}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-red-500" onClick={logout}>
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -149,14 +149,14 @@ export default function Sidebar() {
             )}
           </div>
         ) : (
-          <Button variant="ghost" size="icon" className="w-full text-gray-400 hover:text-red-500" onClick={logout}>
+          <Button variant="ghost" size="icon" className="w-full text-muted-foreground hover:text-red-500" onClick={logout}>
             <LogOut className="w-4 h-4" />
           </Button>
         )}
         <Button
           variant="ghost"
           size="sm"
-          className="w-full mt-2 text-gray-400 hover:text-[#0F172A]"
+          className="w-full mt-2 text-muted-foreground hover:text-foreground"
           onClick={toggleSidebar}
         >
           {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

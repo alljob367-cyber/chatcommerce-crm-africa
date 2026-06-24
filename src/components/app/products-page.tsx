@@ -106,13 +106,13 @@ export default function ProductsPage() {
             <DialogHeader><DialogTitle>Nouvelle catégorie</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nom</Label><Input placeholder="Ex: Boissons" value={newCat} onChange={(e) => setNewCat(e.target.value)} /></div>
-              <Button className="w-full bg-[#0F172A]" onClick={handleAddCat}>Créer</Button>
+              <Button className="w-full bg-primary" onClick={handleAddCat}>Créer</Button>
             </div>
           </DialogContent>
         </Dialog>
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
-            <Button className="bg-[#0F172A] hover:bg-[#1e293b]"><Plus className="w-4 h-4 mr-1" />Produit</Button>
+            <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-1" />Produit</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nouveau produit</DialogTitle></DialogHeader>
@@ -131,7 +131,7 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="w-full bg-[#0F172A]" onClick={handleAddProduct}>Ajouter</Button>
+              <Button className="w-full bg-primary" onClick={handleAddProduct}>Ajouter</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -139,7 +139,7 @@ export default function ProductsPage() {
 
       <div className="p-6 animate-fade-in">
         <div className="relative max-w-sm mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Rechercher un produit..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
@@ -147,7 +147,7 @@ export default function ProductsPage() {
         <div className="flex gap-2 mb-6 flex-wrap">
           {categories.map((c) => (
             <Badge key={c.id} variant="outline" className="text-xs py-1.5 px-3">
-              {c.name} <span className="ml-1 text-gray-400">({c._count.products})</span>
+              {c.name} <span className="ml-1 text-muted-foreground">({c._count.products})</span>
             </Badge>
           ))}
         </div>
@@ -156,23 +156,23 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 8 }).map((_, i) => (
-                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4 h-44 animate-pulse bg-gray-100 rounded-xl" /></Card>
+                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4 h-44 animate-pulse bg-muted rounded-xl" /></Card>
               ))
             : products.map((p) => (
                 <Card key={p.id} className="border-0 shadow-sm hover:shadow-md transition-shadow group">
                   <CardContent className="p-4">
-                    <div className="w-full h-28 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg mb-3 flex items-center justify-center">
+                    <div className="w-full h-28 bg-gradient-to-br from-muted to-muted/60 rounded-lg mb-3 flex items-center justify-center">
                       {p.image ? (
                         <img src={p.image} alt={p.name} className="w-full h-full object-cover rounded-lg" />
                       ) : (
-                        <Package className="w-8 h-8 text-gray-300" />
+                        <Package className="w-8 h-8 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-[#0F172A] truncate">{p.name}</p>
+                        <p className="font-semibold text-sm text-foreground truncate">{p.name}</p>
                         {p.category && (
-                          <p className="text-[11px] text-gray-400">{p.category.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{p.category.name}</p>
                         )}
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -183,13 +183,13 @@ export default function ProductsPage() {
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-base font-bold text-[#25D366]">{formatXAF(p.price)}</p>
                       <div className="flex items-center gap-1">
-                        <PackageCheck className="w-3 h-3 text-gray-400" />
-                        <span className={`text-xs font-medium ${p.stock > 10 ? "text-gray-600" : "text-red-500"}`}>
+                        <PackageCheck className="w-3 h-3 text-muted-foreground" />
+                        <span className={`text-xs font-medium ${p.stock > 10 ? "text-foreground" : "text-red-500"}`}>
                           {p.stock} en stock
                         </span>
                       </div>
                     </div>
-                    <div className="mt-1.5 text-[10px] text-gray-400">{p.sku}</div>
+                    <div className="mt-1.5 text-[10px] text-muted-foreground">{p.sku}</div>
                   </CardContent>
                 </Card>
               ))}

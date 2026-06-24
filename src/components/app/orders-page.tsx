@@ -8,20 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ShoppingCart,
   Eye,
   Package,
   CheckCircle,
   Truck,
   XCircle,
+  MoreVertical,
+  Clock,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -101,7 +102,7 @@ export default function OrdersPage() {
                 key={s}
                 variant={statusFilter === s ? "default" : "ghost"}
                 size="sm"
-                className={`text-xs h-8 ${statusFilter === s ? "bg-[#0F172A]" : ""}`}
+                className={`text-xs h-8 ${statusFilter === s ? "bg-primary" : ""}`}
                 onClick={() => setStatusFilter(s)}
               >
                 {s === "all" ? "Toutes" : cfg.label}
@@ -115,11 +116,11 @@ export default function OrdersPage() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-muted-foreground">
             <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="text-sm">Aucune commande trouvée</p>
           </div>
@@ -149,32 +150,32 @@ export default function OrdersPage() {
                   <CardContent className="p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
-                          <ShoppingCart className="w-5 h-5 text-gray-400" />
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                          <ShoppingCart className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm text-[#0F172A]">{order.orderNumber}</p>
+                            <p className="font-semibold text-sm text-foreground">{order.orderNumber}</p>
                             <Badge className={`text-[10px] ${cfg.color}`}>
                               <StatusIcon className="w-3 h-3 mr-1" />{cfg.label}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {order.contact.name} · {order.contact.phone}
                           </p>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-[11px] text-muted-foreground">
                               {new Date(order.createdAt).toLocaleDateString("fr", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </span>
                             {order.paymentMethod && (
-                              <span className="text-[10px] text-gray-500">{methodLabels[order.paymentMethod] || order.paymentMethod}</span>
+                              <span className="text-[10px] text-muted-foreground">{methodLabels[order.paymentMethod] || order.paymentMethod}</span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 sm:gap-4">
                         <div className="text-right">
-                          <p className="text-lg font-bold text-[#0F172A]">{formatXAF(order.total)} <span className="text-xs text-gray-400 font-normal">FCFA</span></p>
+                          <p className="text-lg font-bold text-foreground">{formatXAF(order.total)} <span className="text-xs text-muted-foreground font-normal">FCFA</span></p>
                           <Badge className={`text-[9px] ${paymentColors[order.paymentStatus] || ""}`}>
                             {paymentLabels[order.paymentStatus] || order.paymentStatus}
                           </Badge>
@@ -184,17 +185,18 @@ export default function OrdersPage() {
                             <Eye className="w-4 h-4" />
                           </Button>
                           {order.status !== "delivered" && order.status !== "cancelled" && (
-                            <Select onValueChange={(v) => handleStatus(order.id, v)}>
-                              <SelectTrigger className="h-8 w-8 p-0 border-0">
-                                <span className="sr-only">Changer statut</span>
-                                <span className="text-xs font-medium">...</span>
-                              </SelectTrigger>
-                              <SelectContent>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
                                 {Object.entries(statusConfig).filter(([k]) => k !== "all" && k !== order.status).map(([key, val]) => (
-                                  <SelectItem key={key} value={key}>{val.label}</SelectItem>
+                                  <DropdownMenuItem key={key} onClick={() => handleStatus(order.id, key)}>{val.label}</DropdownMenuItem>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </div>
@@ -215,16 +217,16 @@ export default function OrdersPage() {
             {selectedOrder && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-400">N°</span><p className="font-medium">{selectedOrder.orderNumber}</p></div>
-                  <div><span className="text-gray-400">Client</span><p className="font-medium">{selectedOrder.contact.name}</p></div>
-                  <div><span className="text-gray-400">Date</span><p className="font-medium">{new Date(selectedOrder.createdAt).toLocaleDateString("fr")}</p></div>
-                  <div><span className="text-gray-400">Statut</span><Badge className={statusConfig[selectedOrder.status]?.color}>{statusConfig[selectedOrder.status]?.label}</Badge></div>
+                  <div><span className="text-muted-foreground">N°</span><p className="font-medium">{selectedOrder.orderNumber}</p></div>
+                  <div><span className="text-muted-foreground">Client</span><p className="font-medium">{selectedOrder.contact.name}</p></div>
+                  <div><span className="text-muted-foreground">Date</span><p className="font-medium">{new Date(selectedOrder.createdAt).toLocaleDateString("fr")}</p></div>
+                  <div><span className="text-muted-foreground">Statut</span><Badge className={statusConfig[selectedOrder.status]?.color}>{statusConfig[selectedOrder.status]?.label}</Badge></div>
                 </div>
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Articles</p>
                   {selectedOrder.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm py-1">
-                      <span className="text-gray-600">{item.productName} x{item.quantity}</span>
+                      <span className="text-foreground">{item.productName} x{item.quantity}</span>
                       <span className="font-medium">{formatXAF(item.total)} FCFA</span>
                     </div>
                   ))}

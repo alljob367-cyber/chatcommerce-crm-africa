@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/app";
 import AuthPage from "@/components/app/auth-page";
 import Sidebar from "@/components/app/sidebar";
@@ -14,10 +14,37 @@ import AutomationsPage from "@/components/app/automations-page";
 import AIPage from "@/components/app/ai-page";
 import SettingsPage from "@/components/app/settings-page";
 
+function ErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 p-8 text-center">
+      <p className="text-lg font-semibold text-foreground">Une erreur est survenue</p>
+      <p className="text-sm text-muted-foreground max-w-md">{error.message}</p>
+      <button onClick={reset} className="text-sm text-[#25D366] font-medium hover:underline">
+        Réessayer
+      </button>
+    </div>
+  );
+}
+
+function PageRenderer({ page }: { page: string }) {
+  const [key, setKey] = useState(0);
+  switch (page) {
+    case "dashboard": return <DashboardPage key={key} />;
+    case "contacts": return <ContactsPage key={key} />;
+    case "inbox": return <InboxPage key={key} />;
+    case "products": return <ProductsPage key={key} />;
+    case "orders": return <OrdersPage key={key} />;
+    case "leads": return <LeadsPage key={key} />;
+    case "automations": return <AutomationsPage key={key} />;
+    case "ai": return <AIPage key={key} />;
+    case "settings": return <SettingsPage key={key} />;
+    default: return <DashboardPage key={key} />;
+  }
+}
+
 export default function Home() {
   const { isAuthenticated, token, currentPage, sidebarOpen, setAuth, logout } = useAppStore();
 
-  // Verify token on mount
   useEffect(() => {
     if (!token || !isAuthenticated) return;
     fetch("/api/auth", {
@@ -44,52 +71,24 @@ export default function Home() {
       });
   }, [token, isAuthenticated, setAuth, logout]);
 
-  // Not authenticated → show auth
   if (!isAuthenticated) {
     return <AuthPage />;
   }
 
-  // Render current page
-  const renderPage = () => {
-    switch (currentPage) {
-      case "dashboard":
-        return <DashboardPage />;
-      case "contacts":
-        return <ContactsPage />;
-      case "inbox":
-        return <InboxPage />;
-      case "products":
-        return <ProductsPage />;
-      case "orders":
-        return <OrdersPage />;
-      case "leads":
-        return <LeadsPage />;
-      case "automations":
-        return <AutomationsPage />;
-      case "ai":
-        return <AIPage />;
-      case "settings":
-        return <SettingsPage />;
-      default:
-        return <DashboardPage />;
-    }
-  };
-
-  // Inbox page has its own full-height layout
   const isFullHeight = currentPage === "inbox";
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-muted/30">
       <Sidebar />
       <div
         className="transition-all duration-300"
         style={{ marginLeft: sidebarOpen ? 256 : 72 }}
       >
         {isFullHeight ? (
-          renderPage()
+          <PageRenderer page={currentPage} />
         ) : (
           <main className="min-h-screen">
-            {renderPage()}
+            <PageRenderer page={currentPage} />
           </main>
         )}
       </div>

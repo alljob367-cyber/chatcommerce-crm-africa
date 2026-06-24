@@ -89,7 +89,7 @@ export default function ContactsPage() {
       <Header title="Contacts" subtitle={`${contacts.length} contacts dans votre base`}>
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
-            <Button className="bg-[#0F172A] hover:bg-[#1e293b] text-white">
+            <Button className="bg-primary hover:bg-primary/90 text-white">
               <UserPlus className="w-4 h-4 mr-2" /> Ajouter
             </Button>
           </DialogTrigger>
@@ -104,7 +104,7 @@ export default function ContactsPage() {
               <div><Label>Ville</Label><Input placeholder="Douala" value={newContact.city} onChange={(e) => setNewContact({ ...newContact, city: e.target.value })} /></div>
               <div><Label>Tags (séparés par virgule)</Label><Input placeholder="vip, régulier" value={newContact.tags} onChange={(e) => setNewContact({ ...newContact, tags: e.target.value })} /></div>
               <div><Label>Notes</Label><Textarea placeholder="Notes internes..." value={newContact.notes} onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })} /></div>
-              <Button className="w-full bg-[#0F172A]" onClick={handleAdd}>Ajouter le contact</Button>
+              <Button className="w-full bg-primary" onClick={handleAdd}>Ajouter le contact</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -114,7 +114,7 @@ export default function ContactsPage() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Rechercher par nom, téléphone, email..."
               value={search}
@@ -141,7 +141,7 @@ export default function ContactsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4 h-32 animate-pulse bg-gray-100 rounded-xl" /></Card>
+                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-4 h-32 animate-pulse bg-muted rounded-xl" /></Card>
               ))
             : contacts.map((c) => (
                 <Card key={c.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -154,15 +154,15 @@ export default function ContactsPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-semibold text-sm text-[#0F172A]">{c.name}</p>
-                          <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                          <p className="font-semibold text-sm text-foreground">{c.name}</p>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Phone className="w-3 h-3" />{c.phone}
                           </div>
                         </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -173,7 +173,7 @@ export default function ContactsPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                       {c.email && (
                         <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{c.email}</span>
                       )}
@@ -189,14 +189,14 @@ export default function ContactsPage() {
                         <Badge variant="outline" className="text-[10px]">{sourceLabels[c.source] || c.source}</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                       <div>
-                        <p className="text-xs text-gray-400">Total dépensé</p>
-                        <p className="text-sm font-bold text-[#0F172A]">{formatXAF(c.totalSpent)}</p>
+                        <p className="text-xs text-muted-foreground">Total dépensé</p>
+                        <p className="text-sm font-bold text-foreground">{formatXAF(c.totalSpent)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-400">Commandes</p>
-                        <p className="text-sm font-bold text-[#0F172A]">{c.orderCount}</p>
+                        <p className="text-xs text-muted-foreground">Commandes</p>
+                        <p className="text-sm font-bold text-foreground">{c.orderCount}</p>
                       </div>
                     </div>
                   </CardContent>

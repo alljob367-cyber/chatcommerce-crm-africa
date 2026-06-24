@@ -108,8 +108,8 @@ export default function AIPage() {
                       <div
                         className={`max-w-[75%] px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
                           msg.role === "user"
-                            ? "bg-[#0F172A] text-white rounded-br-sm"
-                            : "bg-gray-50 text-gray-700 rounded-bl-sm"
+                            ? "bg-primary text-white rounded-br-sm"
+                            : "bg-muted text-foreground rounded-bl-sm"
                         }`}
                       >
                         {msg.content}
@@ -121,8 +121,8 @@ export default function AIPage() {
                         )}
                       </div>
                       {msg.role === "user" && (
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                          <User className="w-4 h-4 text-gray-500" />
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4 text-muted-foreground" />
                         </div>
                       )}
                     </div>
@@ -132,18 +132,18 @@ export default function AIPage() {
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center">
                         <Bot className="w-4 h-4 text-white" />
                       </div>
-                      <div className="bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="bg-muted rounded-xl px-4 py-3">
                         <div className="flex gap-1">
-                          <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                          <span className="w-2 h-2 bg-muted-foreground/30 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 bg-muted-foreground/30 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 bg-muted-foreground/30 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
               </ScrollArea>
-              <div className="p-3 border-t border-gray-100">
+              <div className="p-3 border-t border-border">
                 <div className="flex gap-2 max-w-2xl mx-auto">
                   <Input
                     placeholder="Simulez une question client..."
@@ -187,8 +187,8 @@ export default function AIPage() {
                     <feat.icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-[#0F172A]">{feat.title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{feat.desc}</p>
+                    <p className="font-semibold text-sm text-foreground">{feat.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{feat.desc}</p>
                   </div>
                 </CardContent>
               </Card>

@@ -98,11 +98,21 @@
   background: #f0f0f0;
   border-radius: 0 12px 12px 12px;
 }
+:is(.dark) .whatsapp-bubble-in {
+  background: #2a2a2a;
+}
+.whatsapp-bubble-in p { color: #1a1a1a; }
+:is(.dark) .whatsapp-bubble-in p { color: #e5e5e5; }
 
 .whatsapp-bubble-out {
   background: #DCF8C6;
   border-radius: 12px 0 12px 12px;
 }
+:is(.dark) .whatsapp-bubble-out {
+  background: #1a3a2a;
+}
+.whatsapp-bubble-out p { color: #1a1a1a; }
+:is(.dark) .whatsapp-bubble-out p { color: #e5e5e5; }
 
 /* Custom scrollbar */
 .custom-scroll::-webkit-scrollbar {
@@ -115,14 +125,23 @@
   background: #d1d5db;
   border-radius: 3px;
 }
+:is(.dark) .custom-scroll::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
 .custom-scroll::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+:is(.dark) .custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
 /* Sidebar active item */
 .sidebar-active {
   background: linear-gradient(135deg, rgba(37, 211, 102, 0.1), rgba(37, 99, 235, 0.05));
   border-left: 3px solid #25D366;
+}
+:is(.dark) .sidebar-active {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.15), rgba(37, 99, 235, 0.08));
 }
 
 /* Status colors */
@@ -148,6 +167,14 @@
 }
 .kpi-card:hover::before {
   left: 100%;
+}
+
+/* Inbox chat area bg */
+.inbox-chat-bg {
+  background-color: #ECE5DD;
+}
+:is(.dark) .inbox-chat-bg {
+  background-color: #111111;
 }
 
 /* Animations */

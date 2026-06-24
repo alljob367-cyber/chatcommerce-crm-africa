@@ -114,7 +114,7 @@ export default function AutomationsPage() {
       <Header title="Automatisations" subtitle="Configurez vos workflows automatiques">
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
-            <Button className="bg-[#0F172A] hover:bg-[#1e293b]">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-1" />Nouvelle automation
             </Button>
           </DialogTrigger>
@@ -134,7 +134,7 @@ export default function AutomationsPage() {
                 <Textarea placeholder="Bonjour {contact_name}, bienvenue chez {company_name} !" value={form.messageTemplate} onChange={(e) => setForm({ ...form, messageTemplate: e.target.value })} rows={4} />
               </div>
               <div><Label>Délai (minutes)</Label><Input type="number" value={form.delayMinutes} onChange={(e) => setForm({ ...form, delayMinutes: e.target.value })} /></div>
-              <Button className="w-full bg-[#0F172A]" onClick={handleAdd}>Créer</Button>
+              <Button className="w-full bg-primary" onClick={handleAdd}>Créer</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -144,12 +144,12 @@ export default function AutomationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-6 h-40 animate-pulse bg-gray-100 rounded-xl" /></Card>
+                <Card key={i} className="border-0 shadow-sm"><CardContent className="p-6 h-40 animate-pulse bg-muted rounded-xl" /></Card>
               ))
             : automations.map((auto) => {
                 const Icon = typeIcons[auto.type] || Zap;
                 return (
-                  <Card key={auto.id} className={`border ${typeColors[auto.type] || "border-gray-100"} ${!auto.isActive ? "opacity-60" : ""}`}>
+                  <Card key={auto.id} className={`border ${typeColors[auto.type] || "border-border"} ${!auto.isActive ? "opacity-60" : ""}`}>
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -157,17 +157,17 @@ export default function AutomationsPage() {
                             <Icon className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="font-semibold text-sm text-[#0F172A]">{auto.name}</p>
+                            <p className="font-semibold text-sm text-foreground">{auto.name}</p>
                             <Badge variant="outline" className="text-[10px] mt-1">{typeLabels[auto.type]}</Badge>
                           </div>
                         </div>
                         <Switch checked={auto.isActive} onCheckedChange={() => toggleActive(auto.id, auto.isActive)} />
                       </div>
-                      <div className="bg-white/80 rounded-lg p-3 mb-4 border border-gray-100">
-                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">{auto.messageTemplate}</p>
+                      <div className="bg-white/80 rounded-lg p-3 mb-4 border border-border">
+                        <p className="text-sm text-foreground leading-relaxed line-clamp-2">{auto.messageTemplate}</p>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
                           {auto.delayMinutes > 0 ? `Délai: ${auto.delayMinutes} min` : "Immédiat"}
                         </div>

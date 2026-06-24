@@ -140,12 +140,12 @@ export default function DashboardPage() {
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 h-72 bg-gray-100 rounded-xl animate-pulse" />
-            <div className="h-72 bg-gray-100 rounded-xl animate-pulse" />
+            <div className="lg:col-span-2 h-72 bg-muted rounded-xl animate-pulse" />
+            <div className="h-72 bg-muted rounded-xl animate-pulse" />
           </div>
         </div>
       </>
@@ -178,8 +178,8 @@ export default function DashboardPage() {
                     {kpi.change}
                   </span>
                 </div>
-                <p className="text-xl font-bold text-[#0F172A]">{kpi.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{kpi.label}</p>
+                <p className="text-xl font-bold text-foreground">{kpi.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
               </CardContent>
             </Card>
           ))}
@@ -199,14 +199,14 @@ export default function DashboardPage() {
                   const dayLabel = new Date(d.date).toLocaleDateString("fr", { weekday: "short" });
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                      <span className="text-[10px] text-gray-400 font-medium">
+                      <span className="text-[10px] text-muted-foreground font-medium">
                         {d.revenue > 0 ? formatXAF(d.revenue).replace(" FCFA", "") : ""}
                       </span>
                       <div
                         className="w-full rounded-t-md bg-gradient-to-t from-[#25D366] to-[#25D366]/60 transition-all duration-500 hover:from-[#128C7E] hover:to-[#128C7E]/60"
                         style={{ height: `${Math.max(height, 4)}%` }}
                       />
-                      <span className="text-[10px] text-gray-400">{dayLabel}</span>
+                      <span className="text-[10px] text-muted-foreground">{dayLabel}</span>
                     </div>
                   );
                 })}
@@ -223,12 +223,12 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {ordersByStatus.map((os) => {
                   const label = statusLabels[os.status] || os.status;
-                  const color = statusColors[os.status] || "bg-gray-100 text-gray-600";
+                  const color = statusColors[os.status] || "bg-muted text-foreground";
                   return (
                     <div key={os.status} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${color.split(" ")[0].replace("bg-", "bg-")}`} />
-                        <span className="text-sm text-gray-600">{label}</span>
+                        <span className="text-sm text-foreground">{label}</span>
                       </div>
                       <Badge variant="secondary" className="text-xs font-semibold">
                         {os._count.id}
@@ -253,14 +253,14 @@ export default function DashboardPage() {
                 {topProducts.map((p, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                      <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                         {i + 1}
                       </span>
-                      <span className="text-sm text-gray-700 truncate max-w-[120px]">
+                      <span className="text-sm text-foreground truncate max-w-[120px]">
                         {p.productName}
                       </span>
                     </div>
-                    <span className="text-xs font-semibold text-[#0F172A]">
+                    <span className="text-xs font-semibold text-foreground">
                       {formatXAF(p._sum.total || 0)}
                     </span>
                   </div>
@@ -278,12 +278,12 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {(teamPerf as Array<Record<string, unknown>>).map((t: Record<string, unknown>) => (
                   <div key={t.id as string} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#0F172A] flex items-center justify-center text-white text-[10px] font-bold">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold">
                       {String(t.name).split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700 truncate">{t.name as string}</p>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-sm font-medium text-foreground truncate">{t.name as string}</p>
+                      <p className="text-[11px] text-muted-foreground">
                         {(t.activeConversations as number)} conversation(s) active(s)
                       </p>
                     </div>
@@ -306,13 +306,13 @@ export default function DashboardPage() {
                 {(recentOrders as Array<Record<string, unknown>>).slice(0, 5).map((o: Record<string, unknown>) => (
                   <div key={o.id as string} className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">{o.orderNumber as string}</p>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-sm font-medium text-foreground">{o.orderNumber as string}</p>
+                      <p className="text-[11px] text-muted-foreground">
                         {(o.contact as Record<string, unknown>)?.name as string}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-[#0F172A]">
+                      <p className="text-sm font-semibold text-foreground">
                         {formatXAF(o.total as number)}
                       </p>
                       <Badge className={`text-[9px] ${statusColors[o.status as string] || ""}`}>

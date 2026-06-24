@@ -127,7 +127,7 @@ export default function InboxPage() {
     new: "bg-blue-100 text-blue-700",
     open: "bg-green-100 text-green-700",
     waiting: "bg-yellow-100 text-yellow-700",
-    closed: "bg-gray-100 text-gray-600",
+    closed: "bg-muted text-muted-foreground",
   };
   const statusLabels: Record<string, string> = {
     new: "Nouveau",
@@ -160,10 +160,10 @@ export default function InboxPage() {
 
       <div className="flex h-[calc(100vh-64px)] animate-fade-in">
         {/* Conversation List */}
-        <div className="w-full md:w-80 border-r border-gray-100 flex flex-col shrink-0">
+        <div className="w-full md:w-80 border-r border-border flex flex-col shrink-0 bg-background">
           <div className="p-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher..."
                 value={search}
@@ -177,10 +177,10 @@ export default function InboxPage() {
               ? Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="p-3 animate-pulse">
                     <div className="flex gap-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                      <div className="w-10 h-10 bg-muted rounded-full" />
                       <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                        <div className="h-3 bg-gray-100 rounded w-1/2" />
+                        <div className="h-4 bg-muted rounded w-3/4 mb-2" />
+                        <div className="h-3 bg-muted/60 rounded w-1/2" />
                       </div>
                     </div>
                   </div>
@@ -189,8 +189,8 @@ export default function InboxPage() {
                   <button
                     key={conv.id}
                     onClick={() => setSelected(conv)}
-                    className={`w-full p-3 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50 ${
-                      selected?.id === conv.id ? "bg-green-50/50" : ""
+                    className={`w-full p-3 flex items-start gap-3 hover:bg-muted transition-colors text-left border-b border-border ${
+                      selected?.id === conv.id ? "bg-[#25D366]/10" : ""
                     }`}
                   >
                     <Avatar className="w-10 h-10 shrink-0">
@@ -200,14 +200,14 @@ export default function InboxPage() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="font-semibold text-sm text-[#0F172A] truncate">{conv.contact.name}</p>
+                        <p className="font-semibold text-sm text-foreground truncate">{conv.contact.name}</p>
                         {conv.lastMessageAt && (
-                          <span className="text-[10px] text-gray-400 shrink-0">
+                          <span className="text-[10px] text-muted-foreground shrink-0">
                             {formatTime(conv.lastMessageAt)}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {conv.lastMessage || "Pas de message"}
                       </p>
                       <div className="flex items-center gap-2 mt-1.5">
@@ -227,11 +227,11 @@ export default function InboxPage() {
         </div>
 
         {/* Chat Area */}
-        <div className="hidden md:flex flex-1 flex-col bg-[#ECE5DD]">
+        <div className="hidden md:flex flex-1 flex-col inbox-chat-bg">
           {selected ? (
             <>
               {/* Chat Header */}
-              <div className="h-16 bg-white px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+              <div className="h-16 bg-background px-4 flex items-center justify-between border-b border-border shrink-0">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-9 h-9">
                     <AvatarFallback className="bg-[#25D366]/10 text-[#128C7E] text-xs font-semibold">
@@ -239,8 +239,8 @@ export default function InboxPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-sm text-[#0F172A]">{selected.contact.name}</p>
-                    <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                    <p className="font-semibold text-sm text-foreground">{selected.contact.name}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                       <Phone className="w-3 h-3" />{selected.contact.phone}
                     </p>
                   </div>
@@ -280,9 +280,9 @@ export default function InboxPage() {
                             : "whatsapp-bubble-in"
                         }`}
                       >
-                        <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">{msg.body}</p>
+                        <p className="text-foreground leading-relaxed whitespace-pre-wrap">{msg.body}</p>
                         <div className="flex items-center justify-end gap-1 mt-1">
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-muted-foreground">
                             {formatTime(msg.createdAt)}
                           </span>
                           {msg.direction === "outbound" && (
@@ -297,7 +297,7 @@ export default function InboxPage() {
               </ScrollArea>
 
               {/* Reply Input */}
-              <div className="bg-white px-4 py-3 border-t border-gray-100 shrink-0">
+              <div className="bg-background px-4 py-3 border-t border-border shrink-0">
                 <div className="max-w-2xl mx-auto flex items-center gap-2">
                   <Input
                     placeholder="Écrire un message..."
@@ -317,7 +317,7 @@ export default function InboxPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <MessageCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">Sélectionnez une conversation</p>
@@ -329,7 +329,7 @@ export default function InboxPage() {
         {/* Mobile: show selected conversation full screen */}
         {selected && (
           <div className="md:hidden fixed inset-0 bg-[#ECE5DD] z-50 flex flex-col">
-            <div className="h-14 bg-white px-4 flex items-center gap-3 border-b border-gray-100">
+            <div className="h-14 bg-white px-4 flex items-center gap-3 border-b border-border">
               <Button variant="ghost" size="icon" onClick={() => setSelected(null)}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -345,8 +345,8 @@ export default function InboxPage() {
                 {messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${msg.direction === "outbound" ? "whatsapp-bubble-out" : "whatsapp-bubble-in"}`}>
-                      <p className="text-gray-800">{msg.body}</p>
-                      <p className="text-[10px] text-gray-400 text-right mt-1">{formatTime(msg.createdAt)}</p>
+                      <p className="text-foreground">{msg.body}</p>
+                      <p className="text-[10px] text-muted-foreground text-right mt-1">{formatTime(msg.createdAt)}</p>
                     </div>
                   </div>
                 ))}
