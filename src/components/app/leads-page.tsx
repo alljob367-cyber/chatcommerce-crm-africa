@@ -63,11 +63,11 @@ export default function LeadsPage() {
   const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
   const statusCfg: Record<string, { label: string; color: string }> = {
-    new: { label: "Nouveau", color: "bg-blue-100 text-blue-700" },
-    contacted: { label: "Contacté", color: "bg-yellow-100 text-yellow-700" },
-    qualified: { label: "Qualifié", color: "bg-purple-100 text-purple-700" },
-    converted: { label: "Converti", color: "bg-green-100 text-green-700" },
-    lost: { label: "Perdu", color: "bg-red-100 text-red-700" },
+    new: { label: "Nouveau", color: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400" },
+    contacted: { label: "Contacté", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400" },
+    qualified: { label: "Qualifié", color: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400" },
+    converted: { label: "Converti", color: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" },
+    lost: { label: "Perdu", color: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400" },
   };
 
   const totalValue = leads.reduce((s, l) => s + l.value, 0);
@@ -80,10 +80,10 @@ export default function LeadsPage() {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Total leads", value: leads.length, icon: Target, color: "bg-blue-50 text-blue-600" },
-            { label: "Valeur du pipeline", value: formatXAF(totalValue), icon: DollarSign, color: "bg-green-50 text-green-600" },
-            { label: "Qualifiés", value: leads.filter((l) => l.status === "qualified").length, icon: ArrowUpRight, color: "bg-purple-50 text-purple-600" },
-            { label: "Convertis", value: leads.filter((l) => l.status === "converted").length, icon: UserPlus, color: "bg-emerald-50 text-emerald-600" },
+            { label: "Total leads", value: leads.length, icon: Target, color: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" },
+            { label: "Valeur du pipeline", value: formatXAF(totalValue), icon: DollarSign, color: "bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-400" },
+            { label: "Qualifiés", value: leads.filter((l) => l.status === "qualified").length, icon: ArrowUpRight, color: "bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400" },
+            { label: "Convertis", value: leads.filter((l) => l.status === "converted").length, icon: UserPlus, color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400" },
           ].map((kpi) => (
             <Card key={kpi.label} className="border-0 shadow-sm">
               <CardContent className="p-4 flex items-center gap-3">

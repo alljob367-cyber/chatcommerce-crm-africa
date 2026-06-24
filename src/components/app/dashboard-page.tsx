@@ -69,7 +69,7 @@ export default function DashboardPage() {
           change: "+12%",
           up: true,
           icon: Users,
-          color: "bg-blue-50 text-blue-600",
+          color: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
         },
         {
           label: "Commandes",
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           change: "+8%",
           up: true,
           icon: ShoppingCart,
-          color: "bg-green-50 text-green-600",
+          color: "bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-400",
         },
         {
           label: "Chiffre d'affaires",
@@ -85,7 +85,7 @@ export default function DashboardPage() {
           change: "+23%",
           up: true,
           icon: DollarSign,
-          color: "bg-emerald-50 text-emerald-600",
+          color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
         },
         {
           label: "Taux de conversion",
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           change: "-2%",
           up: false,
           icon: TrendingUp,
-          color: "bg-purple-50 text-purple-600",
+          color: "bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400",
         },
         {
           label: "Nouvelles conversations",
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           change: "+5",
           up: true,
           icon: MessageSquare,
-          color: "bg-orange-50 text-orange-600",
+          color: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400",
         },
         {
           label: "Temps de réponse moy.",
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           change: "-3 min",
           up: true,
           icon: Clock,
-          color: "bg-cyan-50 text-cyan-600",
+          color: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400",
         },
       ]
     : [];
@@ -123,12 +123,12 @@ export default function DashboardPage() {
     cancelled: "Annulée",
   };
   const statusColors: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-700",
-    confirmed: "bg-blue-100 text-blue-700",
-    preparing: "bg-orange-100 text-orange-700",
-    ready: "bg-purple-100 text-purple-700",
-    delivered: "bg-green-100 text-green-700",
-    cancelled: "bg-red-100 text-red-700",
+    pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+    preparing: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400",
+    ready: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400",
+    delivered: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+    cancelled: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
   };
 
   const maxRev = Math.max(...revByDay.map((d) => d.revenue), 1);

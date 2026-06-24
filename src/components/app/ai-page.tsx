@@ -175,11 +175,11 @@ export default function AIPage() {
           {/* Features */}
           <div className="space-y-4">
             {[
-              { icon: Bot, title: "Réponse automatique", desc: "Répond instantanément aux questions fréquentes de vos clients 24/7.", color: "bg-green-50 text-green-600" },
-              { icon: Lightbulb, title: "Qualification des leads", desc: "Analyse les besoins et qualifie automatiquement les prospects.", color: "bg-yellow-50 text-yellow-600" },
-              { icon: Languages, title: "Multilingue", desc: "Français, Anglais, Espagnol - communiquez dans la langue de vos clients.", color: "bg-blue-50 text-blue-600" },
-              { icon: Zap, title: "Suggestions intelligentes", desc: "Propose des produits et offres basés sur l'historique client.", color: "bg-purple-50 text-purple-600" },
-              { icon: Globe, title: "Contexte africain", desc: "Optimisé pour le marché africain : Mobile Money, expressions locales, etc.", color: "bg-orange-50 text-orange-600" },
+              { icon: Bot, title: "Réponse automatique", desc: "Répond instantanément aux questions fréquentes de vos clients 24/7.", color: "bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-400" },
+              { icon: Lightbulb, title: "Qualification des leads", desc: "Analyse les besoins et qualifie automatiquement les prospects.", color: "bg-yellow-50 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400" },
+              { icon: Languages, title: "Multilingue", desc: "Français, Anglais, Espagnol - communiquez dans la langue de vos clients.", color: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" },
+              { icon: Zap, title: "Suggestions intelligentes", desc: "Propose des produits et offres basés sur l'historique client.", color: "bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400" },
+              { icon: Globe, title: "Contexte africain", desc: "Optimisé pour le marché africain : Mobile Money, expressions locales, etc.", color: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400" },
             ].map((feat) => (
               <Card key={feat.title} className="border-0 shadow-sm">
                 <CardContent className="p-4 flex gap-3">

@@ -103,10 +103,10 @@ export default function AutomationsPage() {
     scheduled: "Message programmé",
   };
   const typeColors: Record<string, string> = {
-    welcome: "bg-green-50 text-green-600 border-green-100",
-    abandoned_order: "bg-orange-50 text-orange-600 border-orange-100",
-    reactivation: "bg-blue-50 text-blue-600 border-blue-100",
-    scheduled: "bg-purple-50 text-purple-600 border-purple-100",
+    welcome: "bg-green-50 text-green-600 border-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20",
+    abandoned_order: "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20",
+    reactivation: "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20",
+    scheduled: "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20",
   };
 
   return (
@@ -163,7 +163,7 @@ export default function AutomationsPage() {
                         </div>
                         <Switch checked={auto.isActive} onCheckedChange={() => toggleActive(auto.id, auto.isActive)} />
                       </div>
-                      <div className="bg-white/80 rounded-lg p-3 mb-4 border border-border">
+                      <div className="bg-muted/50 rounded-lg p-3 mb-4 border border-border">
                         <p className="text-sm text-foreground leading-relaxed line-clamp-2">{auto.messageTemplate}</p>
                       </div>
                       <div className="flex items-center justify-between">

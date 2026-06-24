@@ -1,0 +1,633 @@
+     1→"use client";
+     2→
+     3→import { useState } from "react";
+     4→import { useAppStore } from "@/store/app";
+     5→import { Button } from "@/components/ui/button";
+     6→import { Input } from "@/components/ui/input";
+     7→import { Card, CardContent } from "@/components/ui/card";
+     8→import { Label } from "@/components/ui/label";
+     9→import {
+    10→  MessageCircle,
+    11→  ArrowRight,
+    12→  Sparkles,
+    13→  Check,
+    14→  Menu,
+    15→  X,
+    16→  Smartphone,
+    17→  ShoppingBag,
+    18→  Bot,
+    19→  BarChart3,
+    20→  Users,
+    21→  Inbox,
+    22→  ChevronRight,
+    23→  Star,
+    24→} from "lucide-react";
+    25→import {
+    26→  Dialog,
+    27→  DialogContent,
+    28→  DialogHeader,
+    29→  DialogTitle,
+    30→  DialogTrigger,
+    31→} from "@/components/ui/dialog";
+    32→
+    33→export default function AuthPage() {
+    34→  const { setAuth } = useAppStore();
+    35→  const [loading, setLoading] = useState(false);
+    36→  const [error, setError] = useState("");
+    37→  const [showLogin, setShowLogin] = useState(false);
+    38→  const [showRegister, setShowRegister] = useState(false);
+    39→  const [mobileMenu, setMobileMenu] = useState(false);
+    40→  const [form, setForm] = useState({
+    41→    name: "",
+    42→    email: "demo@chatcommerce.africa",
+    43→    password: "demo",
+    44→    companyName: "",
+    45→    country: "Cameroun",
+    46→    phone: "",
+    47→  });
+    48→  const [registerForm, setRegisterForm] = useState({
+    49→    name: "",
+    50→    email: "",
+    51→    password: "",
+    52→    companyName: "",
+    53→    country: "Cameroun",
+    54→    phone: "",
+    55→  });
+    56→
+    57→  const handleLogin = async (e: React.FormEvent) => {
+    58→    e.preventDefault();
+    59→    setLoading(true);
+    60→    setError("");
+    61→    try {
+    62→      const res = await fetch("/api/auth", {
+    63→        method: "POST",
+    64→        headers: { "Content-Type": "application/json" },
+    65→        body: JSON.stringify({ action: "login", email: form.email, password: form.password }),
+    66→      });
+    67→      const data = await res.json();
+    68→      if (!res.ok) throw new Error(data.error || "Erreur");
+    69→      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
+    70→    } catch (err: unknown) {
+    71→      setError(err instanceof Error ? err.message : "Erreur de connexion");
+    72→    } finally { setLoading(false); }
+    73→  };
+    74→
+    75→  const handleRegister = async (e: React.FormEvent) => {
+    76→    e.preventDefault();
+    77→    setLoading(true);
+    78→    setError("");
+    79→    try {
+    80→      const res = await fetch("/api/auth", {
+    81→        method: "POST",
+    82→        headers: { "Content-Type": "application/json" },
+    83→        body: JSON.stringify({ action: "register", ...registerForm }),
+    84→      });
+    85→      const data = await res.json();
+    86→      if (!res.ok) throw new Error(data.error || "Erreur");
+    87→      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
+    88→    } catch (err: unknown) {
+    89→      setError(err instanceof Error ? err.message : "Erreur");
+    90→    } finally { setLoading(false); }
+    91→  };
+    92→
+    93→  const handleDemo = async () => {
+    94→    setLoading(true);
+    95→    setError("");
+    96→    try {
+    97→      const res = await fetch("/api/auth", {
+    98→        method: "POST",
+    99→        headers: { "Content-Type": "application/json" },
+   100→        body: JSON.stringify({ action: "demo" }),
+   101→      });
+   102→      const data = await res.json();
+   103→      if (!res.ok) throw new Error(data.error || "Erreur");
+   104→      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
+   105→    } catch (err: unknown) {
+   106→      setError(err instanceof Error ? err.message : "Erreur");
+   107→    } finally { setLoading(false); }
+   108→  };
+   109→
+   110→  const updateForm = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+   111→  const updateRegister = (field: string, value: string) => setRegisterForm((f) => ({ ...f, [field]: value }));
+   112→
+   113→  const navItems = [
+   114→    { label: "Fonctionnalités", href: "#features" },
+   115→    { label: "Tarifs", href: "#pricing" },
+   116→    { label: "Ressources", href: "#resources" },
+   117→    { label: "À propos", href: "#about" },
+   118→  ];
+   119→
+   120→  const features = [
+   121→    { icon: Inbox, title: "Boîte WhatsApp partagée", desc: "Centralisez toutes vos conversations WhatsApp dans une seule interface collaborative.", color: "bg-green-100 text-green-600" },
+   122→    { icon: ShoppingBag, title: "Catalogue produits", desc: "Affichez vos produits et services directement dans WhatsApp pour vos clients.", color: "bg-blue-100 text-blue-600" },
+   123→    { icon: Smartphone, title: "Gestion des commandes", desc: "Suivez vos commandes, paiements Mobile Money et livraisons en temps réel.", color: "bg-yellow-100 text-yellow-600" },
+   124→    { icon: Bot, title: "Assistant IA", desc: "Répondez automatiquement 24h/24 en français, anglais et espagnol.", color: "bg-purple-100 text-purple-600" },
+   125→    { icon: BarChart3, title: "Tableau de bord", desc: "Analysez vos ventes, performances et croissance avec des KPIs clairs.", color: "bg-red-100 text-red-600" },
+   126→    { icon: Users, title: "Multi-utilisateurs", desc: "Collaborez en équipe avec rôles et permissions personnalisés.", color: "bg-teal-100 text-teal-600" },
+   127→  ];
+   128→
+   129→  const trustedBy = [
+   130→    "HOTEL LA CALEBASSE",
+   131→    "Le Gourmet RESTAURANT",
+   132→    "SuperMarket BATA",
+   133→    "Belle & Chic BOUTIQUE",
+   134→    "Pharmacie SANTÉ PLUS",
+   135→    "Voyages EXPLORER",
+   136→  ];
+   137→
+   138→  const plans = [
+   139→    { name: "Starter", price: "0", period: "/mois", desc: "Pour démarrer votre activité WhatsApp", features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"], cta: "Commencer gratuitement", popular: false },
+   140→    { name: "Business", price: "29 900", period: "/mois", desc: "Pour les entreprises en croissance", features: ["5 000 contacts", "10 agents", "10 000 messages/mois", "Assistant IA", "Automatisations avancées", "Support prioritaire", "API WhatsApp"], cta: "Essai gratuit 14 jours", popular: true },
+   141→    { name: "Enterprise", price: "Sur mesure", period: "", desc: "Pour les grandes organisations", features: ["Contacts illimités", "Agents illimités", "Messages illimités", "IA avancée", "API complète", "Support dédié 24/7", "Intégrations sur mesure"], cta: "Contacter les ventes", popular: false },
+   142→  ];
+   143→
+   144→  return (
+   145→    <div className="min-h-screen bg-white">
+   146→      {/* ===== HEADER / NAV ===== */}
+   147→      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+   148→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   149→          <div className="flex items-center justify-between h-16">
+   150→            {/* Logo */}
+   151→            <div className="flex items-center gap-2.5">
+   152→              <div className="w-9 h-9 bg-[#25D366] rounded-xl flex items-center justify-center">
+   153→                <MessageCircle className="w-5 h-5 text-white" />
+   154→              </div>
+   155→              <span className="font-bold text-[#0F172A] text-lg">ChatCommerce</span>
+   156→              <span className="hidden sm:inline text-xs text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded-full ml-1">CRM Afrique</span>
+   157→            </div>
+   158→
+   159→            {/* Desktop Nav */}
+   160→            <nav className="hidden md:flex items-center gap-6">
+   161→              {navItems.map((item) => (
+   162→                <a key={item.label} href={item.href} className="text-sm text-gray-600 hover:text-[#0F172A] transition-colors font-medium">
+   163→                  {item.label}
+   164→                </a>
+   165→              ))}
+   166→            </nav>
+   167→
+   168→            {/* Desktop CTAs */}
+   169→            <div className="hidden md:flex items-center gap-3">
+   170→              <Button variant="ghost" className="text-sm text-gray-600 hover:text-[#0F172A]" onClick={() => setShowLogin(true)}>
+   171→                Se connecter
+   172→              </Button>
+   173→              <Dialog open={showLogin} onOpenChange={setShowLogin}>
+   174→                <DialogContent>
+   175→                  <DialogHeader><DialogTitle>Connexion</DialogTitle></DialogHeader>
+   176→                  <form onSubmit={handleLogin} className="space-y-3">
+   177→                    <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} required /></div>
+   178→                    <div><Label>Mot de passe</Label><Input type="password" value={form.password} onChange={(e) => updateForm("password", e.target.value)} required /></div>
+   179→                    {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
+   180→                    <Button type="submit" className="w-full bg-[#0F172A] hover:bg-[#1e293b]" disabled={loading}>
+   181→                      {loading ? "Chargement..." : "Se connecter"} <ArrowRight className="w-4 h-4 ml-2" />
+   182→                    </Button>
+   183→                    <Button type="button" variant="outline" className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366] hover:text-white" onClick={handleDemo} disabled={loading}>
+   184→                      <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
+   185→                    </Button>
+   186→                  </form>
+   187→                </DialogContent>
+   188→              </Dialog>
+   189→
+   190→              <Button className="bg-[#25D366] hover:bg-[#128C7E] text-white text-sm font-medium px-5" onClick={() => setShowRegister(true)}>
+   191→                Essai gratuit 14 jours
+   192→              </Button>
+   193→              <Dialog open={showRegister} onOpenChange={setShowRegister}>
+   194→                <DialogContent className="max-w-md">
+   195→                  <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
+   196→                  <p className="text-sm text-gray-500">Démarrez avec ChatCommerce gratuitement. Aucune carte bancaire requise.</p>
+   197→                  <form onSubmit={handleRegister} className="space-y-3">
+   198→                    <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
+   199→                    <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
+   200→                    <div><Label>Pays</Label>
+   201→                      <select value={registerForm.country} onChange={(e) => updateRegister("country", e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+   202→                        {["Cameroun", "Gabon", "Congo", "Guinée Équatoriale", "Côte d'Ivoire", "Sénégal", "Mali", "Burkina Faso", "Guinée", "Togo", "Bénin"].map((c) => (<option key={c} value={c}>{c}</option>))}
+   203→                      </select>
+   204→                    </div>
+   205→                    <div><Label>Email</Label><Input type="email" placeholder="vous@exemple.com" value={registerForm.email} onChange={(e) => updateRegister("email", e.target.value)} required /></div>
+   206→                    <div><Label>Téléphone</Label><Input placeholder="+237 6XX XXX XXX" value={registerForm.phone} onChange={(e) => updateRegister("phone", e.target.value)} /></div>
+   207→                    <div><Label>Mot de passe</Label><Input type="password" placeholder="••••••••" value={registerForm.password} onChange={(e) => updateRegister("password", e.target.value)} required /></div>
+   208→                    {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
+   209→                    <Button type="submit" className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" disabled={loading}>
+   210→                      {loading ? "Création..." : "Créer mon compte"} <ArrowRight className="w-4 h-4 ml-2" />
+   211→                    </Button>
+   212→                  </form>
+   213→                </DialogContent>
+   214→              </Dialog>
+   215→            </div>
+   216→
+   217→            {/* Mobile menu button */}
+   218→            <button className="md:hidden p-2" onClick={() => setMobileMenu(!mobileMenu)}>
+   219→              {mobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+   220→            </button>
+   221→          </div>
+   222→
+   223→          {/* Mobile menu */}
+   224→          {mobileMenu && (
+   225→            <div className="md:hidden pb-4 border-t border-gray-100 pt-4 space-y-3 animate-fade-in">
+   226→              {navItems.map((item) => (
+   227→                <a key={item.label} href={item.href} className="block text-sm text-gray-600 py-2" onClick={() => setMobileMenu(false)}>
+   228→                  {item.label}
+   229→                </a>
+   230→              ))}
+   231→              <div className="flex flex-col gap-2 pt-3 border-t border-gray-50">
+   232→                <Button variant="outline" className="w-full" onClick={() => { setShowLogin(true); setMobileMenu(false); }}>Se connecter</Button>
+   233→                <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleDemo}>
+   234→                  <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
+   235→                </Button>
+   236→              </div>
+   237→            </div>
+   238→          )}
+   239→        </div>
+   240→      </header>
+   241→
+   242→      {/* ===== HERO SECTION ===== */}
+   243→      <section className="relative overflow-hidden">
+   244→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 lg:py-24">
+   245→          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+   246→            {/* Left: Text */}
+   247→            <div className="animate-fade-in">
+   248→              <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
+   249→                <Sparkles className="w-4 h-4" />
+   250→                Premier CRM WhatsApp pour l&apos;Afrique
+   251→              </div>
+   252→              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] leading-tight mb-6">
+   253→                Transformez WhatsApp en{" "}
+   254→                <span className="text-[#25D366]">machine à vendre</span>
+   255→              </h1>
+   256→              <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-xl">
+   257→                Gérez vos clients, commandes et ventes depuis une seule plateforme. Répondez plus vite,
+   258→                vendez plus et faites grandir votre business africain.
+   259→              </p>
+   260→              <div className="flex flex-col sm:flex-row gap-3 mb-8">
+   261→                <Button
+   262→                  size="lg"
+   263→                  className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20"
+   264→                  onClick={() => setShowRegister(true)}
+   265→                >
+   266→                  Essai gratuit 14 jours
+   267→                  <ArrowRight className="w-5 h-5 ml-2" />
+   268→                </Button>
+   269→                <Button
+   270→                  size="lg"
+   271→                  variant="outline"
+   272→                  className="border-gray-200 text-[#0F172A] text-base font-medium px-8 h-12 hover:bg-gray-50"
+   273→                  onClick={handleDemo}
+   274→                >
+   275→                  <Sparkles className="w-4 h-4 mr-2" />
+   276→                  Voir la démo
+   277→                </Button>
+   278→              </div>
+   279→              {/* Trust badges */}
+   280→              <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500">
+   281→                {[
+   282→                  "Installation facile",
+   283→                  "Sans carte bancaire",
+   284→                  "Annulation à tout moment",
+   285→                ].map((text) => (
+   286→                  <span key={text} className="flex items-center gap-1.5">
+   287→                    <Check className="w-4 h-4 text-[#25D366]" />
+   288→                    {text}
+   289→                  </span>
+   290→                ))}
+   291→              </div>
+   292→            </div>
+   293→
+   294→            {/* Right: Image */}
+   295→            <div className="relative animate-fade-in" style={{ animationDelay: "200ms" }}>
+   296→              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-green-900/10">
+   297→                <img
+   298→                  src="/landing-hero.png"
+   299→                  alt="ChatCommerce CRM - Transformez WhatsApp en machine à vendre"
+   300→                  className="w-full h-auto"
+   301→                />
+   302→              </div>
+   303→              {/* Floating elements */}
+   304→              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "600ms" }}>
+   305→                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+   306→                  <MessageCircle className="w-4 h-4 text-green-600" />
+   307→                </div>
+   308→                <div>
+   309→                  <p className="text-xs font-semibold text-[#0F172A]">+1 258 clients</p>
+   310→                  <p className="text-[10px] text-gray-400">Ce mois-ci</p>
+   311→                </div>
+   312→              </div>
+   313→              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "800ms" }}>
+   314→                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+   315→                  <BarChart3 className="w-4 h-4 text-blue-600" />
+   316→                </div>
+   317→                <div>
+   318→                  <p className="text-xs font-semibold text-[#0F172A]">12.8M XAF</p>
+   319→                  <p className="text-[10px] text-gray-400">Chiffre d&apos;affaires</p>
+   320→                </div>
+   321→              </div>
+   322→            </div>
+   323→          </div>
+   324→        </div>
+   325→      </section>
+   326→
+   327→      {/* ===== TRUSTED BY ===== */}
+   328→      <section className="border-y border-gray-100 bg-gray-50/50 py-10">
+   329→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   330→          <p className="text-center text-sm text-gray-400 font-medium mb-6 uppercase tracking-wider">
+   331→            Ils nous font confiance
+   332→          </p>
+   333→          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
+   334→            {trustedBy.map((brand) => (
+   335→              <span key={brand} className="text-gray-300 font-bold text-sm tracking-wide hover:text-gray-400 transition-colors">
+   336→                {brand}
+   337→              </span>
+   338→            ))}
+   339→          </div>
+   340→        </div>
+   341→      </section>
+   342→
+   343→      {/* ===== FEATURES ===== */}
+   344→      <section id="features" className="py-20">
+   345→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   346→          <div className="text-center mb-14">
+   347→            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+   348→              Tout ce dont vous avez besoin pour vendre sur WhatsApp
+   349→            </h2>
+   350→            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+   351→              Une plateforme complète qui transforme chaque conversation en opportunité de vente.
+   352→            </p>
+   353→          </div>
+   354→          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   355→            {features.map((feat) => (
+   356→              <Card key={feat.title} className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 group py-0 overflow-hidden">
+   357→                <CardContent className="p-6">
+   358→                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${feat.color} mb-4 group-hover:scale-110 transition-transform`}>
+   359→                    <feat.icon className="w-6 h-6" />
+   360→                  </div>
+   361→                  <h3 className="text-lg font-semibold text-[#0F172A] mb-2">{feat.title}</h3>
+   362→                  <p className="text-gray-500 text-sm leading-relaxed">{feat.desc}</p>
+   363→                </CardContent>
+   364→              </Card>
+   365→            ))}
+   366→          </div>
+   367→        </div>
+   368→      </section>
+   369→
+   370→      {/* ===== DASHBOARD PREVIEW ===== */}
+   371→      <section className="py-20 bg-[#0F172A] relative overflow-hidden">
+   372→        <div className="absolute inset-0 opacity-5">
+   373→          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#25D366] rounded-full blur-3xl" />
+   374→          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#2563EB] rounded-full blur-3xl" />
+   375→        </div>
+   376→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+   377→          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+   378→            <div>
+   379→              <p className="text-[#25D366] text-sm font-semibold uppercase tracking-wider mb-4">
+   380→                Une expérience simple et puissante
+   381→              </p>
+   382→              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
+   383→                Gérez votre business depuis WhatsApp
+   384→              </h2>
+   385→              <p className="text-gray-400 leading-relaxed mb-8">
+   386→                Un tableau de bord intuitif qui vous donne une vue complète sur vos clients,
+   387→                vos ventes et la performance de votre équipe. Tout ce dont vous avez besoin,
+   388→                en un coup d&apos;oeil.
+   389→              </p>
+   390→              <div className="grid grid-cols-2 gap-4 mb-8">
+   391→                {[
+   392→                  { value: "1 258", label: "Total clients" },
+   393→                  { value: "568", label: "Commandes" },
+   394→                  { value: "12.85M", label: "Chiffre d'affaires (XAF)" },
+   395→                  { value: "24.6%", label: "Taux de conversion" },
+   396→                ].map((stat) => (
+   397→                  <div key={stat.label} className="bg-white/5 rounded-xl p-4 border border-white/10">
+   398→                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+   399→                    <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+   400→                  </div>
+   401→                ))}
+   402→              </div>
+   403→              <Button
+   404→                className="bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold"
+   405→                onClick={handleDemo}
+   406→              >
+   407→                Voir la démo complète <ChevronRight className="w-4 h-4 ml-1" />
+   408→              </Button>
+   409→            </div>
+   410→            <div className="relative">
+   411→              <img
+   412→                src="/landing-hero.png"
+   413→                alt="Dashboard ChatCommerce"
+   414→                className="rounded-2xl shadow-2xl shadow-black/30 w-full"
+   415→              />
+   416→              <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/20 to-transparent rounded-2xl" />
+   417→            </div>
+   418→          </div>
+   419→        </div>
+   420→      </section>
+   421→
+   422→      {/* ===== TESTIMONIALS ===== */}
+   423→      <section className="py-20 bg-gray-50">
+   424→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   425→          <div className="text-center mb-14">
+   426→            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+   427→              Ce que disent nos utilisateurs
+   428→            </h2>
+   429→            <p className="text-gray-500 text-lg">Des entrepreneurs africains qui font confiance à ChatCommerce.</p>
+   430→          </div>
+   431→          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+   432→            {[
+   433→              { name: "Aminata Diallo", role: "Restauratrice, Dakar", text: "ChatCommerce a transformé la façon dont je gère mes commandes WhatsApp. Mes ventes ont augmenté de 40% en 3 mois !", rating: 5 },
+   434→              { name: "Jean-Pierre Mbarga", role: "Gérant supermarché, Douala", text: "L'automatisation des réponses me fait gagner 3 heures par jour. Je peux me concentrer sur la croissance de mon business.", rating: 5 },
+   435→              { name: "Fatou Bamba", role: "Propriétaire boutique, Abidjan", text: "Le catalogue produits sur WhatsApp est incroyable. Mes clients commandent directement sans appeler. C'est magique !", rating: 5 },
+   436→            ].map((t) => (
+   437→              <Card key={t.name} className="border-0 shadow-sm">
+   438→                <CardContent className="p-6">
+   439→                  <div className="flex gap-0.5 mb-4">
+   440→                    {Array.from({ length: t.rating }).map((_, i) => (
+   441→                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+   442→                    ))}
+   443→                  </div>
+   444→                  <p className="text-gray-600 text-sm leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
+   445→                  <div className="flex items-center gap-3">
+   446→                    <div className="w-10 h-10 rounded-full bg-[#0F172A] text-white flex items-center justify-center text-xs font-bold">
+   447→                      {t.name.split(" ").map((n) => n[0]).join("")}
+   448→                    </div>
+   449→                    <div>
+   450→                      <p className="text-sm font-semibold text-[#0F172A]">{t.name}</p>
+   451→                      <p className="text-xs text-gray-400">{t.role}</p>
+   452→                    </div>
+   453→                  </div>
+   454→                </CardContent>
+   455→              </Card>
+   456→            ))}
+   457→          </div>
+   458→        </div>
+   459→      </section>
+   460→
+   461→      {/* ===== PRICING ===== */}
+   462→      <section id="pricing" className="py-20">
+   463→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   464→          <div className="text-center mb-14">
+   465→            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+   466→              Des tarifs adaptés au marché africain
+   467→            </h2>
+   468→            <p className="text-gray-500 text-lg">Commencez gratuitement, évoluez à votre rythme.</p>
+   469→          </div>
+   470→          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+   471→            {plans.map((plan) => (
+   472→              <Card
+   473→                key={plan.name}
+   474→                className={`border-0 shadow-sm hover:shadow-lg transition-all duration-300 relative ${plan.popular ? "ring-2 ring-[#25D366] scale-105" : ""}`}
+   475→              >
+   476→                {plan.popular && (
+   477→                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+   478→                    <span className="bg-[#25D366] text-white text-xs font-bold px-4 py-1 rounded-full">Le plus populaire</span>
+   479→                  </div>
+   480→                )}
+   481→                <CardContent className="p-6">
+   482→                  <h3 className="text-lg font-semibold text-[#0F172A]">{plan.name}</h3>
+   483→                  <p className="text-sm text-gray-400 mt-1 mb-4">{plan.desc}</p>
+   484→                  <div className="mb-6">
+   485→                    {plan.price === "Sur mesure" ? (
+   486→                      <p className="text-3xl font-bold text-[#0F172A]">Sur mesure</p>
+   487→                    ) : (
+   488→                      <>
+   489→                        <span className="text-4xl font-extrabold text-[#0F172A]">{plan.price}</span>
+   490→                        <span className="text-gray-400 text-sm ml-1">FCFA{plan.period}</span>
+   491→                      </>
+   492→                    )}
+   493→                  </div>
+   494→                  <ul className="space-y-3 mb-6">
+   495→                    {plan.features.map((f) => (
+   496→                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+   497→                        <Check className="w-4 h-4 text-[#25D366] shrink-0" />
+   498→                        {f}
+   499→                      </li>
+   500→                    ))}
+   501→                  </ul>
+   502→                  <Button
+   503→                    className={`w-full font-medium ${plan.popular ? "bg-[#25D366] hover:bg-[#128C7E] text-white" : "bg-[#0F172A] hover:bg-[#1e293b] text-white"}`}
+   504→                    onClick={plan.popular ? () => setShowRegister(true) : handleDemo}
+   505→                  >
+   506→                    {plan.cta}
+   507→                  </Button>
+   508→                </CardContent>
+   509→              </Card>
+   510→            ))}
+   511→          </div>
+   512→        </div>
+   513→      </section>
+   514→
+   515→      {/* ===== FINAL CTA ===== */}
+   516→      <section className="py-20 bg-[#0F172A]">
+   517→        <div className="max-w-4xl mx-auto px-4 text-center">
+   518→          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+   519→            Prêt à transformer WhatsApp en machine à vendre ?
+   520→          </h2>
+   521→          <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
+   522→            Rejoignez des centaines d&apos;entreprises africaines qui utilisent ChatCommerce pour
+   523→            augmenter leurs ventes et fidéliser leurs clients.
+   524→          </p>
+   525→          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+   526→            <Button size="lg" className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20" onClick={() => setShowRegister(true)}>
+   527→              Essai gratuit 14 jours <ArrowRight className="w-5 h-5 ml-2" />
+   528→            </Button>
+   529→            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 text-base font-medium px-8 h-12" onClick={handleDemo}>
+   530→              <Sparkles className="w-4 h-4 mr-2" />Voir la démo
+   531→            </Button>
+   532→          </div>
+   533→        </div>
+   534→      </section>
+   535→
+   536→      {/* ===== FOOTER ===== */}
+   537→      <footer className="bg-[#0a0f1a] text-gray-400 py-12">
+   538→        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   539→          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+   540→            <div className="col-span-2 md:col-span-1">
+   541→              <div className="flex items-center gap-2.5 mb-4">
+   542→                <div className="w-8 h-8 bg-[#25D366] rounded-lg flex items-center justify-center">
+   543→                  <MessageCircle className="w-4 h-4 text-white" />
+   544→                </div>
+   545→                <span className="font-bold text-white">ChatCommerce</span>
+   546→              </div>
+   547→              <p className="text-sm leading-relaxed">
+   548→                Le premier CRM WhatsApp conçu pour les entreprises africaines.
+   549→              </p>
+   550→            </div>
+   551→            <div>
+   552→              <h4 className="font-semibold text-white text-sm mb-3">Produit</h4>
+   553→              <ul className="space-y-2 text-sm">
+   554→                <li><a href="#features" className="hover:text-white transition-colors">Fonctionnalités</a></li>
+   555→                <li><a href="#pricing" className="hover:text-white transition-colors">Tarifs</a></li>
+   556→                <li><a href="#" className="hover:text-white transition-colors">Intégrations</a></li>
+   557→                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
+   558→              </ul>
+   559→            </div>
+   560→            <div>
+   561→              <h4 className="font-semibold text-white text-sm mb-3">Ressources</h4>
+   562→              <ul className="space-y-2 text-sm">
+   563→                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
+   564→                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
+   565→                <li><a href="#" className="hover:text-white transition-colors">Tutoriels</a></li>
+   566→                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
+   567→              </ul>
+   568→            </div>
+   569→            <div>
+   570→              <h4 className="font-semibold text-white text-sm mb-3">Pays</h4>
+   571→              <ul className="space-y-2 text-sm">
+   572→                <li>Cameroun</li>
+   573→                <li>Côte d&apos;Ivoire</li>
+   574→                <li>Sénégal</li>
+   575→                <li>Guinée Équatoriale</li>
+   576→                <li>+ 7 autres pays</li>
+   577→              </ul>
+   578→            </div>
+   579→          </div>
+   580→          <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+   581→            <p className="text-xs">&copy; 2026 ChatCommerce CRM Afrique. Tous droits réservés.</p>
+   582→            <div className="flex gap-4 text-xs">
+   583→              <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
+   584→              <a href="#" className="hover:text-white transition-colors">CGU</a>
+   585→              <a href="#" className="hover:text-white transition-colors">Contact</a>
+   586→            </div>
+   587→          </div>
+   588→        </div>
+   589→      </footer>
+   590→
+   591→      {/* Login/Register dialogs for mobile */}
+   592→      <Dialog open={showLogin} onOpenChange={setShowLogin}>
+   593→        <DialogContent>
+   594→          <DialogHeader><DialogTitle>Connexion</DialogTitle></DialogHeader>
+   595→          <form onSubmit={handleLogin} className="space-y-3">
+   596→            <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} required /></div>
+   597→            <div><Label>Mot de passe</Label><Input type="password" value={form.password} onChange={(e) => updateForm("password", e.target.value)} required /></div>
+   598→            {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
+   599→            <Button type="submit" className="w-full bg-[#0F172A] hover:bg-[#1e293b]" disabled={loading}>
+   600→              {loading ? "Chargement..." : "Se connecter"} <ArrowRight className="w-4 h-4 ml-2" />
+   601→            </Button>
+   602→            <Button type="button" variant="outline" className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366] hover:text-white" onClick={handleDemo} disabled={loading}>
+   603→              <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
+   604→            </Button>
+   605→          </form>
+   606→        </DialogContent>
+   607→      </Dialog>
+   608→
+   609→      <Dialog open={showRegister} onOpenChange={setShowRegister}>
+   610→        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+   611→          <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
+   612→          <p className="text-sm text-gray-500">Démarrez avec ChatCommerce gratuitement. Aucune carte bancaire requise.</p>
+   613→          <form onSubmit={handleRegister} className="space-y-3">
+   614→            <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
+   615→            <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
+   616→            <div><Label>Pays</Label>
+   617→              <select value={registerForm.country} onChange={(e) => updateRegister("country", e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+   618→                {["Cameroun", "Gabon", "Congo", "Guinée Équatoriale", "Côte d'Ivoire", "Sénégal", "Mali", "Burkina Faso", "Guinée", "Togo", "Bénin"].map((c) => (<option key={c} value={c}>{c}</option>))}
+   619→              </select>
+   620→            </div>
+   621→            <div><Label>Email</Label><Input type="email" placeholder="vous@exemple.com" value={registerForm.email} onChange={(e) => updateRegister("email", e.target.value)} required /></div>
+   622→            <div><Label>Téléphone</Label><Input placeholder="+237 6XX XXX XXX" value={registerForm.phone} onChange={(e) => updateRegister("phone", e.target.value)} /></div>
+   623→            <div><Label>Mot de passe</Label><Input type="password" placeholder="••••••••" value={registerForm.password} onChange={(e) => updateRegister("password", e.target.value)} required /></div>
+   624→            {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
+   625→            <Button type="submit" className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" disabled={loading}>
+   626→              {loading ? "Création..." : "Créer mon compte"} <ArrowRight className="w-4 h-4 ml-2" />
+   627→            </Button>
+   628→          </form>
+   629→        </DialogContent>
+   630→      </Dialog>
+   631→    </div>
+   632→  );
+   633→}

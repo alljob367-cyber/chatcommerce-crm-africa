@@ -184,7 +184,7 @@ export default function ContactsPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1.5 flex-wrap">
                         {(c.tags || "").split(",").filter(Boolean).map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-[10px] bg-green-50 text-green-700">{tag}</Badge>
+                          <Badge key={tag} variant="secondary" className="text-[10px] bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-400">{tag}</Badge>
                         ))}
                         <Badge variant="outline" className="text-[10px]">{sourceLabels[c.source] || c.source}</Badge>
                       </div>

@@ -124,9 +124,9 @@ export default function InboxPage() {
   };
 
   const statusColors: Record<string, string> = {
-    new: "bg-blue-100 text-blue-700",
-    open: "bg-green-100 text-green-700",
-    waiting: "bg-yellow-100 text-yellow-700",
+    new: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
+    open: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+    waiting: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
     closed: "bg-muted text-muted-foreground",
   };
   const statusLabels: Record<string, string> = {
@@ -328,8 +328,8 @@ export default function InboxPage() {
 
         {/* Mobile: show selected conversation full screen */}
         {selected && (
-          <div className="md:hidden fixed inset-0 bg-[#ECE5DD] z-50 flex flex-col">
-            <div className="h-14 bg-white px-4 flex items-center gap-3 border-b border-border">
+          <div className="md:hidden fixed inset-0 bg-[#ECE5DD] dark:bg-[#111111] z-50 flex flex-col">
+            <div className="h-14 bg-background px-4 flex items-center gap-3 border-b border-border">
               <Button variant="ghost" size="icon" onClick={() => setSelected(null)}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -352,7 +352,7 @@ export default function InboxPage() {
                 ))}
               </div>
             </ScrollArea>
-            <div className="bg-white px-3 py-2 flex gap-2">
+            <div className="bg-background px-3 py-2 flex gap-2">
               <Input placeholder="Message..." value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} />
               <Button onClick={handleSend} disabled={!reply.trim()} className="bg-[#25D366] hover:bg-[#128C7E]"><Send className="w-4 h-4" /></Button>
             </div>

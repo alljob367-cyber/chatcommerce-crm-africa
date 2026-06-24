@@ -83,12 +83,12 @@ export default function OrdersPage() {
   const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));
 
   const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-    pending: { label: "En attente", color: "bg-yellow-100 text-yellow-700", icon: Clock },
-    confirmed: { label: "Confirmée", color: "bg-blue-100 text-blue-700", icon: CheckCircle },
-    preparing: { label: "En préparation", color: "bg-orange-100 text-orange-700", icon: Package },
-    ready: { label: "Prête", color: "bg-purple-100 text-purple-700", icon: Package },
-    delivered: { label: "Livrée", color: "bg-green-100 text-green-700", icon: Truck },
-    cancelled: { label: "Annulée", color: "bg-red-100 text-red-700", icon: XCircle },
+    pending: { label: "En attente", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400", icon: Clock },
+    confirmed: { label: "Confirmée", color: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400", icon: CheckCircle },
+    preparing: { label: "En préparation", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400", icon: Package },
+    ready: { label: "Prête", color: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400", icon: Package },
+    delivered: { label: "Livrée", color: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400", icon: Truck },
+    cancelled: { label: "Annulée", color: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400", icon: XCircle },
   };
 
   return (
@@ -130,9 +130,9 @@ export default function OrdersPage() {
               const cfg = statusConfig[order.status] || statusConfig.pending;
               const StatusIcon = cfg.icon;
               const paymentColors: Record<string, string> = {
-                paid: "bg-green-100 text-green-700",
-                pending: "bg-yellow-100 text-yellow-700",
-                failed: "bg-red-100 text-red-700",
+                paid: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+                pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400",
+                failed: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
               };
               const paymentLabels: Record<string, string> = {
                 paid: "Payé",

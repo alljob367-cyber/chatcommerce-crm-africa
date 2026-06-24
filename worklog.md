@@ -23,3 +23,26 @@ Stage Summary:
 - WhatsApp-style chat interface with conversation list, message bubbles, status management
 - Dashboard with 6 KPI cards, revenue chart, order status breakdown, top products, team performance
 - African-context data: XAF currency, African names, cities, countries, Orange Money/MTN MoMo payment methods
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Configure dark/light theme toggle and fix dark mode
+
+Work Log:
+- Diagnosed root cause: `.dark` CSS variables block was completely missing from globals.css
+- Added full `.dark` block with 28 dark mode CSS variable overrides (background, foreground, card, popover, primary, secondary, muted, accent, destructive, border, input, ring, chart-1 through chart-5, sidebar variants)
+- Added dark: variants to all status colors across 6 components (dashboard, inbox, orders, leads, automations, AI page)
+- Added dark: variants to all KPI card icon backgrounds (blue, green, emerald, purple, orange, cyan)
+- Fixed hardcoded `bg-white` in inbox mobile view → `bg-background`
+- Fixed hardcoded `bg-white/80` in automations → `bg-muted/50`
+- Added `useTheme` from next-themes to landing page with Sun/Moon toggle button in header
+- Added dark: variants to landing page: hero section, features, testimonials, pricing, trust section, floating badges
+- Build verified: `next build` succeeds with zero errors
+- Browser test verified: clicking toggle button adds `dark` class to `<html>` element
+
+Stage Summary:
+- Dark mode now fully functional across all 9 modules + landing page
+- Toggle button available in: header bar (authenticated), landing page header (unauthenticated)
+- Theme toggle uses next-themes `attribute="class"` strategy with `@custom-variant dark (&:is(.dark *))` in Tailwind v4
+- All color-coded badges, KPI icons, status indicators properly adapt to dark mode using `dark:bg-{color}-500/15 dark:text-{color}-400` pattern

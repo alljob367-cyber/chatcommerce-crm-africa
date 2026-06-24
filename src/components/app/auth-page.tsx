@@ -21,6 +21,8 @@ import {
   Inbox,
   ChevronRight,
   Star,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,9 +31,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTheme } from "next-themes";
 
 export default function AuthPage() {
   const { setAuth } = useAppStore();
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showLogin, setShowLogin] = useState(false);
@@ -118,12 +122,12 @@ export default function AuthPage() {
   ];
 
   const features = [
-    { icon: Inbox, title: "Boîte WhatsApp partagée", desc: "Centralisez toutes vos conversations WhatsApp dans une seule interface collaborative.", color: "bg-green-100 text-green-600" },
-    { icon: ShoppingBag, title: "Catalogue produits", desc: "Affichez vos produits et services directement dans WhatsApp pour vos clients.", color: "bg-blue-100 text-blue-600" },
-    { icon: Smartphone, title: "Gestion des commandes", desc: "Suivez vos commandes, paiements Mobile Money et livraisons en temps réel.", color: "bg-yellow-100 text-yellow-600" },
-    { icon: Bot, title: "Assistant IA", desc: "Répondez automatiquement 24h/24 en français, anglais et espagnol.", color: "bg-purple-100 text-purple-600" },
-    { icon: BarChart3, title: "Tableau de bord", desc: "Analysez vos ventes, performances et croissance avec des KPIs clairs.", color: "bg-red-100 text-red-600" },
-    { icon: Users, title: "Multi-utilisateurs", desc: "Collaborez en équipe avec rôles et permissions personnalisés.", color: "bg-teal-100 text-teal-600" },
+    { icon: Inbox, title: "Boîte WhatsApp partagée", desc: "Centralisez toutes vos conversations WhatsApp dans une seule interface collaborative.", color: "bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400" },
+    { icon: ShoppingBag, title: "Catalogue produits", desc: "Affichez vos produits et services directement dans WhatsApp pour vos clients.", color: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" },
+    { icon: Smartphone, title: "Gestion des commandes", desc: "Suivez vos commandes, paiements Mobile Money et livraisons en temps réel.", color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400" },
+    { icon: Bot, title: "Assistant IA", desc: "Répondez automatiquement 24h/24 en français, anglais et espagnol.", color: "bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400" },
+    { icon: BarChart3, title: "Tableau de bord", desc: "Analysez vos ventes, performances et croissance avec des KPIs clairs.", color: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400" },
+    { icon: Users, title: "Multi-utilisateurs", desc: "Collaborez en équipe avec rôles et permissions personnalisés.", color: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400" },
   ];
 
   const trustedBy = [
@@ -142,9 +146,9 @@ export default function AuthPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-background">
       {/* ===== HEADER / NAV ===== */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+      <header className="sticky top-0 z-50 bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-gray-100 dark:border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -152,14 +156,14 @@ export default function AuthPage() {
               <div className="w-9 h-9 bg-[#25D366] rounded-xl flex items-center justify-center">
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-[#0F172A] text-lg">ChatCommerce</span>
-              <span className="hidden sm:inline text-xs text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded-full ml-1">CRM Afrique</span>
+              <span className="font-bold text-[#0F172A] dark:text-white text-lg">ChatCommerce</span>
+              <span className="hidden sm:inline text-xs text-gray-400 font-medium bg-gray-50 dark:bg-muted px-2 py-0.5 rounded-full ml-1">CRM Afrique</span>
             </div>
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-6">
               {navItems.map((item) => (
-                <a key={item.label} href={item.href} className="text-sm text-gray-600 hover:text-[#0F172A] transition-colors font-medium">
+                <a key={item.label} href={item.href} className="text-sm text-gray-600 dark:text-gray-300 hover:text-[#0F172A] dark:hover:text-white transition-colors font-medium">
                   {item.label}
                 </a>
               ))}
@@ -167,7 +171,16 @@ export default function AuthPage() {
 
             {/* Desktop CTAs */}
             <div className="hidden md:flex items-center gap-3">
-              <Button variant="ghost" className="text-sm text-gray-600 hover:text-[#0F172A]" onClick={() => setShowLogin(true)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                <Sun className="w-4.5 h-4.5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute w-4.5 h-4.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </Button>
+              <Button variant="ghost" className="text-sm text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white" onClick={() => setShowLogin(true)}>
                 Se connecter
               </Button>
               <Dialog open={showLogin} onOpenChange={setShowLogin}>
@@ -222,13 +235,13 @@ export default function AuthPage() {
 
           {/* Mobile menu */}
           {mobileMenu && (
-            <div className="md:hidden pb-4 border-t border-gray-100 pt-4 space-y-3 animate-fade-in">
+            <div className="md:hidden pb-4 border-t border-gray-100 dark:border-border pt-4 space-y-3 animate-fade-in">
               {navItems.map((item) => (
-                <a key={item.label} href={item.href} className="block text-sm text-gray-600 py-2" onClick={() => setMobileMenu(false)}>
+                <a key={item.label} href={item.href} className="block text-sm text-gray-600 dark:text-gray-300 py-2" onClick={() => setMobileMenu(false)}>
                   {item.label}
                 </a>
               ))}
-              <div className="flex flex-col gap-2 pt-3 border-t border-gray-50">
+              <div className="flex flex-col gap-2 pt-3 border-t border-gray-50 dark:border-border">
                 <Button variant="outline" className="w-full" onClick={() => { setShowLogin(true); setMobileMenu(false); }}>Se connecter</Button>
                 <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleDemo}>
                   <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
@@ -245,15 +258,15 @@ export default function AuthPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: Text */}
             <div className="animate-fade-in">
-              <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
+              <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
                 <Sparkles className="w-4 h-4" />
                 Premier CRM WhatsApp pour l&apos;Afrique
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] leading-tight mb-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] dark:text-white leading-tight mb-6">
                 Transformez WhatsApp en{" "}
                 <span className="text-[#25D366]">machine à vendre</span>
               </h1>
-              <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-xl">
+              <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed mb-8 max-w-xl">
                 Gérez vos clients, commandes et ventes depuis une seule plateforme. Répondez plus vite,
                 vendez plus et faites grandir votre business africain.
               </p>
@@ -269,7 +282,7 @@ export default function AuthPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-gray-200 text-[#0F172A] text-base font-medium px-8 h-12 hover:bg-gray-50"
+                  className="border-gray-200 dark:border-border text-[#0F172A] dark:text-white text-base font-medium px-8 h-12 hover:bg-gray-50 dark:hover:bg-muted"
                   onClick={handleDemo}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -277,7 +290,7 @@ export default function AuthPage() {
                 </Button>
               </div>
               {/* Trust badges */}
-              <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500">
+              <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500 dark:text-gray-400">
                 {[
                   "Installation facile",
                   "Sans carte bancaire",
@@ -301,21 +314,21 @@ export default function AuthPage() {
                 />
               </div>
               {/* Floating elements */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "600ms" }}>
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-green-600" />
+              <div className="absolute -top-4 -right-4 bg-white dark:bg-card rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "600ms" }}>
+                <div className="w-8 h-8 bg-green-100 dark:bg-green-500/15 rounded-full flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#0F172A]">+1 258 clients</p>
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-white">+1 258 clients</p>
                   <p className="text-[10px] text-gray-400">Ce mois-ci</p>
                 </div>
               </div>
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "800ms" }}>
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-blue-600" />
+              <div className="absolute -bottom-4 -left-4 bg-white dark:bg-card rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "800ms" }}>
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-500/15 rounded-full flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#0F172A]">12.8M XAF</p>
+                  <p className="text-xs font-semibold text-[#0F172A] dark:text-white">12.8M XAF</p>
                   <p className="text-[10px] text-gray-400">Chiffre d&apos;affaires</p>
                 </div>
               </div>
@@ -325,14 +338,14 @@ export default function AuthPage() {
       </section>
 
       {/* ===== TRUSTED BY ===== */}
-      <section className="border-y border-gray-100 bg-gray-50/50 py-10">
+      <section className="border-y border-gray-100 dark:border-border bg-gray-50/50 dark:bg-muted/30 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-gray-400 font-medium mb-6 uppercase tracking-wider">
             Ils nous font confiance
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
             {trustedBy.map((brand) => (
-              <span key={brand} className="text-gray-300 font-bold text-sm tracking-wide hover:text-gray-400 transition-colors">
+              <span key={brand} className="text-gray-300 dark:text-gray-600 font-bold text-sm tracking-wide hover:text-gray-400 dark:hover:text-gray-500 transition-colors">
                 {brand}
               </span>
             ))}
@@ -344,10 +357,10 @@ export default function AuthPage() {
       <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
               Tout ce dont vous avez besoin pour vendre sur WhatsApp
             </h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+            <p className="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">
               Une plateforme complète qui transforme chaque conversation en opportunité de vente.
             </p>
           </div>
@@ -358,8 +371,8 @@ export default function AuthPage() {
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${feat.color} mb-4 group-hover:scale-110 transition-transform`}>
                     <feat.icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-semibold text-[#0F172A] mb-2">{feat.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{feat.desc}</p>
+                  <h3 className="text-lg font-semibold text-[#0F172A] dark:text-white mb-2">{feat.title}</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{feat.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -420,13 +433,13 @@ export default function AuthPage() {
       </section>
 
       {/* ===== TESTIMONIALS ===== */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 dark:bg-muted/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
               Ce que disent nos utilisateurs
             </h2>
-            <p className="text-gray-500 text-lg">Des entrepreneurs africains qui font confiance à ChatCommerce.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Des entrepreneurs africains qui font confiance à ChatCommerce.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
@@ -441,13 +454,13 @@ export default function AuthPage() {
                       <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#0F172A] text-white flex items-center justify-center text-xs font-bold">
                       {t.name.split(" ").map((n) => n[0]).join("")}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-[#0F172A]">{t.name}</p>
+                      <p className="text-sm font-semibold text-[#0F172A] dark:text-white">{t.name}</p>
                       <p className="text-xs text-gray-400">{t.role}</p>
                     </div>
                   </div>
@@ -462,10 +475,10 @@ export default function AuthPage() {
       <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
               Des tarifs adaptés au marché africain
             </h2>
-            <p className="text-gray-500 text-lg">Commencez gratuitement, évoluez à votre rythme.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Commencez gratuitement, évoluez à votre rythme.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan) => (
@@ -479,21 +492,21 @@ export default function AuthPage() {
                   </div>
                 )}
                 <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-[#0F172A]">{plan.name}</h3>
+                  <h3 className="text-lg font-semibold text-[#0F172A] dark:text-white">{plan.name}</h3>
                   <p className="text-sm text-gray-400 mt-1 mb-4">{plan.desc}</p>
                   <div className="mb-6">
                     {plan.price === "Sur mesure" ? (
-                      <p className="text-3xl font-bold text-[#0F172A]">Sur mesure</p>
+                      <p className="text-3xl font-bold text-[#0F172A] dark:text-white">Sur mesure</p>
                     ) : (
                       <>
-                        <span className="text-4xl font-extrabold text-[#0F172A]">{plan.price}</span>
+                        <span className="text-4xl font-extrabold text-[#0F172A] dark:text-white">{plan.price}</span>
                         <span className="text-gray-400 text-sm ml-1">FCFA{plan.period}</span>
                       </>
                     )}
                   </div>
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                         <Check className="w-4 h-4 text-[#25D366] shrink-0" />
                         {f}
                       </li>

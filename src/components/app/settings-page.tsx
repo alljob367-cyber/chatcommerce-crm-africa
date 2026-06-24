@@ -152,9 +152,9 @@ export default function SettingsPage() {
               <div><Label>Access Token</Label><Input type="password" placeholder="EAAxxxxxxxxxx..." /></div>
               <div><Label>Webhook Verify Token</Label><Input placeholder="my_custom_token" /></div>
             </div>
-            <div className="flex items-center gap-3 mt-4 p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center gap-3 mt-4 p-3 bg-green-50 dark:bg-green-500/10 rounded-lg">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm text-green-700">WhatsApp Business API connecté</span>
+              <span className="text-sm text-green-700 dark:text-green-400">WhatsApp Business API connecté</span>
             </div>
           </CardContent>
         </Card>
