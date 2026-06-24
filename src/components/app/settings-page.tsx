@@ -31,7 +31,7 @@ export default function SettingsPage() {
     {
       name: "Starter",
       icon: Rocket,
-      price: "0",
+      price: "5 000",
       period: "/mois",
       features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"],
       current: plan === "starter",

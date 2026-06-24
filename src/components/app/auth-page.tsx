@@ -140,7 +140,7 @@ export default function AuthPage() {
   ];
 
   const plans = [
-    { name: "Starter", price: "0", period: "/mois", desc: "Pour démarrer votre activité WhatsApp", features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"], cta: "Commencer gratuitement", popular: false },
+    { name: "Starter", price: "5 000", period: "/mois", desc: "Pour démarrer votre activité WhatsApp", features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"], cta: "Démarrer maintenant", popular: false },
     { name: "Business", price: "29 900", period: "/mois", desc: "Pour les entreprises en croissance", features: ["5 000 contacts", "10 agents", "10 000 messages/mois", "Assistant IA", "Automatisations avancées", "Support prioritaire", "API WhatsApp"], cta: "Essai gratuit 14 jours", popular: true },
     { name: "Enterprise", price: "Sur mesure", period: "", desc: "Pour les grandes organisations", features: ["Contacts illimités", "Agents illimités", "Messages illimités", "IA avancée", "API complète", "Support dédié 24/7", "Intégrations sur mesure"], cta: "Contacter les ventes", popular: false },
   ];
@@ -201,12 +201,12 @@ export default function AuthPage() {
               </Dialog>
 
               <Button className="bg-[#25D366] hover:bg-[#128C7E] text-white text-sm font-medium px-5" onClick={() => setShowRegister(true)}>
-                Essai gratuit 14 jours
+                Démarrer maintenant
               </Button>
               <Dialog open={showRegister} onOpenChange={setShowRegister}>
                 <DialogContent className="max-w-md">
                   <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
-                  <p className="text-sm text-gray-500">Démarrez avec ChatCommerce gratuitement. Aucune carte bancaire requise.</p>
+                  <p className="text-sm text-gray-500">Démarrez avec ChatCommerce à partir de 5 000 FCFA/mois. Paiement par Mobile Money.</p>
                   <form onSubmit={handleRegister} className="space-y-3">
                     <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
                     <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
@@ -276,7 +276,7 @@ export default function AuthPage() {
                   className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20"
                   onClick={() => setShowRegister(true)}
                 >
-                  Essai gratuit 14 jours
+                  Commencer à 5 000 FCFA/mois
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button
@@ -478,7 +478,7 @@ export default function AuthPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
               Des tarifs adaptés au marché africain
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-lg">Commencez gratuitement, évoluez à votre rythme.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-lg">Commencez à 5 000 FCFA/mois, évoluez à votre rythme.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan) => (
@@ -537,7 +537,7 @@ export default function AuthPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20" onClick={() => setShowRegister(true)}>
-              Essai gratuit 14 jours <ArrowRight className="w-5 h-5 ml-2" />
+              Commencer à 5 000 FCFA/mois <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 text-base font-medium px-8 h-12" onClick={handleDemo}>
               <Sparkles className="w-4 h-4 mr-2" />Voir la démo
@@ -622,7 +622,7 @@ export default function AuthPage() {
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
-          <p className="text-sm text-gray-500">Démarrez avec ChatCommerce gratuitement. Aucune carte bancaire requise.</p>
+          <p className="text-sm text-gray-500">Démarrez avec ChatCommerce à partir de 5 000 FCFA/mois. Paiement par Mobile Money.</p>
           <form onSubmit={handleRegister} className="space-y-3">
             <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
             <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
