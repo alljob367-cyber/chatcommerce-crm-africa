@@ -39,6 +39,7 @@ export default function RootLayout({
           defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
+          storageKey="cc-theme"
         >
           <TooltipProvider delayDuration={0}>
             {children}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppStore } from "@/store/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,8 +35,12 @@ import { useTheme } from "next-themes";
 
 export default function AuthPage() {
   const { setAuth } = useAppStore();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+  const isDark = mounted ? (resolvedTheme || theme) === "dark" : false;
   const [error, setError] = useState("");
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -146,9 +150,9 @@ export default function AuthPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-background">
+    <div className="min-h-screen bg-background">
       {/* ===== HEADER / NAV ===== */}
-      <header className="sticky top-0 z-50 bg-white/90 dark:bg-background/90 backdrop-blur-md border-b border-gray-100 dark:border-border">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -175,10 +179,10 @@ export default function AuthPage() {
                 variant="ghost"
                 size="icon"
                 className="text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                onClick={() => setTheme(isDark ? "light" : "dark")}
               >
-                <Sun className="w-4.5 h-4.5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute w-4.5 h-4.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <Sun className={`w-4 h-4 transition-all ${isDark ? "rotate-90 scale-0" : "rotate-0 scale-100"}`} />
+                <Moon className={`absolute w-4 h-4 transition-all ${isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`} />
               </Button>
               <Button variant="ghost" className="text-sm text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white" onClick={() => setShowLogin(true)}>
                 Se connecter

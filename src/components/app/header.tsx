@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useAppStore } from "@/store/app";
 import { Bell, Search, Sun, Moon } from "lucide-react";
@@ -14,7 +15,14 @@ interface HeaderProps {
 
 export default function Header({ title, subtitle, children }: HeaderProps) {
   const { user } = useAppStore();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? (resolvedTheme || theme) === "dark" : false;
 
   return (
     <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
@@ -36,10 +44,10 @@ export default function Header({ title, subtitle, children }: HeaderProps) {
           variant="ghost"
           size="icon"
           className="text-muted-foreground hover:text-foreground"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={() => setTheme(isDark ? "light" : "dark")}
         >
-          <Sun className="w-4.5 h-4.5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute w-4.5 h-4.5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className={`w-4 h-4 transition-all ${isDark ? "rotate-90 scale-0" : "rotate-0 scale-100"}`} />
+          <Moon className={`absolute w-4 h-4 transition-all ${isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`} />
           <span className="sr-only">Changer le thème</span>
         </Button>
         <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">

@@ -45,4 +45,26 @@ Stage Summary:
 - Dark mode now fully functional across all 9 modules + landing page
 - Toggle button available in: header bar (authenticated), landing page header (unauthenticated)
 - Theme toggle uses next-themes `attribute="class"` strategy with `@custom-variant dark (&:is(.dark *))` in Tailwind v4
-- All color-coded badges, KPI icons, status indicators properly adapt to dark mode using `dark:bg-{color}-500/15 dark:text-{color}-400` pattern
+- All color-coded badges, KPI icons, status indicators properly adapt to dark mode using `dark:bg-{color}-500/15 dark:text-{color}-400` pattern---
+Task ID: 1
+Agent: main
+Task: Audit complet et réactivation de toutes les fonctionnalités CRM
+
+Work Log:
+- Exploré la structure complète du projet (17 modèles Prisma, 9 modules CRM, 13 routes API)
+- Vérifié la base de données SQLite (303KB, 15 contacts, 12 produits, 10 commandes, 15 conversations, 5 leads, 3 automations)
+- Regénéré le client Prisma (v6.19.2) et vérifié la synchronisation schema/db
+- Corrigé le bug `userId` dans inbox-page.tsx (propriété inexistante dans le store)
+- Corrigé le bug de boucle infinie dans fetchConversations (dependency array contenait `selected`)
+- Amélioré handleStatusChange pour mettre à jour l'état localement sans re-fetch
+- Corrigé le dark mode: hydration mismatch dans header.tsx et auth-page.tsx (ajout de `mounted` state + `resolvedTheme`)
+- Corrigé les couleurs hardcoded dans auth-page (bg-white → bg-background)
+- Amélioré le responsive mobile de l'Inbox (toggle conversation list/chat sur mobile, bouton retour)
+- Créé un script de test complet (test_api.js) validant 17 endpoints
+- Démarré le serveur Next.js 16.1.3 (Turbopack) et vérifié tous les modules
+
+Stage Summary:
+- 17/17 tests API passent (Auth, Dashboard, Contacts CRUD, Conversations, Messages, Products, Categories, Orders CRUD, Leads CRUD, Automations CRUD, AI Assistant)
+- Dark mode corrigé avec gestion propre de l'hydration
+- Inbox mobile-responsive avec navigation conversation/liste
+- Serveur opérationnel sur le port 3000

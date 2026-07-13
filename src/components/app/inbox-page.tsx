@@ -43,7 +43,7 @@ interface Conversation {
 }
 
 export default function InboxPage() {
-  const { token, userId } = useAppStore();
+  const { token, user } = useAppStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<MsgInfo[]>([]);
@@ -54,6 +54,8 @@ export default function InboxPage() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const selectedRef = useRef<Conversation | null>(null);
+
   const fetchConversations = useCallback(() => {
     if (!token) return;
     const params = new URLSearchParams();
@@ -62,13 +64,15 @@ export default function InboxPage() {
       .then((r) => r.json())
       .then((d) => {
         setConversations(d.conversations || []);
-        if (d.conversations?.length > 0 && !selected) {
-          setSelected(d.conversations[0]);
+        if (d.conversations?.length > 0 && !selectedRef.current) {
+          const first = d.conversations[0];
+          setSelected(first);
+          selectedRef.current = first;
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [token, statusFilter, selected]);
+  }, [token, statusFilter]);
 
   useEffect(() => {
     fetchConversations();
@@ -115,7 +119,8 @@ export default function InboxPage() {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ id: convId, status }),
     });
-    fetchConversations();
+    setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, status } : c));
+    if (selected?.id === convId) setSelected((prev) => prev ? { ...prev, status } : prev);
   };
 
   const formatTime = (dateStr: string) => {
@@ -159,8 +164,8 @@ export default function InboxPage() {
       </Header>
 
       <div className="flex h-[calc(100vh-64px)] animate-fade-in">
-        {/* Conversation List */}
-        <div className="w-full md:w-80 border-r border-border flex flex-col shrink-0 bg-background">
+        {/* Conversation List - hidden on mobile when a conversation is selected */}
+        <div className={`w-full md:w-80 border-r border-border flex flex-col shrink-0 bg-background ${selected ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -227,12 +232,15 @@ export default function InboxPage() {
         </div>
 
         {/* Chat Area */}
-        <div className="hidden md:flex flex-1 flex-col inbox-chat-bg">
+        <div className={`${selected ? 'flex' : 'hidden'} md:flex flex-1 flex-col inbox-chat-bg`}>
           {selected ? (
             <>
               {/* Chat Header */}
               <div className="h-16 bg-background px-4 flex items-center justify-between border-b border-border shrink-0">
                 <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setSelected(null)}>
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
                   <Avatar className="w-9 h-9">
                     <AvatarFallback className="bg-[#25D366]/10 text-[#128C7E] text-xs font-semibold">
                       {selected.contact.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
@@ -325,39 +333,6 @@ export default function InboxPage() {
             </div>
           )}
         </div>
-
-        {/* Mobile: show selected conversation full screen */}
-        {selected && (
-          <div className="md:hidden fixed inset-0 bg-[#ECE5DD] dark:bg-[#111111] z-50 flex flex-col">
-            <div className="h-14 bg-background px-4 flex items-center gap-3 border-b border-border">
-              <Button variant="ghost" size="icon" onClick={() => setSelected(null)}>
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-[#25D366]/10 text-[#128C7E] text-xs font-semibold">
-                  {selected.contact.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <p className="font-semibold text-sm">{selected.contact.name}</p>
-            </div>
-            <ScrollArea className="flex-1 p-3">
-              <div className="space-y-2">
-                {messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] px-3 py-2 rounded-lg text-sm ${msg.direction === "outbound" ? "whatsapp-bubble-out" : "whatsapp-bubble-in"}`}>
-                      <p className="text-foreground">{msg.body}</p>
-                      <p className="text-[10px] text-muted-foreground text-right mt-1">{formatTime(msg.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <div className="bg-background px-3 py-2 flex gap-2">
-              <Input placeholder="Message..." value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSend()} />
-              <Button onClick={handleSend} disabled={!reply.trim()} className="bg-[#25D366] hover:bg-[#128C7E]"><Send className="w-4 h-4" /></Button>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
