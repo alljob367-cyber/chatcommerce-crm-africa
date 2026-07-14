@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { safePagination, handleError } from "@/lib/security";
 
 // GET: Lister TOUS les paiements (admin super_admin)
 export async function GET(request: Request) {
@@ -21,17 +22,20 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = {};
+    // C6 FIX: company_admin can only see their own company's payments
+    if (payload.role === "company_admin") {
+      where.companyId = payload.companyId;
+    }
     if (status && status !== "all") where.status = status;
 
     const [payments, total] = await Promise.all([
       db.payment.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
         include: {
           company: { select: { name: true, plan: true, country: true } },
@@ -51,7 +55,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

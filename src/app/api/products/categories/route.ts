@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -21,8 +22,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ categories });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ category }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

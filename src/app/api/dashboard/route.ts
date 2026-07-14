@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { handleError } from "@/lib/security";
 import { Prisma } from "@prisma/client";
 
 async function auth(request: Request) {
@@ -166,7 +167,7 @@ export async function GET(request: Request) {
       recentOrders,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

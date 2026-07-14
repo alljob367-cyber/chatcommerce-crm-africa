@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { safePagination, handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -15,8 +16,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get("conversationId");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     if (!conversationId) {
       return NextResponse.json({ error: "conversationId requis" }, { status: 400 });
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       db.message.findMany({
         where: { conversationId },
         orderBy: { createdAt: "asc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.message.count({ where: { conversationId } }),
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ messages, total });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

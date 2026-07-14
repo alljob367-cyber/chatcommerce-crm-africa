@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { sanitize, safePagination, handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -16,8 +17,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const categoryId = searchParams.get("categoryId") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = { companyId: session.companyId, isActive: true };
     if (search) where.name = { contains: search };
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
         where,
         include: { category: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.product.count({ where }),
@@ -36,8 +36,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ products, total });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -53,11 +53,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nom et prix requis" }, { status: 400 });
     }
 
+    const sanitizedName = sanitize(name);
+    const sanitizedDesc = description ? sanitize(description) : null;
+
     const product = await db.product.create({
       data: {
         companyId: session.companyId,
-        name,
-        description,
+        name: sanitizedName,
+        description: sanitizedDesc,
         price: parseFloat(price),
         compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null,
         categoryId: categoryId || null,
@@ -69,8 +72,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ product }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -99,8 +102,8 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ product });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -120,7 +123,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

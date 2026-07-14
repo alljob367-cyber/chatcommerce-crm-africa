@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { sanitize, safePagination, handleError } from "@/lib/security";
 
 async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -17,8 +18,7 @@ export async function GET(request: Request) {
     const search = searchParams.get("search") || "";
     const tag = searchParams.get("tag") || "";
     const source = searchParams.get("source") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = { companyId: session.companyId };
     if (search) {
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       db.contact.findMany({
         where,
         orderBy: { lastMessageAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.contact.count({ where }),
@@ -43,8 +43,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ contacts, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -60,6 +60,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
     }
 
+    const VALID_SOURCES = ["whatsapp", "manual", "import", "website"];
+    if (source && !VALID_SOURCES.includes(source)) {
+      return NextResponse.json({ error: "Source invalide" }, { status: 400 });
+    }
+
     // Check if contact already exists by phone
     const existing = await db.contact.findFirst({
       where: { companyId: session.companyId, phone },
@@ -68,14 +73,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ce contact existe déjà" }, { status: 409 });
     }
 
+    const sanitizedName = sanitize(name);
+    const sanitizedNotes = notes ? sanitize(notes) : null;
+
     const contact = await db.contact.create({
       data: {
         companyId: session.companyId,
-        name,
+        name: sanitizedName,
         phone,
         email,
         tags: tags || "",
-        notes,
+        notes: sanitizedNotes,
         city,
         country,
         source: source || "manual",
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ contact }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

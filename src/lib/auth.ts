@@ -1,9 +1,12 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "chatcommerce-africa-super-secret-key-2024"
-);
+// C1 FIX: No hardcoded fallback — fail hard if JWT_SECRET is missing
+const secret = process.env.JWT_SECRET;
+if (!secret && process.env.NODE_ENV === "production") {
+  throw new Error("FATAL: JWT_SECRET environment variable is required in production");
+}
+const JWT_SECRET = new TextEncoder().encode(secret || "chatcommerce-dev-only-insecure-key");
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -21,10 +24,11 @@ export async function createToken(payload: {
   companyId: string;
   role: string;
 }): Promise<string> {
-  return new SignJWT(payload as unknown as jose.JWTPayload)
+  return new SignJWT(payload as unknown as JWTPayload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    // M3 FIX: Reduced from 7d to 24h for production
+    .setExpirationTime(process.env.NODE_ENV === "production" ? "24h" : "7d")
     .sign(JWT_SECRET);
 }
 
@@ -41,13 +45,4 @@ export async function verifyToken(
   } catch {
     return null;
   }
-}
-
-export function getSessionFromHeader(
-  request: Request
-): { userId: string; companyId: string; role: string } | null {
-  const auth = request.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return null;
-  // Synchronous decode not possible with jose, but for API routes we'll verify async
-  return null;
 }

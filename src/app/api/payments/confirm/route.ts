@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { handleError } from "@/lib/security";
 
 const PLAN_LIMITS: Record<string, { maxContacts: number; maxAgents: number }> = {
   starter: { maxContacts: 500, maxAgents: 3 },
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
     // Vérifier que c'est un admin
     if (payload.role !== "super_admin" && payload.role !== "company_admin") {
-      return NextResponse.json({ error: "Acces refuse. Reservé aux administrateurs." }, { status: 403 });
+      return NextResponse.json({ error: "Acces refuse. Reserve aux administrateurs." }, { status: 403 });
     }
 
     const body = await request.json();
@@ -46,11 +47,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Paiement non trouve" }, { status: 404 });
     }
 
+    // C5 FIX: company_admin can only manage their own company's payments
+    if (payload.role === "company_admin" && payment.companyId !== payload.companyId) {
+      return NextResponse.json({ error: "Acces refuse" }, { status: 403 });
+    }
+
     if (payment.status !== "pending") {
       return NextResponse.json(
         { error: `Ce paiement est deja ${payment.status}` },
         { status: 400 }
       );
+    }
+
+    const PLAN_PRICES: Record<string, number> = { starter: 5000, business: 29900, enterprise: 99900 };
+    if (payment.amount !== PLAN_PRICES[payment.plan]) {
+      return NextResponse.json({ error: "Montant incorrect pour ce plan" }, { status: 400 });
     }
 
     // Vérifier l'expiration
@@ -130,7 +141,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, payment: updated });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

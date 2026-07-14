@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { sanitize, safePagination, handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -15,8 +16,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = { companyId: session.companyId };
     if (status && status !== "all") where.status = status;
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
           },
         },
         orderBy: { lastMessageAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.conversation.count({ where }),
@@ -41,8 +41,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ conversations, total });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -53,6 +53,8 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { contactId, message, type } = body;
+
+    const cleanMessage = sanitize(message || "");
 
     // Create or find conversation
     let conversation = await db.conversation.findFirst({
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
     const msg = await db.message.create({
       data: {
         conversationId: conversation.id,
-        body: message || "",
+        body: cleanMessage,
         direction: "outbound",
         type: type || "text",
         senderType: "agent",
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
     await db.conversation.update({
       where: { id: conversation.id },
       data: {
-        lastMessage: message,
+        lastMessage: cleanMessage,
         lastMessageAt: new Date(),
         status: "open",
       },
@@ -94,8 +96,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: msg, conversation });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -114,7 +116,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ conversation });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

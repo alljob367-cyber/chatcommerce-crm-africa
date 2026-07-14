@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword, createToken, verifyToken } from "@/lib/auth";
 import { seedDatabase } from "@/lib/seed";
+import { isValidEmail, isValidPassword, rateLimit, handleError, secureRandom } from "@/lib/security";
 
 export async function POST(request: Request) {
   try {
@@ -10,18 +11,47 @@ export async function POST(request: Request) {
 
     if (action === "register") {
       const { name, email, password, companyName, country, phone } = body;
+
       if (!name || !email || !password || !companyName) {
         return NextResponse.json(
-          { error: "Tous les champs requis doivent être remplis" },
+          { error: "Tous les champs requis doivent etre remplis" },
           { status: 400 }
         );
       }
+
+      // H4 FIX: Validate email format
+      if (!isValidEmail(email)) {
+        return NextResponse.json(
+          { error: "Format d'email invalide" },
+          { status: 400 }
+        );
+      }
+
+      // H3 FIX: Validate password complexity
+      if (!isValidPassword(password)) {
+        return NextResponse.json(
+          { error: "Le mot de passe doit contenir au moins 8 caracteres avec des majuscules, minuscules et chiffres" },
+          { status: 400 }
+        );
+      }
+
+      // H1 FIX: Rate limit registrations
+      const rlReg = rateLimit(`register:${request.headers.get("x-forwarded-for") || "unknown"}`, 3, 3600000);
+      if (!rlReg.allowed) {
+        return NextResponse.json(
+          { error: "Trop de tentatives d'inscription. Veuillez patienter." },
+          { status: 429 }
+        );
+      }
+
+      // L3 FIX: More random slug
+      const slug = companyName.toLowerCase().replace(/\s+/g, "-").slice(0, 40) + "-" + secureRandom(6).toLowerCase();
 
       // Create company
       const company = await db.company.create({
         data: {
           name: companyName,
-          slug: companyName.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now().toString(36),
+          slug,
           country: country || "Cameroun",
           plan: "starter",
           maxContacts: 500,
@@ -38,17 +68,18 @@ export async function POST(request: Request) {
           name,
           phone,
           role: "company_admin",
-          emailVerified: true,
+          // H8 FIX: Email NOT auto-verified
+          emailVerified: false,
           companyId: company.id,
         },
       });
 
-      // Create subscription
+      // Create subscription (trial)
       await db.subscription.create({
         data: {
           companyId: company.id,
           plan: "starter",
-          status: "active",
+          status: "trialing",
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 14 * 86400000),
         },
@@ -70,8 +101,17 @@ export async function POST(request: Request) {
     if (action === "login") {
       const { email, password } = body;
 
-      // Try demo login first
-      if (email === "demo@chatcommerce.africa" && password === "demo") {
+      // H1 FIX: Rate limit login attempts
+      const rlLogin = rateLimit(`login:${email || request.headers.get("x-forwarded-for") || "unknown"}`, 5, 60000);
+      if (!rlLogin.allowed) {
+        return NextResponse.json(
+          { error: "Trop de tentatives. Veuillez patienter." },
+          { status: 429 }
+        );
+      }
+
+      // C4 FIX: Demo login disabled in production
+      if (process.env.NODE_ENV !== "production" && email === "demo@chatcommerce.africa" && password === "demo") {
         let company = await db.company.findFirst({
           where: { slug: "chatcommerce-demo" },
         });
@@ -102,23 +142,23 @@ export async function POST(request: Request) {
         );
       }
 
-      // Find user - try to find by email across all companies
+      // H4 FIX: Validate email format
+      if (!isValidEmail(email)) {
+        return NextResponse.json({ error: "Format d'email invalide" }, { status: 400 });
+      }
+
       const users = await db.user.findMany({
         where: { email },
         include: { company: true },
       });
 
       if (users.length === 0) {
-        return NextResponse.json(
-          { error: "Identifiants invalides" },
-          { status: 401 }
-        );
+        return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
       }
 
-      // Check password for each user with this email
       const bcrypt = await import("bcryptjs");
-      let matchedUser = null;
-      let matchedCompany = null;
+      let matchedUser: typeof users[0] | null = null;
+      let matchedCompany: typeof users[0]["company"] | null = null;
 
       for (const u of users) {
         const valid = await bcrypt.compare(password, u.passwordHash);
@@ -129,11 +169,13 @@ export async function POST(request: Request) {
         }
       }
 
-      if (!matchedUser) {
-        return NextResponse.json(
-          { error: "Identifiants invalides" },
-          { status: 401 }
-        );
+      if (!matchedUser || !matchedCompany) {
+        return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
+      }
+
+      // Check if user is active
+      if (!matchedUser.isActive) {
+        return NextResponse.json({ error: "Compte desactive" }, { status: 403 });
       }
 
       const token = await createToken({
@@ -159,6 +201,11 @@ export async function POST(request: Request) {
     }
 
     if (action === "demo") {
+      // C4 FIX: Demo only available in development
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json({ error: "Mode demo desactive en production" }, { status: 403 });
+      }
+
       let company = await db.company.findFirst({
         where: { slug: "chatcommerce-demo" },
       });
@@ -169,10 +216,7 @@ export async function POST(request: Request) {
         where: { companyId: company.id, role: "company_admin" },
       });
       if (!user) {
-        return NextResponse.json(
-          { error: "Compte demo non trouvé" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Compte demo non trouve" }, { status: 404 });
       }
       const token = await createToken({
         userId: user.id,
@@ -188,8 +232,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: "Action non reconnue" }, { status: 400 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -197,7 +241,7 @@ export async function GET(request: Request) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+      return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
 
     const payload = await verifyToken(token);
@@ -221,11 +265,17 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
+      return NextResponse.json({ error: "Utilisateur non trouve" }, { status: 404 });
+    }
+
+    // M4 FIX: Check if user is still active
+    if (!user.role || (user as Record<string, unknown>).isActive === false) {
+      return NextResponse.json({ error: "Compte desactive" }, { status: 403 });
     }
 
     return NextResponse.json({ user });
-  } catch {
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

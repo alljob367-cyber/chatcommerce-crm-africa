@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { sanitize, safePagination, handleError } from "@/lib/security";
 
 async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -15,8 +16,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = { companyId: session.companyId };
     if (status) where.status = status;
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
           assignedTo: { select: { name: true, avatar: true } },
         },
         orderBy: { updatedAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.lead.count({ where }),
@@ -37,8 +37,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ leads, total });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -50,21 +50,29 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { contactId, status, value, notes, assignedToId } = body;
 
+    const VALID_LEAD_STATUSES = ["new", "contacted", "qualified", "converted", "lost"];
+    const VALID_SOURCES = ["whatsapp", "manual", "import", "website"];
+    if (status && !VALID_LEAD_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
+    }
+
+    const sanitizedNotes = notes ? sanitize(notes) : null;
+
     const lead = await db.lead.create({
       data: {
         companyId: session.companyId,
         contactId,
         status: status || "new",
         value: value || 0,
-        notes,
+        notes: sanitizedNotes,
         assignedToId,
       },
     });
 
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -83,7 +91,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ lead });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

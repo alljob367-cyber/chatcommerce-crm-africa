@@ -119,7 +119,7 @@ export async function seedDatabase() {
     { name: "Alain Moukouri", phone: "+24206123456", city: "Brazzaville", tags: "nouveau,prospect" },
   ];
 
-  const createdContacts = [];
+  const createdContacts: Awaited<ReturnType<typeof db.contact.create>>[] = [];
   for (const c of contacts) {
     const contact = await db.contact.create({
       data: {

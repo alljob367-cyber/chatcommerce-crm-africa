@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { secureRandom, handleError } from "@/lib/security";
 
 const PLAN_PRICES: Record<string, number> = {
   starter: 5000,
@@ -8,12 +9,8 @@ const PLAN_PRICES: Record<string, number> = {
   enterprise: 99900,
 };
 
-// Générer une référence de paiement unique
 function generateRef(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let ref = "PAY-";
-  for (let i = 0; i < 8; i++) ref += chars[Math.floor(Math.random() * chars.length)];
-  return ref;
+  return "PAY-" + secureRandom(8);
 }
 
 // POST: Créer une demande de paiement manuel
@@ -108,8 +105,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -156,7 +153,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ payments });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

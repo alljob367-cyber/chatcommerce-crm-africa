@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { safePagination, handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -16,8 +17,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const contactId = searchParams.get("contactId") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
     const where: Record<string, unknown> = { companyId: session.companyId };
     if (status && status !== "all") where.status = status;
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
           createdBy: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       db.order.count({ where }),
@@ -40,8 +40,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ orders, total });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -57,8 +57,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Contact et articles requis" }, { status: 400 });
     }
 
-    // Calculate totals
-    const subtotal = items.reduce((s: number, i: { unitPrice: number; quantity: number }) => s + i.unitPrice * i.quantity, 0);
+    // H7 FIX: Validate prices from database, not client
+    const itemData: { productId: string; productName: string; quantity: number; unitPrice: number; total: number }[] = [];
+    let subtotal = 0;
+    for (const item of items) {
+      if (!item.productId || !item.quantity || item.quantity < 1) {
+        return NextResponse.json({ error: "Donnees d'article invalides" }, { status: 400 });
+      }
+      const product = await db.product.findFirst({
+        where: { id: item.productId, companyId: session.companyId, isActive: true },
+      });
+      if (!product) {
+        return NextResponse.json({ error: `Produit ${item.productId} non trouve` }, { status: 404 });
+      }
+      const unitPrice = product.price;
+      const lineTotal = unitPrice * item.quantity;
+      subtotal += lineTotal;
+      itemData.push({
+        productId: product.id,
+        productName: product.name,
+        quantity: item.quantity,
+        unitPrice,
+        total: lineTotal,
+      });
+    }
     const tax = subtotal * 0.19;
     const total = subtotal + tax;
 
@@ -83,7 +105,7 @@ export async function POST(request: Request) {
       },
     });
 
-    for (const item of items) {
+    for (const item of itemData) {
       await db.orderItem.create({
         data: {
           orderId: order.id,
@@ -91,15 +113,15 @@ export async function POST(request: Request) {
           productName: item.productName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          total: item.unitPrice * item.quantity,
+          total: item.total,
         },
       });
     }
 
     return NextResponse.json({ order }, { status: 201 });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -126,7 +148,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ order });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erreur serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
