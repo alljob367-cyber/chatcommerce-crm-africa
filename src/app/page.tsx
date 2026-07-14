@@ -13,6 +13,8 @@ import LeadsPage from "@/components/app/leads-page";
 import AutomationsPage from "@/components/app/automations-page";
 import AIPage from "@/components/app/ai-page";
 import SettingsPage from "@/components/app/settings-page";
+import PaymentsPage from "@/components/app/payments-page";
+import AdminPaymentsPage from "@/components/app/admin-payments-page";
 
 function ErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   return (
@@ -38,6 +40,8 @@ function PageRenderer({ page }: { page: string }) {
     case "automations": return <AutomationsPage key={key} />;
     case "ai": return <AIPage key={key} />;
     case "settings": return <SettingsPage key={key} />;
+    case "payments": return <PaymentsPage key={key} />;
+    case "admin-payments": return <AdminPaymentsPage key={key} />;
     default: return <DashboardPage key={key} />;
   }
 }

@@ -24,8 +24,21 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user } = useAppStore();
+  const { user, setPage } = useAppStore();
   const plan = user?.company?.plan || "starter";
+
+  const planKeys: Record<string, string> = {
+    "Starter": "starter",
+    "Business": "business",
+    "Enterprise": "enterprise",
+  };
+
+  const handleUpgrade = (planName: string) => {
+    const key = planKeys[planName];
+    if (key && key !== plan) {
+      setPage("payments");
+    }
+  };
 
   const plans = [
     {
@@ -128,10 +141,11 @@ export default function SettingsPage() {
                     ))}
                   </ul>
                   <Button
-                    className={`w-full ${p.current ? "bg-muted text-muted-foreground" : "bg-primary hover:bg-primary/90"}`}
+                    className={`w-full ${p.current ? "bg-muted text-muted-foreground" : "bg-[#25D366] hover:bg-[#25D366]/90 text-white"}`}
                     disabled={p.current}
+                    onClick={() => handleUpgrade(p.name)}
                   >
-                    {p.current ? "Plan actuel" : "Changer de plan"}
+                    {p.current ? "Plan actuel" : "Payer via Mobile Money"}
                   </Button>
                 </CardContent>
               </Card>

@@ -12,6 +12,8 @@ import {
   Zap,
   Settings,
   Bot,
+  CreditCard,
+  Shield,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -26,7 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string }[] = [
+const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean }[] = [
   { page: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { page: "inbox", label: "Inbox WhatsApp", icon: MessageSquare, badge: "3" },
   { page: "contacts", label: "Contacts", icon: Users },
@@ -35,7 +37,9 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "orders", label: "Commandes", icon: ShoppingCart, badge: "2" },
   { page: "automations", label: "Automatisations", icon: Zap },
   { page: "ai", label: "Assistant IA", icon: Bot },
-  { page: "settings", label: "Paramètres", icon: Settings },
+  { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
+  { page: "settings", label: "Parametres", icon: Settings },
+  { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -79,7 +83,9 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto custom-scroll">
-        {navItems.map(({ page, label, icon: Icon, badge }) => {
+        {navItems
+          .filter((item) => !item.adminOnly || (user?.role === "super_admin" || user?.role === "company_admin"))
+          .map(({ page, label, icon: Icon, badge }) => {
           const isActive = currentPage === page;
           return (
             <Tooltip key={page} delayDuration={0}>

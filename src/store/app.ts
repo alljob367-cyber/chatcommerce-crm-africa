@@ -9,7 +9,9 @@ export type Page =
   | "leads"
   | "automations"
   | "settings"
-  | "ai";
+  | "ai"
+  | "payments"
+  | "admin-payments";
 
 export interface User {
   id: string;

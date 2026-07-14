@@ -1,0 +1,136 @@
+import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
+
+const PLAN_LIMITS: Record<string, { maxContacts: number; maxAgents: number }> = {
+  starter: { maxContacts: 500, maxAgents: 3 },
+  business: { maxContacts: 5000, maxAgents: 10 },
+  enterprise: { maxContacts: 999999, maxAgents: 999999 },
+};
+
+// POST: Confirmer ou rejeter un paiement (admin only)
+export async function POST(request: Request) {
+  try {
+    const token = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token);
+    if (!payload) {
+      return NextResponse.json({ error: "Token invalide" }, { status: 401 });
+    }
+
+    // Vérifier que c'est un admin
+    if (payload.role !== "super_admin" && payload.role !== "company_admin") {
+      return NextResponse.json({ error: "Acces refuse. Reservé aux administrateurs." }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { paymentId, action, rejectionReason } = body;
+
+    if (!paymentId || !action) {
+      return NextResponse.json({ error: "paymentId et action requis" }, { status: 400 });
+    }
+
+    if (!["confirm", "reject"].includes(action)) {
+      return NextResponse.json({ error: "Action invalide. Utilisez 'confirm' ou 'reject'." }, { status: 400 });
+    }
+
+    // Trouver le paiement
+    const payment = await db.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      return NextResponse.json({ error: "Paiement non trouve" }, { status: 404 });
+    }
+
+    if (payment.status !== "pending") {
+      return NextResponse.json(
+        { error: `Ce paiement est deja ${payment.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Vérifier l'expiration
+    if (new Date() > payment.expiresAt) {
+      await db.payment.update({
+        where: { id: paymentId },
+        data: { status: "expired" },
+      });
+      return NextResponse.json({ error: "Ce paiement a expire" }, { status: 400 });
+    }
+
+    if (action === "reject") {
+      const updated = await db.payment.update({
+        where: { id: paymentId },
+        data: {
+          status: "rejected",
+          rejectionReason: rejectionReason || "Paiement rejete par l'administrateur",
+          confirmedById: payload.userId,
+          confirmedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ success: true, payment: updated });
+    }
+
+    // Action: confirm
+    const updated = await db.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: "confirmed",
+        confirmedById: payload.userId,
+        confirmedAt: new Date(),
+      },
+    });
+
+    // Mettre à jour le plan de la compagnie
+    const limits = PLAN_LIMITS[payment.plan];
+    await db.company.update({
+      where: { id: payment.companyId },
+      data: {
+        plan: payment.plan,
+        maxContacts: limits.maxContacts,
+        maxAgents: limits.maxAgents,
+      },
+    });
+
+    // Mettre à jour ou créer la subscription
+    const existingSub = await db.subscription.findFirst({
+      where: {
+        companyId: payment.companyId,
+        status: { in: ["active", "trialing"] },
+      },
+    });
+
+    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    if (existingSub) {
+      await db.subscription.update({
+        where: { id: existingSub.id },
+        data: {
+          plan: payment.plan,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: periodEnd,
+        },
+      });
+    } else {
+      await db.subscription.create({
+        data: {
+          companyId: payment.companyId,
+          plan: payment.plan,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: periodEnd,
+        },
+      });
+    }
+
+    return NextResponse.json({ success: true, payment: updated });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur serveur";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
