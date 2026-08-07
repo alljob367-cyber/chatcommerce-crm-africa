@@ -1,0 +1,622 @@
+   355→    if (!servicesAgent || !serviceForm.name || !serviceForm.price) {
+   356→      toast.error("Nom et prix requis");
+   357→      return;
+   358→    }
+   359→    setServiceSaving(true);
+   360→    try {
+   361→      const res = await fetch(`/api/telegram/agents/${servicesAgent.id}/services`, {
+   362→        method: "POST",
+   363→        headers: { ...headers, "Content-Type": "application/json" },
+   364→        body: JSON.stringify(serviceForm),
+   365→      });
+   366→      if (!res.ok) throw new Error();
+   367→      toast.success("Service ajouté");
+   368→      setServiceForm({ name: "", description: "", price: "", duration: "", isActive: true });
+   369→      // Refresh services
+   370→      const svcRes = await fetch(`/api/telegram/agents/${servicesAgent.id}/services`, { headers });
+   371→      if (svcRes.ok) {
+   372→        const data = await svcRes.json();
+   373→        setServices(data.services || []);
+   374→      }
+   375→      await fetchAgents();
+   376→    } catch {
+   377→      toast.error("Erreur lors de l\'ajout du service");
+   378→    } finally {
+   379→      setServiceSaving(false);
+   380→    }
+   381→  };
+   382→
+   383→  const deleteService = async (serviceId: string) => {
+   384→    if (!servicesAgent) return;
+   385→    try {
+   386→      // Use the service directly via the agent API by deleting individually
+   387→      const res = await fetch(`/api/telegram/agents/${servicesAgent.id}/services?serviceId=${serviceId}`, {
+   388→        method: "DELETE",
+   389→        headers,
+   390→      });
+   391→      if (!res.ok) {
+   392→        // Fallback: just remove from local state
+   393→      }
+   394→      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+   395→      toast.success("Service supprimé");
+   396→      await fetchAgents();
+   397→    } catch {
+   398→      // Still remove locally
+   399→      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+   400→    }
+   401→  };
+   402→
+   403→  // ─── Booking Actions ───────────────────────────────────────────
+   404→
+   405→  const updateBookingStatus = async (id: string, status: string) => {
+   406→    try {
+   407→      const res = await fetch("/api/telegram/bookings", {
+   408→        method: "PUT",
+   409→        headers: { ...headers, "Content-Type": "application/json" },
+   410→        body: JSON.stringify({ id, status }),
+   411→      });
+   412→      if (!res.ok) throw new Error();
+   413→      toast.success(`Réservation ${status === "confirmed" ? "confirmée" : status === "completed" ? "terminée" : "annulée"}`);
+   414→      await fetchBookings(bookingStatusFilter);
+   415→    } catch {
+   416→      toast.error("Erreur lors de la mise à jour");
+   417→    }
+   418→  };
+   419→
+   420→  // ─── Render ────────────────────────────────────────────────────
+   421→
+   422→  if (loading) {
+   423→    return (
+   424→      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+   425→        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+   426→      </div>
+   427→    );
+   428→  }
+   429→
+   430→  return (
+   431→    <div className="p-4 md:p-6 space-y-6">
+   432→      {/* Header */}
+   433→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   434→        <div>
+   435→          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+   436→            <Bot className="w-7 h-7 text-[#0088cc]" />
+   437→            Agents Telegram
+   438→          </h1>
+   439→          <p className="text-sm text-muted-foreground mt-1">
+   440→            Gérez vos bots de réservation pour restaurants et salons de coiffure
+   441→          </p>
+   442→        </div>
+   443→        <Button onClick={openCreateAgent} className="gap-2">
+   444→          <Plus className="w-4 h-4" />
+   445→          Ajouter un Agent
+   446→        </Button>
+   447→      </div>
+   448→
+   449→      {/* Stats Cards */}
+   450→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   451→        {stats.map((stat) => (
+   452→          <Card key={stat.label} className="border-0 shadow-sm">
+   453→            <CardContent className="p-4">
+   454→              <div className="flex items-center gap-3">
+   455→                <div className={`p-2.5 rounded-xl ${stat.bg}`}>
+   456→                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+   457→                </div>
+   458→                <div>
+   459→                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+   460→                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+   461→                </div>
+   462→              </div>
+   463→            </CardContent>
+   464→          </Card>
+   465→        ))}
+   466→      </div>
+   467→
+   468→      {/* Tabs */}
+   469→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+   470→        <TabsList className="bg-muted/50">
+   471→          <TabsTrigger value="agents" className="gap-2">
+   472→            <Bot className="w-4 h-4" />
+   473→            Agents
+   474→          </TabsTrigger>
+   475→          <TabsTrigger value="reservations" className="gap-2">
+   476→            <CalendarDays className="w-4 h-4" />
+   477→            Réservations
+   478→            {pendingCount > 0 && (
+   479→              <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+   480→                {pendingCount}
+   481→              </span>
+   482→            )}
+   483→          </TabsTrigger>
+   484→        </TabsList>
+   485→
+   486→        {/* ─── Agents Tab ─── */}
+   487→        <TabsContent value="agents" className="mt-4">
+   488→          {agents.length === 0 ? (
+   489→            <Card className="border-0 shadow-sm">
+   490→              <CardContent className="p-12 text-center">
+   491→                <Bot className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+   492→                <h3 className="text-lg font-semibold text-foreground mb-1">Aucun agent Telegram</h3>
+   493→                <p className="text-sm text-muted-foreground mb-4">
+   494→                  Créez votre premier bot de réservation pour votre restaurant ou salon.
+   495→                </p>
+   496→                <Button onClick={openCreateAgent} className="gap-2">
+   497→                  <Plus className="w-4 h-4" />
+   498→                  Créer un Agent
+   499→                </Button>
+   500→              </CardContent>
+   501→            </Card>
+   502→          ) : (
+   503→            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+   504→              {agents.map((agent) => (
+   505→                <Card key={agent.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+   506→                  <CardHeader className="pb-3">
+   507→                    <div className="flex items-start justify-between">
+   508→                      <div className="flex items-center gap-3">
+   509→                        <div className={`p-2.5 rounded-xl ${agent.businessType === "restaurant" ? "bg-orange-50 dark:bg-orange-950/40" : "bg-pink-50 dark:bg-pink-950/40"}`}>
+   510→                          {agent.businessType === "restaurant" ? (
+   511→                            <UtensilsCrossed className={`w-5 h-5 ${agent.businessType === "restaurant" ? "text-orange-600" : "text-pink-600"}`} />
+   512→                          ) : (
+   513→                            <Scissors className="w-5 h-5 text-pink-600" />
+   514→                          )}
+   515→                        </div>
+   516→                        <div>
+   517→                          <CardTitle className="text-base font-semibold text-foreground">{agent.name}</CardTitle>
+   518→                          {agent.botUsername && (
+   519→                            <p className="text-xs text-muted-foreground">@{agent.botUsername.replace("@", "")}</p>
+   520→                          )}
+   521→                        </div>
+   522→                      </div>
+   523→                      <Switch
+   524→                        checked={agent.isActive}
+   525→                        onCheckedChange={() => toggleAgentActive(agent)}
+   526→                      />
+   527→                    </div>
+   528→                  </CardHeader>
+   529→                  <CardContent className="space-y-4">
+   530→                    <div className="flex items-center gap-2">
+   531→                      <Badge variant="outline" className={
+   532→                        agent.businessType === "restaurant"
+   533→                          ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+   534→                          : "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400"
+   535→                      }>
+   536→                        {agent.businessType === "restaurant" ? "🍽️ Restaurant" : "✂️ Salon de coiffure"}
+   537→                      </Badge>
+   538→                      {!agent.isActive && (
+   539→                        <Badge variant="outline" className="bg-muted text-muted-foreground">
+   540→                          Inactif
+   541→                        </Badge>
+   542→                      )}
+   543→                    </div>
+   544→
+   545→                    <div className="space-y-1.5 text-sm">
+   546→                      {agent.address && (
+   547→                        <div className="flex items-center gap-2 text-muted-foreground">
+   548→                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+   549→                          <span className="truncate">{agent.address}</span>
+   550→                        </div>
+   551→                      )}
+   552→                      {agent.phone && (
+   553→                        <div className="flex items-center gap-2 text-muted-foreground">
+   554→                          <Phone className="w-3.5 h-3.5 shrink-0" />
+   555→                          <span>{agent.phone}</span>
+   556→                        </div>
+   557→                      )}
+   558→                      {agent.paymentMethod && (
+   559→                        <div className="flex items-center gap-2 text-muted-foreground">
+   560→                          <CreditCard className="w-3.5 h-3.5 shrink-0" />
+   561→                          <span>{agent.paymentMethod}</span>
+   562→                        </div>
+   563→                      )}
+   564→                    </div>
+   565→
+   566→                    <div className="flex items-center gap-4 pt-2 border-t border-border">
+   567→                      <div className="text-center">
+   568→                        <p className="text-lg font-bold text-foreground">{agent._count.services}</p>
+   569→                        <p className="text-[11px] text-muted-foreground">Services</p>
+   570→                      </div>
+   571→                      <div className="text-center">
+   572→                        <p className="text-lg font-bold text-foreground">{agent._count.bookings}</p>
+   573→                        <p className="text-[11px] text-muted-foreground">Réservations</p>
+   574→                      </div>
+   575→                    </div>
+   576→
+   577→                    <div className="flex items-center gap-2 pt-2">
+   578→                      <Button
+   579→                        variant="outline"
+   580→                        size="sm"
+   581→                        className="flex-1 gap-1.5 text-xs"
+   582→                        onClick={() => openServices(agent)}
+   583→                      >
+   584→                        <Settings2 className="w-3.5 h-3.5" />
+   585→                        Services
+   586→                      </Button>
+   587→                      <Button
+   588→                        variant="outline"
+   589→                        size="sm"
+   590→                        className="gap-1.5 text-xs"
+   591→                        onClick={() => openEditAgent(agent)}
+   592→                      >
+   593→                        <Edit className="w-3.5 h-3.5" />
+   594→                      </Button>
+   595→                      <Button
+   596→                        variant="outline"
+   597→                        size="sm"
+   598→                        className="gap-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+   599→                        onClick={() => deleteAgent(agent.id)}
+   600→                      >
+   601→                        <Trash2 className="w-3.5 h-3.5" />
+   602→                      </Button>
+   603→                    </div>
+   604→                  </CardContent>
+   605→                </Card>
+   606→              ))}
+   607→            </div>
+   608→          )}
+   609→        </TabsContent>
+   610→
+   611→        {/* ─── Reservations Tab ─── */}
+   612→        <TabsContent value="reservations" className="mt-4">
+   613→          <Card className="border-0 shadow-sm">
+   614→            <CardHeader className="pb-3">
+   615→              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   616→                <CardTitle className="text-base font-semibold">
+   617→                  Toutes les Réservations
+   618→                </CardTitle>
+   619→                <Select value={bookingStatusFilter} onValueChange={(v) => { setBookingStatusFilter(v); fetchBookings(v); }}>
+   620→                  <SelectTrigger className="w-full sm:w-48">
+   621→                    <SelectValue placeholder="Filtrer par statut" />
+   622→                  </SelectTrigger>
+   623→                  <SelectContent>
+   624→                    <SelectItem value="all">Tous les statuts</SelectItem>
+   625→                    <SelectItem value="pending">En attente</SelectItem>
+   626→                    <SelectItem value="confirmed">Confirmés</SelectItem>
+   627→                    <SelectItem value="completed">Terminés</SelectItem>
+   628→                    <SelectItem value="cancelled">Annulés</SelectItem>
+   629→                  </SelectContent>
+   630→                </Select>
+   631→              </div>
+   632→            </CardHeader>
+   633→            <CardContent>
+   634→              {bookings.length === 0 ? (
+   635→                <div className="text-center py-12">
+   636→                  <CalendarDays className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+   637→                  <p className="text-sm text-muted-foreground">Aucune réservation trouvée</p>
+   638→                </div>
+   639→              ) : (
+   640→                <div className="overflow-x-auto">
+   641→                  <Table>
+   642→                    <TableHeader>
+   643→                      <TableRow>
+   644→                        <TableHead>Client</TableHead>
+   645→                        <TableHead>Service</TableHead>
+   646→                        <TableHead>Agent</TableHead>
+   647→                        <TableHead>Date</TableHead>
+   648→                        <TableHead>Heure</TableHead>
+   649→                        <TableHead>Statut</TableHead>
+   650→                        <TableHead className="text-right">Actions</TableHead>
+   651→                      </TableRow>
+   652→                    </TableHeader>
+   653→                    <TableBody>
+   654→                      {bookings.map((booking) => (
+   655→                        <TableRow key={booking.id} className={booking.status === "pending" ? "bg-yellow-50/50 dark:bg-yellow-950/10" : ""}>
+   656→                          <TableCell>
+   657→                            <div>
+   658→                              <p className="font-medium text-sm text-foreground">{booking.customerName}</p>
+   659→                              {booking.customerPhone && (
+   660→                                <p className="text-xs text-muted-foreground">{booking.customerPhone}</p>
+   661→                              )}
+   662→                            </div>
+   663→                          </TableCell>
+   664→                          <TableCell className="text-sm">{booking.serviceName || "—"}</TableCell>
+   665→                          <TableCell className="text-sm">{booking.agent.name}</TableCell>
+   666→                          <TableCell className="text-sm">{booking.bookingDate || "—"}</TableCell>
+   667→                          <TableCell className="text-sm">{booking.bookingTime || "—"}</TableCell>
+   668→                          <TableCell><StatusBadge status={booking.status} /></TableCell>
+   669→                          <TableCell className="text-right">
+   670→                            <div className="flex items-center justify-end gap-1">
+   671→                              {booking.status === "pending" && (
+   672→                                <Button
+   673→                                  size="sm"
+   674→                                  variant="outline"
+   675→                                  className="h-7 text-xs gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+   676→                                  onClick={() => updateBookingStatus(booking.id, "confirmed")}
+   677→                                >
+   678→                                  <CheckCircle className="w-3 h-3" />
+   679→                                  Confirmer
+   680→                                </Button>
+   681→                              )}
+   682→                              {(booking.status === "pending" || booking.status === "confirmed") && (
+   683→                                <Button
+   684→                                  size="sm"
+   685→                                  variant="outline"
+   686→                                  className="h-7 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+   687→                                  onClick={() => updateBookingStatus(booking.id, "completed")}
+   688→                                >
+   689→                                  <CheckCircle className="w-3 h-3" />
+   690→                                  Terminer
+   691→                                </Button>
+   692→                              )}
+   693→                              {booking.status !== "cancelled" && booking.status !== "completed" && (
+   694→                                <Button
+   695→                                  size="sm"
+   696→                                  variant="outline"
+   697→                                  className="h-7 text-xs gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
+   698→                                  onClick={() => updateBookingStatus(booking.id, "cancelled")}
+   699→                                >
+   700→                                  <XCircle className="w-3 h-3" />
+   701→                                  Annuler
+   702→                                </Button>
+   703→                              )}
+   704→                            </div>
+   705→                          </TableCell>
+   706→                        </TableRow>
+   707→                      ))}
+   708→                    </TableBody>
+   709→                  </Table>
+   710→                </div>
+   711→              )}
+   712→            </CardContent>
+   713→          </Card>
+   714→        </TabsContent>
+   715→      </Tabs>
+   716→
+   717→      {/* ─── Agent Form Dialog ─── */}
+   718→      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+   719→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   720→          <DialogHeader>
+   721→            <DialogTitle className="flex items-center gap-2">
+   722→              <Bot className="w-5 h-5 text-[#0088cc]" />
+   723→              {editingAgent ? "Modifier l\'Agent" : "Nouvel Agent Telegram"}
+   724→            </DialogTitle>
+   725→          </DialogHeader>
+   726→          <div className="space-y-4 py-2">
+   727→            <div className="space-y-2">
+   728→              <Label htmlFor="agent-name">Nom *</Label>
+   729→              <Input
+   730→                id="agent-name"
+   731→                placeholder="Ex: Bot Restaurant Le Paradis"
+   732→                value={agentForm.name}
+   733→                onChange={(e) => setAgentForm((f) => ({ ...f, name: e.target.value }))}
+   734→              />
+   735→            </div>
+   736→            <div className="space-y-2">
+   737→              <Label htmlFor="agent-token">Bot Token *</Label>
+   738→              <Input
+   739→                id="agent-token"
+   740→                type="password"
+   741→                placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+   742→                value={agentForm.token}
+   743→                onChange={(e) => setAgentForm((f) => ({ ...f, token: e.target.value }))}
+   744→              />
+   745→              <p className="text-[11px] text-muted-foreground">
+   746→                Obtenu via @BotFather sur Telegram
+   747→              </p>
+   748→            </div>
+   749→            <div className="space-y-2">
+   750→              <Label htmlFor="agent-username">Nom d\'utilisateur du Bot</Label>
+   751→              <Input
+   752→                id="agent-username"
+   753→                placeholder="@mon_bot"
+   754→                value={agentForm.botUsername}
+   755→                onChange={(e) => setAgentForm((f) => ({ ...f, botUsername: e.target.value }))}
+   756→              />
+   757→            </div>
+   758→            <div className="space-y-2">
+   759→              <Label htmlFor="agent-type">Type de Business *</Label>
+   760→              <Select
+   761→                value={agentForm.businessType}
+   762→                onValueChange={(v) => setAgentForm((f) => ({ ...f, businessType: v }))}
+   763→              >
+   764→                <SelectTrigger id="agent-type">
+   765→                  <SelectValue />
+   766→                </SelectTrigger>
+   767→                <SelectContent>
+   768→                  <SelectItem value="restaurant">🍽️ Restaurant</SelectItem>
+   769→                  <SelectItem value="salon_coiffure">✂️ Salon de Coiffure</SelectItem>
+   770→                </SelectContent>
+   771→              </Select>
+   772→            </div>
+   773→            <div className="space-y-2">
+   774→              <Label htmlFor="agent-welcome">Message d\'accueil</Label>
+   775→              <Textarea
+   776→                id="agent-welcome"
+   777→                placeholder="Bienvenue ! Comment puis-je vous aider ?"
+   778→                rows={3}
+   779→                value={agentForm.welcomeMessage}
+   780→                onChange={(e) => setAgentForm((f) => ({ ...f, welcomeMessage: e.target.value }))}
+   781→              />
+   782→            </div>
+   783→            <div className="grid grid-cols-2 gap-4">
+   784→              <div className="space-y-2">
+   785→                <Label htmlFor="agent-address">Adresse</Label>
+   786→                <Input
+   787→                  id="agent-address"
+   788→                  placeholder="Ex: Douala, Cameroun"
+   789→                  value={agentForm.address}
+   790→                  onChange={(e) => setAgentForm((f) => ({ ...f, address: e.target.value }))}
+   791→                />
+   792→              </div>
+   793→              <div className="space-y-2">
+   794→                <Label htmlFor="agent-phone">Téléphone</Label>
+   795→                <Input
+   796→                  id="agent-phone"
+   797→                  placeholder="+237 6XX XXX XXX"
+   798→                  value={agentForm.phone}
+   799→                  onChange={(e) => setAgentForm((f) => ({ ...f, phone: e.target.value }))}
+   800→                />
+   801→              </div>
+   802→            </div>
+   803→            <div className="grid grid-cols-2 gap-4">
+   804→              <div className="space-y-2">
+   805→                <Label htmlFor="agent-currency">Devise</Label>
+   806→                <Select
+   807→                  value={agentForm.currency}
+   808→                  onValueChange={(v) => setAgentForm((f) => ({ ...f, currency: v }))}
+   809→                >
+   810→                  <SelectTrigger id="agent-currency">
+   811→                    <SelectValue />
+   812→                  </SelectTrigger>
+   813→                  <SelectContent>
+   814→                    <SelectItem value="XAF">XAF (FCFA)</SelectItem>
+   815→                    <SelectItem value="XOF">XOF (FCFA)</SelectItem>
+   816→                    <SelectItem value="USD">USD ($)</SelectItem>
+   817→                    <SelectItem value="EUR">EUR (€)</SelectItem>
+   818→                  </SelectContent>
+   819→                </Select>
+   820→              </div>
+   821→              <div className="space-y-2">
+   822→                <Label htmlFor="agent-payment">Moyen de Paiement</Label>
+   823→                <Select
+   824→                  value={agentForm.paymentMethod || "none"}
+   825→                  onValueChange={(v) => setAgentForm((f) => ({ ...f, paymentMethod: v === "none" ? "" : v }))}
+   826→                >
+   827→                  <SelectTrigger id="agent-payment">
+   828→                    <SelectValue placeholder="Sélectionner" />
+   829→                  </SelectTrigger>
+   830→                  <SelectContent>
+   831→                    <SelectItem value="none">Aucun</SelectItem>
+   832→                    <SelectItem value="orange_money">Orange Money</SelectItem>
+   833→                    <SelectItem value="mtn_money">MTN Mobile Money</SelectItem>
+   834→                    <SelectItem value="cash">Espèces</SelectItem>
+   835→                  </SelectContent>
+   836→                </Select>
+   837→              </div>
+   838→            </div>
+   839→          </div>
+   840→          <DialogFooter>
+   841→            <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>Annuler</Button>
+   842→            <Button onClick={saveAgent} disabled={agentSaving} className="gap-2">
+   843→              {agentSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+   844→              {editingAgent ? "Mettre à jour" : "Créer l\'Agent"}
+   845→            </Button>
+   846→          </DialogFooter>
+   847→        </DialogContent>
+   848→      </Dialog>
+   849→
+   850→      {/* ─── Services Dialog ─── */}
+   851→      <Dialog open={servicesDialogOpen} onOpenChange={setServicesDialogOpen}>
+   852→        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+   853→          <DialogHeader>
+   854→            <DialogTitle className="flex items-center gap-2">
+   855→              {servicesAgent?.businessType === "restaurant" ? (
+   856→                <UtensilsCrossed className="w-5 h-5 text-orange-600" />
+   857→              ) : (
+   858→                <Scissors className="w-5 h-5 text-pink-600" />
+   859→              )}
+   860→              Services — {servicesAgent?.name}
+   861→            </DialogTitle>
+   862→          </DialogHeader>
+   863→
+   864→          {/* Add Service Form */}
+   865→          <div className="border border-border rounded-xl p-4 space-y-3 bg-muted/30">
+   866→            <p className="text-sm font-medium text-foreground">Ajouter un service</p>
+   867→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+   868→              <div className="space-y-1">
+   869→                <Label className="text-xs">Nom *</Label>
+   870→                <Input
+   871→                  placeholder="Ex: Coupe homme"
+   872→                  value={serviceForm.name}
+   873→                  onChange={(e) => setServiceForm((f) => ({ ...f, name: e.target.value }))}
+   874→                />
+   875→              </div>
+   876→              <div className="space-y-1">
+   877→                <Label className="text-xs">Prix ({servicesAgent?.currency || "XAF"}) *</Label>
+   878→                <Input
+   879→                  type="number"
+   880→                  placeholder="5000"
+   881→                  value={serviceForm.price}
+   882→                  onChange={(e) => setServiceForm((f) => ({ ...f, price: e.target.value }))}
+   883→                />
+   884→              </div>
+   885→            </div>
+   886→            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+   887→              <div className="space-y-1">
+   888→                <Label className="text-xs">Description</Label>
+   889→                <Input
+   890→                  placeholder="Description courte"
+   891→                  value={serviceForm.description}
+   892→                  onChange={(e) => setServiceForm((f) => ({ ...f, description: e.target.value }))}
+   893→                />
+   894→              </div>
+   895→              <div className="space-y-1">
+   896→                <Label className="text-xs">Durée (min)</Label>
+   897→                <Input
+   898→                  type="number"
+   899→                  placeholder="30"
+   900→                  value={serviceForm.duration}
+   901→                  onChange={(e) => setServiceForm((f) => ({ ...f, duration: e.target.value }))}
+   902→                />
+   903→              </div>
+   904→              <div className="flex items-end gap-2">
+   905→                <div className="flex items-center gap-2">
+   906→                  <Switch
+   907→                    checked={serviceForm.isActive}
+   908→                    onCheckedChange={(v) => setServiceForm((f) => ({ ...f, isActive: v }))}
+   909→                  />
+   910→                  <Label className="text-xs">Actif</Label>
+   911→                </div>
+   912→                <Button
+   913→                  size="sm"
+   914→                  onClick={saveService}
+   915→                  disabled={serviceSaving}
+   916→                  className="ml-auto gap-1.5"
+   917→                >
+   918→                  {serviceSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+   919→                  <Plus className="w-3.5 h-3.5" />
+   920→                  Ajouter
+   921→                </Button>
+   922→              </div>
+   923→            </div>
+   924→          </div>
+   925→
+   926→          {/* Services List */}
+   927→          {servicesLoading ? (
+   928→            <div className="flex items-center justify-center py-8">
+   929→              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+   930→            </div>
+   931→          ) : services.length === 0 ? (
+   932→            <div className="text-center py-8">
+   933→              <p className="text-sm text-muted-foreground">Aucun service configuré</p>
+   934→            </div>
+   935→          ) : (
+   936→            <div className="space-y-2 max-h-64 overflow-y-auto">
+   937→              {services.map((service) => (
+   938→                <div
+   939→                  key={service.id}
+   940→                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+   941→                >
+   942→                  <div className="flex-1 min-w-0">
+   943→                    <div className="flex items-center gap-2">
+   944→                      <p className="text-sm font-medium text-foreground truncate">{service.name}</p>
+   945→                      {!service.isActive && (
+   946→                        <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px]">
+   947→                          Inactif
+   948→                        </Badge>
+   949→                      )}
+   950→                    </div>
+   951→                    {service.description && (
+   952→                      <p className="text-xs text-muted-foreground truncate mt-0.5">{service.description}</p>
+   953→                    )}
+   954→                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+   955→                      <span className="font-medium text-foreground">{service.price.toLocaleString()} {servicesAgent?.currency || "XAF"}</span>
+   956→                      {service.duration && <span>{service.duration} min</span>}
+   957→                    </div>
+   958→                  </div>
+   959→                  <Button
+   960→                    variant="ghost"
+   961→                    size="icon"
+   962→                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 shrink-0"
+   963→                    onClick={() => deleteService(service.id)}
+   964→                  >
+   965→                    <Trash2 className="w-4 h-4" />
+   966→                  </Button>
+   967→                </div>
+   968→              ))}
+   969→            </div>
+   970→          )}
+   971→        </DialogContent>
+   972→      </Dialog>
+   973→    </div>
+   974→  );
+   975→}
+   976→

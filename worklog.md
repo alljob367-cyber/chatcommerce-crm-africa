@@ -44,3 +44,24 @@ Stage Summary:
 - New file: /src/lib/security.ts
 - Updated: .env, .env.production, .env.example, tsconfig.json, next.config.ts
 - All 16 API routes hardened
+---
+Task ID: 1
+Agent: Main Agent
+Task: Créer des agents Telegram prêts à l'emploi pour Restaurant et Salon de Coiffure
+
+Work Log:
+- Exploré le CRM existant: 20 modèles Prisma, 17+ routes API, page Telegram existante
+- Créé 3 nouvelles routes API: /api/telegram/setup (one-click), /api/telegram/activate (token validation), /api/telegram/stats (dashboard)
+- Réécrit complètement telegram-page.tsx avec UI "prêt à l'emploi": empty state, activation 1-clic, dashboard stats, gestion agents/réservations
+- Amélioré mini-services/telegram-bot/index.ts: panier multi-services, commandes /horaire /aide, check heures d'ouverture, answerCallbackQuery
+- Exclu mini-services du tsconfig.json pour éviter erreurs de build Bun
+- Corrigé bug date dans stats API (ISO format required)
+- Testé avec succès: setup crée 2 agents (Restaurant 12 services, Salon 14 services), stats fonctionnent, activation valide les tokens
+
+Stage Summary:
+- 2 agents pré-configurés créés automatiquement via /api/telegram/setup
+- Restaurant Le Paradis: 12 plats camerounais (Poulet DG, Ndolé, Eru...)
+- Salon Élégance: 14 prestations (Coupe, Tresses, Lissage, Pack Mariée...)
+- Activation en 1 clic: l'utilisateur colle son token @BotFather, le bot valide et active automatiquement
+- Mini-service bot amélioré avec: panier, commandes multiples, /horaire, /aide, /contact, /start, check d'ouverture
+- Build Next.js réussi, toutes les routes incluses
