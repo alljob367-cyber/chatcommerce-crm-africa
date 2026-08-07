@@ -201,10 +201,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "demo") {
-      // C4 FIX: Demo only available in development
-      if (process.env.NODE_ENV === "production") {
-        return NextResponse.json({ error: "Mode demo desactive en production" }, { status: 403 });
-      }
+      // Demo mode available for testing
 
       let company = await db.company.findFirst({
         where: { slug: "chatcommerce-demo" },
