@@ -15,6 +15,7 @@ import AIPage from "@/components/app/ai-page";
 import SettingsPage from "@/components/app/settings-page";
 import PaymentsPage from "@/components/app/payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
+import TelegramPage from "@/components/app/telegram-page";
 
 function ErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   return (
@@ -42,6 +43,7 @@ function PageRenderer({ page }: { page: string }) {
     case "settings": return <SettingsPage key={key} />;
     case "payments": return <PaymentsPage key={key} />;
     case "admin-payments": return <AdminPaymentsPage key={key} />;
+    case "telegram": return <TelegramPage key={key} />;
     default: return <DashboardPage key={key} />;
   }
 }

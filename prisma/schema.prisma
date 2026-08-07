@@ -41,6 +41,8 @@ model Company {
   notifications Notification[]
   subscriptions Subscription[]
   payments     Payment[]
+  telegramAgents TelegramAgent[]
+  telegramBookings TelegramBooking[]
 
   @@index([slug])
 }
@@ -401,4 +403,76 @@ model Payment {
   @@index([status])
   @@index([transactionRef])
   @@index([reference])
+}
+
+// ============================================
+// TELEGRAM AGENTS - RESTAURANT & SALON
+// ============================================
+
+model TelegramAgent {
+  id            String   @id @default(cuid())
+  companyId     String
+  name          String   // Nom affiché (ex: "Bot Restaurant Le Paradis")
+  token         String   // Telegram Bot Token
+  botUsername   String?  // @username_du_bot
+  businessType  String   // restaurant, salon_coiffure
+  isActive      Boolean  @default(true)
+  welcomeMessage String? // Message d'accueil personnalisé
+  address       String?  // Adresse de l'entreprise
+  phone         String?  // Numéro de téléphone
+  openHours     String?  // JSON: {"mon":"09:00-22:00","tue":"09:00-22:00",...}
+  currency      String   @default("XAF")
+  paymentMethod String?  // orange_money, mtn_money, cash, null
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company         @relation(fields: [companyId], references: [id])
+  services      BusinessService[]
+  bookings      TelegramBooking[]
+
+  @@index([companyId])
+}
+
+model BusinessService {
+  id            String   @id @default(cuid())
+  agentId       String
+  name          String   // ex: " Coupe homme", " Döner poulet"
+  description   String?
+  price         Float
+  duration      Int?     // Durée en minutes (pour salons)
+  image         String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agent         TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}
+
+model TelegramBooking {
+  id            String   @id @default(cuid())
+  agentId       String
+  companyId     String
+  chatId        String   // Telegram chat ID du client
+  customerName  String   // Nom du client sur Telegram
+  customerPhone String?  // Téléphone (si fourni)
+  serviceId     String?  // Service choisi
+  serviceName   String?  // Nom du service (denormalisé)
+  bookingDate   String?  // Date demandée (YYYY-MM-DD)
+  bookingTime   String?  // Heure demandée (HH:mm)
+  notes         String?  // Notes / commandes spéciales
+  status        String   @default("pending") // pending, confirmed, completed, cancelled
+  telegramMessageId String? // ID du message Telegram
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  agent         TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  company       Company         @relation(fields: [companyId], references: [id])
+
+  @@index([agentId])
+  @@index([companyId])
+  @@index([status])
+  @@index([bookingDate])
 }

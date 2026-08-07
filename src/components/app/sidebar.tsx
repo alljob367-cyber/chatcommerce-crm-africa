@@ -37,6 +37,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "orders", label: "Commandes", icon: ShoppingCart, badge: "2" },
   { page: "automations", label: "Automatisations", icon: Zap },
   { page: "ai", label: "Assistant IA", icon: Bot },
+  { page: "telegram", label: "Agents Telegram", icon: Bot },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
