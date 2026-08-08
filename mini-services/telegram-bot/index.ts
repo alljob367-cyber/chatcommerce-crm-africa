@@ -4,11 +4,16 @@
 // Features: multi-service orders, open hours check, /horaire, /aide
 // ═══════════════════════════════════════════════════════════════
 
-import { Database } from "bun:sqlite";
+import { Pool } from "@neondatabase/serverless";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 
-const dbPath = "/home/z/my-project/db/custom.db";
-const db = new Database(dbPath);
-db.exec("PRAGMA journal_mode=WAL");
+// WebSocket polyfill
+if (typeof globalThis.WebSocket === 'undefined') {
+  neonConfig.webSocketConstructor = ws;
+}
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL || "postgresql://chatcommerce:ChatCommerce2024@ep-cool-meadow-123456.us-east-2.aws.neon.tech/chatcommerce?sslmode=require" });
 
 const POLL_INTERVAL = 2000;
 const TELEGRAM_API = "https://api.telegram.org/bot";
@@ -121,37 +126,45 @@ function removeKeyboard(): Record<string, unknown> {
 
 // ─── Database Helpers ─────────────────────────────────────────────
 
-function loadActiveAgents(): TelegramAgent[] {
-  return db.query(
-    `SELECT id, token, name, botUsername, businessType, isActive, welcomeMessage, 
+async function loadActiveAgents(): Promise<TelegramAgent[]> {
+  const result = await pool.query(
+    `SELECT id, token, name, botUsername, businessType, isActive::int, welcomeMessage, 
             address, phone, openHours, currency, paymentMethod, companyId
-     FROM TelegramAgent WHERE isActive = 1`
-  ).all() as unknown as TelegramAgent[];
+     FROM TelegramAgent WHERE isActive = true`
+  );
+  return result.rows as unknown as TelegramAgent[];
 }
 
-function getAgentServices(agentId: string): BusinessService[] {
-  return db.query(
-    `SELECT id, name, description, price, duration, isActive
-     FROM BusinessService WHERE agentId = ? AND isActive = 1
-     ORDER BY sortOrder ASC`
-  ).all(agentId) as unknown as BusinessService[];
+async function getAgentServices(agentId: string): Promise<BusinessService[]> {
+  const result = await pool.query(
+    `SELECT id, name, description, price, duration, isActive::int
+     FROM BusinessService WHERE agentId = $1 AND isActive = true
+     ORDER BY sortOrder ASC`,
+    [agentId]
+  );
+  return result.rows as unknown as BusinessService[];
 }
 
-function createBooking(data: {
+async function createBooking(data: {
   agentId: string; companyId: string; chatId: string; customerName: string;
   customerPhone: string; serviceId: string; serviceName: string;
   bookingDate: string; bookingTime: string; notes: string;
   telegramMessageId: number;
 }) {
-  db.query(
+  await pool.query(
     `INSERT INTO TelegramBooking (id, agentId, companyId, chatId, customerName, customerPhone,
      serviceId, serviceName, bookingDate, bookingTime, notes, status, telegramMessageId)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
-  ).run(
-    generateId(), data.agentId, data.companyId, data.chatId, data.customerName,
-    data.customerPhone, data.serviceId, data.serviceName,
-    data.bookingDate, data.bookingTime, data.notes, data.telegramMessageId
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12)`,
+    [
+      generateId(), data.agentId, data.companyId, data.chatId, data.customerName,
+      data.customerPhone, data.serviceId, data.serviceName,
+      data.bookingDate, data.bookingTime, data.notes, data.telegramMessageId
+    ]
   );
+}
+
+async function deactivateAgent(agentId: string) {
+  await pool.query("UPDATE TelegramAgent SET isActive = false WHERE id = $1", [agentId]);
 }
 
 function generateId(): string {
@@ -289,7 +302,7 @@ async function handleStart(token: string, agent: TelegramAgent, chatId: number, 
 }
 
 async function handleMenu(token: string, agent: TelegramAgent, chatId: number) {
-  const services = getAgentServices(agent.id);
+  const services = await getAgentServices(agent.id);
   if (services.length === 0) {
     await sendMessage(token, chatId, "😕 Aucun service disponible pour le moment. Revenez plus tard !");
     return;
@@ -331,7 +344,7 @@ async function handleMenu(token: string, agent: TelegramAgent, chatId: number) {
 }
 
 async function handleAddToCart(token: string, agent: TelegramAgent, chatId: number, serviceId: string) {
-  const services = getAgentServices(agent.id);
+  const services = await getAgentServices(agent.id);
   const svc = services.find(s => s.id === serviceId);
   if (!svc) {
     await sendMessage(token, chatId, "❌ Service introuvable.");
@@ -558,7 +571,7 @@ async function handleConfirm(token: string, agent: TelegramAgent, chatId: number
   const serviceId = session.data.serviceId || session.cart[0]?.serviceId || "";
   const serviceName = session.data.serviceName || session.cart.map(c => c.serviceName).join(", ");
 
-  createBooking({
+  await createBooking({
     agentId: agent.id,
     companyId: agent.companyId,
     chatId: String(chatId),
@@ -796,7 +809,7 @@ async function pollAgent(token: string, agent: TelegramAgent) {
   if (!result || !result.ok) {
     if (result && result.error_code === 401) {
       console.error(`[Bot] Invalid token for agent ${agent.name}, deactivating...`);
-      db.query(`UPDATE TelegramAgent SET isActive = 0 WHERE id = ?`).run(agent.id);
+      await deactivateAgent(agent.id);
       agentsMap.delete(token);
     }
     return;
@@ -823,8 +836,8 @@ async function pollAll() {
 
 // ─── Agent Refresh (every 30s) ───────────────────────────────────
 
-function refreshAgents() {
-  const fresh = loadActiveAgents();
+async function refreshAgents() {
+  const fresh = await loadActiveAgents();
   const newMap = new Map<string, TelegramAgent>();
 
   for (const agent of fresh) {
@@ -869,8 +882,9 @@ console.log(`[Telegram Bot Service] Running on port ${server.port}`);
 
 // ─── Startup ─────────────────────────────────────────────────────
 
-refreshAgents();
-console.log(`[Bot] Loaded ${agentsMap.size} active agent(s)`);
+refreshAgents().then(() => {
+  console.log(`[Bot] Loaded ${agentsMap.size} active agent(s)`);
+});
 
 // Poll every 2 seconds
 setInterval(pollAll, POLL_INTERVAL);

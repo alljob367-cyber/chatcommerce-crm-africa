@@ -4,5 +4,8 @@
   "scripts": {
     "dev": "bun --hot index.ts"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "ws": "^8.21.3"
+  }
 }
