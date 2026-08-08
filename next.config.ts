@@ -1,8 +1,17 @@
 import type { NextConfig } from "next";
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : ["http://localhost:3000", "http://localhost:81"];
+// Allow any origin in production (Vercel), restrict to localhost in dev
+const getAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(",");
+  }
+  if (process.env.NODE_ENV === "production") {
+    return ["*"];
+  }
+  return ["http://localhost:3000", "http://localhost:81"];
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -14,6 +23,26 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // M1 FIX: Security headers
   async headers() {
+    const corsHeaders: { key: string; value: string }[] = [
+      {
+        key: "Access-Control-Allow-Methods",
+        value: "GET, POST, PATCH, DELETE, OPTIONS",
+      },
+      {
+        key: "Access-Control-Allow-Headers",
+        value: "Content-Type, Authorization",
+      },
+      {
+        key: "Access-Control-Max-Age",
+        value: "86400",
+      },
+    ];
+
+    // Set Allow-Origin separately to handle wildcard
+    const corsOrigin = allowedOrigins.includes("*")
+      ? { key: "Access-Control-Allow-Origin", value: "*" }
+      : { key: "Access-Control-Allow-Origin", value: allowedOrigins.join(", ") };
+
     return [
       {
         source: "/(.*)",
@@ -46,24 +75,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/:path*",
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: allowedOrigins.join(", "),
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PATCH, DELETE, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
-          },
-          {
-            key: "Access-Control-Max-Age",
-            value: "86400",
-          },
-        ],
+        headers: [corsOrigin, ...corsHeaders],
       },
     ];
   },
