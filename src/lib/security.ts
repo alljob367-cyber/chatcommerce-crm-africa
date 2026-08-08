@@ -60,26 +60,34 @@ export const VALID_LEAD_STATUSES = ["new", "contacted", "qualified", "converted"
 // Valid automation types
 export const VALID_AUTOMATION_TYPES = ["welcome", "abandoned_order", "reactivation", "scheduled"] as const;
 
-// Generic error handler: hide internal details in production
+// Generic error handler: show helpful messages
 export function handleError(error: unknown): { error: string; status: number } {
-  const isDev = process.env.NODE_ENV === "development";
-
   if (error instanceof Error) {
-    // Log the real error server-side
     console.error(`[API Error] ${error.message}`, error.stack);
 
-    // Return generic message in production
+    // Return specific helpful messages for known errors
+    const msg = error.message;
+    if (msg.includes("JWT_SECRET") || msg.includes("FATAL")) {
+      return { error: "Configuration serveur manquante. Contactez l'admin.", status: 500 };
+    }
+    if (msg.includes("Unique constraint") || msg.includes("P2002")) {
+      return { error: "Cet email ou cette entreprise existe deja.", status: 409 };
+    }
+    if (msg.includes("ECONNREFUSED") || msg.includes("connect")) {
+      return { error: "Base de données inaccessible. Reessayez dans un instant.", status: 503 };
+    }
+    if (msg.includes("bcrypt") || msg.includes("bcryptjs")) {
+      return { error: "Erreur de securite. Contactez l'admin.", status: 500 };
+    }
+
     return {
-      error: isDev ? error.message : "Une erreur interne est survenue",
+      error: msg.includes("Prisma") ? "Erreur base de données. Reessayez." : "Une erreur interne est survenue",
       status: 500,
     };
   }
 
   console.error("[API Error] Unknown error", error);
-  return {
-    error: "Une erreur interne est survenue",
-    status: 500,
-  };
+  return { error: "Une erreur interne est survenue", status: 500 };
 }
 
 // Simple in-memory rate limiter (per IP + endpoint)
