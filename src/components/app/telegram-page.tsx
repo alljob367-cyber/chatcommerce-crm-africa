@@ -507,13 +507,14 @@ export default function TelegramPage() {
             Agents Telegram
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            6 types de bots pre-configures : Restaurant, Salon, Pharmacie, Taxi, Pressing, Ecole
+            12 types de bots pre-configures : Restaurant, Salon, Pharmacie, Taxi,
+            Pressing, Ecole, Supermarche, Clinique, Voyage, Boulangerie, Garage, Sport
           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleOneClickSetup} disabled={settingUp} variant="outline" className="gap-2">
             {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {hasAgents ? "Ajouter Agents Manquants" : "Creer les 6 Agents"}
+            {hasAgents ? "Ajouter Agents Manquants" : "Creer les 12 Agents"}
           </Button>
           <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
             <Plus className="w-4 h-4" />
@@ -530,13 +531,13 @@ export default function TelegramPage() {
               <Sparkles className="w-10 h-10 text-[#0088cc]" />
             </div>
             <div className="space-y-2 max-w-lg">
-              <h2 className="text-xl font-bold text-foreground">6 Agents Telegram Prêts à l&apos;Emploi</h2>
+              <h2 className="text-xl font-bold text-foreground">12 Agents Telegram Prêts à l&apos;Emploi</h2>
               <p className="text-muted-foreground">
                 Créez instantanément des bots pour toutes vos activites commerciales.
                 Menus, services et tarifs sont pre-configures — collez votre token et c&apos;est parti.
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-2xl">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-w-3xl">
               {[
                 { icon: UtensilsCrossed, label: "Restaurant", desc: "12 plats camerounais", bg: "bg-orange-100 dark:bg-orange-900/30", color: "text-orange-600" },
                 { icon: Scissors, label: "Salon Coiffure", desc: "14 prestations", bg: "bg-purple-100 dark:bg-purple-900/30", color: "text-purple-600" },
@@ -544,6 +545,12 @@ export default function TelegramPage() {
                 { icon: MapPin, label: "Taxi Transport", desc: "9 types de courses", bg: "bg-blue-100 dark:bg-blue-900/30", color: "text-blue-600" },
                 { icon: ShoppingBag, label: "Pressing", desc: "11 services laverie", bg: "bg-cyan-100 dark:bg-cyan-900/30", color: "text-cyan-600" },
                 { icon: Users, label: "Ecole / Formation", desc: "11 formations", bg: "bg-amber-100 dark:bg-amber-900/30", color: "text-amber-600" },
+                { icon: ShoppingBag, label: "Supermarche", desc: "12 produits courses", bg: "bg-lime-100 dark:bg-lime-900/30", color: "text-lime-600" },
+                { icon: Bot, label: "Clinique", desc: "10 services medical", bg: "bg-red-100 dark:bg-red-900/30", color: "text-red-600" },
+                { icon: MessageCircle, label: "Agence Voyage", desc: "10 services voyage", bg: "bg-violet-100 dark:bg-violet-900/30", color: "text-violet-600" },
+                { icon: Sparkles, label: "Boulangerie", desc: "11 produits boulange", bg: "bg-yellow-100 dark:bg-yellow-900/30", color: "text-yellow-600" },
+                { icon: Zap, label: "Garage Auto", desc: "10 services auto", bg: "bg-zinc-100 dark:bg-zinc-800/50", color: "text-zinc-600" },
+                { icon: Users, label: "Salle de Sport", desc: "10 abonnements", bg: "bg-emerald-100 dark:bg-emerald-900/30", color: "text-emerald-600" },
               ].map((a) => (
                 <Card key={a.label} className="border hover:shadow-md transition-shadow cursor-pointer" onClick={handleOneClickSetup}>
                   <CardContent className="p-4 flex flex-col items-center gap-2">
@@ -558,7 +565,7 @@ export default function TelegramPage() {
             </div>
             <Button size="lg" onClick={handleOneClickSetup} disabled={settingUp} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
               {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {settingUp ? "Création en cours..." : "Creer Mes 6 Agents Maintenant"}
+              {settingUp ? "Création en cours..." : "Creer Mes 12 Agents Maintenant"}
             </Button>
           </CardContent>
         </Card>

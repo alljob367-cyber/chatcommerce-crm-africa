@@ -248,16 +248,24 @@ async function handleStart(token: string, agent: TelegramAgent, chatId: number, 
   const BUSINESS_ICONS: Record<string, string> = {
     restaurant: "🍽️", salon_coiffure: "✂️💅", pharmacie: "💊🏥",
     taxi_transport: "🚕", pressing_laverie: "👔✨", ecole_formation: "📚🎓",
+    supermarche: "🛒🥘", clinique: "🏥❤️", agence_voyage: "✈️🌍",
+    boulangerie: "🥖🥐", garage_auto: "🔧🚗", salle_sport: "💪🏋️",
   };
   const BUSINESS_MENU_LABEL: Record<string, string> = {
     restaurant: "🍽️ Voir le Menu", salon_coiffure: "💇 Nos Services",
     pharmacie: "💊 Nos Produits", taxi_transport: "🚕 Réserver Course",
     pressing_laverie: "👔 Nos Services", ecole_formation: "📚 Nos Formations",
+    supermarche: "🛒 Nos Produits", clinique: "🏥 Nos Consultations",
+    agence_voyage: "✈️ Nos Offres", boulangerie: "🥖 Nos Produits",
+    garage_auto: "🔧 Nos Services", salle_sport: "🏋️ Nos Cours",
   };
   const BUSINESS_ORDER_LABEL: Record<string, string> = {
     restaurant: "📦 Ma Commande", salon_coiffure: "📋 Ma Réservation",
     pharmacie: "🛒 Ma Commande", taxi_transport: "🚕 Ma Course",
     pressing_laverie: "📦 Ma Commande", ecole_formation: "📝 Mon Inscription",
+    supermarche: "🛒 Ma Commande", clinique: "📋 Mon Rendez-vous",
+    agence_voyage: "✈️ Ma Réservation", boulangerie: "📦 Ma Commande",
+    garage_auto: "🔧 Mon RDV", salle_sport: "💪 Mon Abonnement",
   };
   const icon = BUSINESS_ICONS[agent.businessType] || "🤖";
   const menuLabel = BUSINESS_MENU_LABEL[agent.businessType] || "📋 Nos Services";
@@ -291,6 +299,9 @@ async function handleMenu(token: string, agent: TelegramAgent, chatId: number) {
     restaurant: "🍽️ <b>Notre Menu</b>", salon_coiffure: "💇 <b>Nos Prestations</b>",
     pharmacie: "💊 <b>Nos Produits</b>", taxi_transport: "🚕 <b>Nos Courses</b>",
     pressing_laverie: "👔 <b>Nos Services</b>", ecole_formation: "📚 <b>Nos Formations</b>",
+    supermarche: "🛒 <b>Nos Produits</b>", clinique: "🏥 <b>Nos Consultations</b>",
+    agence_voyage: "✈️ <b>Nos Offres</b>", boulangerie: "🥖 <b>Nos Produits</b>",
+    garage_auto: "🔧 <b>Nos Services</b>", salle_sport: "🏋️ <b>Nos Cours</b>",
   };
   const isResto = agent.businessType === "restaurant";
   let text = (BUSINESS_TITLE[agent.businessType] || "📋 <b>Nos Services</b>") + "\n\n";
@@ -368,6 +379,9 @@ async function handleViewCart(token: string, agent: TelegramAgent, chatId: numbe
     restaurant: "🛒 <b>Votre Commande</b>", salon_coiffure: "📋 <b>Votre Réservation</b>",
     pharmacie: "🛒 <b>Votre Commande</b>", taxi_transport: "🚕 <b>Votre Course</b>",
     pressing_laverie: "📦 <b>Votre Commande</b>", ecole_formation: "📝 <b>Votre Inscription</b>",
+    supermarche: "🛒 <b>Votre Commande</b>", clinique: "📋 <b>Votre RDV</b>",
+    agence_voyage: "✈️ <b>Votre Réservation</b>", boulangerie: "📦 <b>Votre Commande</b>",
+    garage_auto: "🔧 <b>Votre RDV</b>", salle_sport: "💪 <b>Votre Abonnement</b>",
   };
   const isResto = agent.businessType === "restaurant";
   let total = 0;

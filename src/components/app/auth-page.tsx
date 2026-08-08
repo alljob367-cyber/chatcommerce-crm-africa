@@ -48,14 +48,20 @@ import { useTheme } from "next-themes";
 const AGENT_TYPES = [
   { icon: Store, label: "Restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire" },
   { icon: Scissors, label: "Salon Coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "" },
-  { icon: Pill, label: "Pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "Nouveau" },
-  { icon: Car, label: "Taxi / Transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "Nouveau" },
-  { icon: Shirt, label: "Pressing / Laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "Nouveau" },
-  { icon: GraduationCap, label: "Ecole / Formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "Nouveau" },
+  { icon: Pill, label: "Pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "" },
+  { icon: Car, label: "Taxi / Transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "" },
+  { icon: Shirt, label: "Pressing / Laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "" },
+  { icon: GraduationCap, label: "Ecole / Formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "" },
+  { icon: ShoppingBag, label: "Supermarché", desc: "Courses en ligne, livraison domicile, pack famille", color: "from-lime-500 to-green-500", badge: "Nouveau" },
+  { icon: Bot, label: "Clinique", desc: "RDV médecin, analyses, vaccination, suivi", color: "from-red-500 to-pink-500", badge: "Nouveau" },
+  { icon: Globe, label: "Agence de Voyage", desc: "Billets avion, hôtels, excursions, visa", color: "from-violet-500 to-purple-500", badge: "Nouveau" },
+  { icon: Sparkles, label: "Boulangerie", desc: "Commande pain, pâtisseries, gâteaux anniversaire", color: "from-yellow-500 to-amber-500", badge: "Nouveau" },
+  { icon: Zap, label: "Garage Auto", desc: "Vidange, révision, pneus, diagnostic, dépannage", color: "from-zinc-500 to-gray-600", badge: "Nouveau" },
+  { icon: Users, label: "Salle de Sport", desc: "Abonnements, coaching, yoga, zumba, boxe", color: "from-emerald-500 to-teal-500", badge: "Nouveau" },
 ];
 
 const FEATURES = [
-  { icon: Bot, title: "Bots Telegram Prêts", desc: "6 types d'agents pré-configurés. Aucune compétence technique requise. Activez en 2 minutes." },
+  { icon: Bot, title: "Bots Telegram Prêts", desc: "12 types d'agents pré-configurés. Aucune compétence technique requise. Activez en 2 minutes." },
   { icon: ShoppingBag, title: "Commandes Automatiques", desc: "Vos clients commandent 24h/24 via Telegram. Panier, checkout, confirmation tout automatique." },
   { icon: BarChart3, title: "Dashboard CRM", desc: "KPI en temps réel, revenus, commandes, taux de conversion. Export CSV et rapports." },
   { icon: Users, title: "Gestion Clients", desc: "CRM complet : contacts, conversations historique, suivi des leads et prospects." },
@@ -290,7 +296,7 @@ export default function AuthPage() {
           {/* Stats bar */}
           <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {[
-              { value: "6", label: "Types de Bots" },
+              { value: "12", label: "Types de Bots" },
               { value: "44M+", label: "PME en Afrique" },
               { value: "24/7", label: "Ventes automatiques" },
               { value: "<2min", label: "Mise en place" },
@@ -308,7 +314,7 @@ export default function AuthPage() {
       <section id="agents" className="py-16 md:py-24 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <Badge className="mb-4 bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20">6 Agents Telegram</Badge>
+            <Badge className="mb-4 bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20">12 Agents Telegram</Badge>
             <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
               Un bot pour chaque activite
             </h2>
@@ -316,7 +322,7 @@ export default function AuthPage() {
               Choisissez votre type d'activite. Tout est pre-configure : services, tarifs, horaires. Il suffit d'activer.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {AGENT_TYPES.map((agent) => (
               <Card key={agent.label} className="group border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                 <CardContent className="p-6">
