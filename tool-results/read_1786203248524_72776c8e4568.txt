@@ -1,0 +1,1406 @@
+     1→"use client";
+     2→
+     3→import { useState, useEffect, useCallback } from "react";
+     4→import { useAppStore } from "@/store/app";
+     5→import Header from "./header";
+     6→import {
+     7→  Card,
+     8→  CardContent,
+     9→  CardHeader,
+    10→  CardTitle,
+    11→  CardDescription,
+    12→} from "@/components/ui/card";
+    13→import { Button } from "@/components/ui/button";
+    14→import { Badge } from "@/components/ui/badge";
+    15→import { Input } from "@/components/ui/input";
+    16→import { Label } from "@/components/ui/label";
+    17→import { Switch } from "@/components/ui/switch";
+    18→import { Separator } from "@/components/ui/separator";
+    19→import {
+    20→  Select,
+    21→  SelectContent,
+    22→  SelectItem,
+    23→  SelectTrigger,
+    24→  SelectValue,
+    25→} from "@/components/ui/select";
+    26→import {
+    27→  Dialog,
+    28→  DialogContent,
+    29→  DialogHeader,
+    30→  DialogTitle,
+    31→  DialogDescription,
+    32→  DialogFooter,
+    33→} from "@/components/ui/dialog";
+    34→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+    35→import { toast } from "sonner";
+    36→import {
+    37→  Building2,
+    38→  Users,
+    39→  CreditCard,
+    40→  Bell,
+    41→  User,
+    42→  Loader2,
+    43→  Check,
+    44→  Crown,
+    45→  Rocket,
+    46→  Sparkles,
+    47→  Shield,
+    48→  Trash2,
+    49→  UserPlus,
+    50→  Clock,
+    51→  Eye,
+    52→  EyeOff,
+    53→  Phone,
+    54→  Globe,
+    55→  Mail,
+    56→} from "lucide-react";
+    57→
+    58→// ─────────────────────────────────────────────────────
+    59→// TYPES
+    60→// ─────────────────────────────────────────────────────
+    61→
+    62→interface TeamMember {
+    63→  id: string;
+    64→  name: string;
+    65→  email: string;
+    66→  phone?: string;
+    67→  role: string;
+    68→  avatar?: string;
+    69→  createdAt: string;
+    70→}
+    71→
+    72→interface CompanyData {
+    73→  id: string;
+    74→  name: string;
+    75→  country: string;
+    76→  whatsappNumber: string;
+    77→  plan: string;
+    78→  maxContacts: number;
+    79→  maxAgents: number;
+    80→  notifications: {
+    81→    new_orders: boolean;
+    82→    new_messages: boolean;
+    83→    payment_confirmations: boolean;
+    84→    daily_reports: boolean;
+    85→  };
+    86→}
+    87→
+    88→interface SubscriptionData {
+    89→  plan: string;
+    90→  status: string;
+    91→  currentPeriodStart: string;
+    92→  currentPeriodEnd: string;
+    93→}
+    94→
+    95→interface UsageData {
+    96→  contactCount: number;
+    97→  agentCount: number;
+    98→}
+    99→
+   100→const AFRICAN_COUNTRIES = [
+   101→  "Cameroun",
+   102→  "Gabon",
+   103→  "Congo",
+   104→  "Guinée Équatoriale",
+   105→  "Côte d'Ivoire",
+   106→  "Sénégal",
+   107→  "Mali",
+   108→  "Burkina Faso",
+   109→  "Guinée",
+   110→  "Togo",
+   111→  "Bénin",
+   112→  "Niger",
+   113→  "Tchad",
+   114→  "RCA",
+   115→  "RDC",
+   116→];
+   117→
+   118→const ROLE_LABELS: Record<string, string> = {
+   119→  company_admin: "Admin",
+   120→  super_admin: "Admin",
+   121→  manager: "Manager",
+   122→  agent: "Agent",
+   123→  viewer: "Lecteur",
+   124→};
+   125→
+   126→const ROLE_BADGE_VARIANT: Record<string, string> = {
+   127→  company_admin: "bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20",
+   128→  super_admin: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+   129→  agent: "bg-muted text-muted-foreground border-border",
+   130→  viewer: "bg-muted text-muted-foreground border-border",
+   131→};
+   132→
+   133→const PLANS = [
+   134→  {
+   135→    key: "starter",
+   136→    name: "Starter",
+   137→    icon: Rocket,
+   138→    price: "5 000",
+   139→    period: "/mois",
+   140→    features: [
+   141→      "500 contacts",
+   142→      "3 agents",
+   143→      "1 000 messages/mois",
+   144→      "Automatisations basiques",
+   145→      "Support email",
+   146→    ],
+   147→    color: "border-border",
+   148→  },
+   149→  {
+   150→    key: "business",
+   151→    name: "Business",
+   152→    icon: Crown,
+   153→    price: "29 900",
+   154→    period: "/mois",
+   155→    popular: true,
+   156→    features: [
+   157→      "5 000 contacts",
+   158→      "10 agents",
+   159→      "10 000 messages/mois",
+   160→      "IA Assistant",
+   161→      "Automatisations avancees",
+   162→      "Support prioritaire",
+   163→      "API WhatsApp",
+   164→    ],
+   165→    color: "border-[#25D366]",
+   166→  },
+   167→  {
+   168→    key: "enterprise",
+   169→    name: "Enterprise",
+   170→    icon: Sparkles,
+   171→    price: "99 900",
+   172→    period: "/mois",
+   173→    features: [
+   174→      "Contacts illimites",
+   175→      "Agents illimites",
+   176→      "Messages illimites",
+   177→      "IA avancee",
+   178→      "API complete",
+   179→      "Support dedie 24/7",
+   180→      "Integrations sur mesure",
+   181→    ],
+   182→    color: "border-purple-300",
+   183→  },
+   184→];
+   185→
+   186→const PLAN_ORDER = ["starter", "business", "enterprise"];
+   187→
+   188→// ─────────────────────────────────────────────────────
+   189→// HELPER: API call wrapper with auth
+   190→// ─────────────────────────────────────────────────────
+   191→
+   192→function authHeaders() {
+   193→  const token =
+   194→    typeof window !== "undefined"
+   195→      ? localStorage.getItem("cc_token")
+   196→      : null;
+   197→  return {
+   198→    "Content-Type": "application/json",
+   199→    Authorization: token ? `Bearer ${token}` : "",
+   200→  };
+   201→}
+   202→
+   203→// ─────────────────────────────────────────────────────
+   204→// MAIN COMPONENT
+   205→// ─────────────────────────────────────────────────────
+   206→
+   207→export default function SettingsPage() {
+   208→  const { user, setPage } = useAppStore();
+   209→
+   210→  // ── Company Profile State ──
+   211→  const [companyName, setCompanyName] = useState(user?.company?.name || "");
+   212→  const [companyPhone, setCompanyPhone] = useState("");
+   213→  const [companyCountry, setCompanyCountry] = useState(
+   214→    user?.company?.country || "Cameroun"
+   215→  );
+   216→  const [companyWhatsapp, setCompanyWhatsapp] = useState("");
+   217→  const [savingCompany, setSavingCompany] = useState(false);
+   218→
+   219→  // ── My Account State ──
+   220→  const [profileName, setProfileName] = useState(user?.name || "");
+   221→  const [profilePhone, setProfilePhone] = useState("");
+   222→  const [savingProfile, setSavingProfile] = useState(false);
+   223→  const [currentPassword, setCurrentPassword] = useState("");
+   224→  const [newPassword, setNewPassword] = useState("");
+   225→  const [confirmPassword, setConfirmPassword] = useState("");
+   226→  const [savingPassword, setSavingPassword] = useState(false);
+   227→  const [showCurrentPw, setShowCurrentPw] = useState(false);
+   228→  const [showNewPw, setShowNewPw] = useState(false);
+   229→
+   230→  // ── Team State ──
+   231→  const [members, setMembers] = useState<TeamMember[]>([]);
+   232→  const [loadingMembers, setLoadingMembers] = useState(true);
+   233→  const [inviteOpen, setInviteOpen] = useState(false);
+   234→  const [inviteEmail, setInviteEmail] = useState("");
+   235→  const [inviteRole, setInviteRole] = useState("agent");
+   236→  const [inviting, setInviting] = useState(false);
+   237→
+   238→  // ── Subscription State ──
+   239→  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+   240→  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+   241→  const [usage, setUsage] = useState<UsageData | null>(null);
+   242→
+   243→  // ── Notifications State ──
+   244→  const [notifs, setNotifs] = useState({
+   245→    new_orders: true,
+   246→    new_messages: true,
+   247→    payment_confirmations: true,
+   248→    daily_reports: false,
+   249→  });
+   250→  const [savingNotifs, setSavingNotifs] = useState(false);
+   251→
+   252→  // ─────────────────────────────────────────────────────
+   253→  // LOAD DATA
+   254→  // ─────────────────────────────────────────────────────
+   255→
+   256→  const fetchCompany = useCallback(async () => {
+   257→    try {
+   258→      const res = await fetch("/api/company", {
+   259→        headers: authHeaders(),
+   260→      });
+   261→      if (res.ok) {
+   262→        const data = await res.json();
+   263→        if (data.company) {
+   264→          setCompanyData(data.company);
+   265→          setCompanyName(data.company.name);
+   266→          setCompanyCountry(data.company.country);
+   267→          setCompanyWhatsapp(data.company.whatsappNumber);
+   268→        }
+   269→        if (data.subscription) setSubscription(data.subscription);
+   270→        if (data.usage) setUsage(data.usage);
+   271→        if (data.company?.notifications) {
+   272→          setNotifs(data.company.notifications);
+   273→        }
+   274→      }
+   275→    } catch {
+   276→      // Silently fail — defaults will be used
+   277→    }
+   278→  }, []);
+   279→
+   280→  const fetchMembers = useCallback(async () => {
+   281→    setLoadingMembers(true);
+   282→    try {
+   283→      const res = await fetch("/api/company/members", {
+   284→        headers: authHeaders(),
+   285→      });
+   286→      if (res.ok) {
+   287→        const data = await res.json();
+   288→        setMembers(data.members || []);
+   289→      }
+   290→    } catch {
+   291→      // Silent
+   292→    } finally {
+   293→      setLoadingMembers(false);
+   294→    }
+   295→  }, []);
+   296→
+   297→  const fetchUserProfile = useCallback(async () => {
+   298→    try {
+   299→      const res = await fetch("/api/auth", {
+   300→        headers: authHeaders(),
+   301→      });
+   302→      if (res.ok) {
+   303→        const data = await res.json();
+   304→        const userData = data.user || data;
+   305→        setProfileName(userData.name || "");
+   306→        setProfilePhone(userData.phone || "");
+   307→      }
+   308→    } catch {
+   309→      // Silent
+   310→    }
+   311→  }, []);
+   312→
+   313→  useEffect(() => {
+   314→    fetchCompany();
+   315→    fetchMembers();
+   316→    fetchUserProfile();
+   317→  }, [fetchCompany, fetchMembers, fetchUserProfile]);
+   318→
+   319→  // ─────────────────────────────────────────────────────
+   320→  // HANDLERS
+   321→  // ─────────────────────────────────────────────────────
+   322→
+   323→  const plan = companyData?.plan || user?.company?.plan || "starter";
+   324→
+   325→  // Save Company Profile
+   326→  const handleSaveCompany = async () => {
+   327→    if (!companyName.trim()) {
+   328→      toast.error("Le nom de l'entreprise est requis");
+   329→      return;
+   330→    }
+   331→    setSavingCompany(true);
+   332→    try {
+   333→      const res = await fetch("/api/company", {
+   334→        method: "POST",
+   335→        headers: authHeaders(),
+   336→        body: JSON.stringify({
+   337→          action: "update",
+   338→          name: companyName,
+   339→          country: companyCountry,
+   340→          whatsappNumber: companyWhatsapp,
+   341→        }),
+   342→      });
+   343→      const data = await res.json();
+   344→      if (res.ok) {
+   345→        toast.success(data.message || "Entreprise mise a jour");
+   346→      } else {
+   347→        toast.error(data.error || "Erreur lors de la sauvegarde");
+   348→      }
+   349→    } catch {
+   350→      toast.error("Erreur de connexion");
+   351→    } finally {
+   352→      setSavingCompany(false);
+   353→    }
+   354→  };
+   355→
+   356→  // Save Profile
+   357→  const handleSaveProfile = async () => {
+   358→    if (!profileName.trim()) {
+   359→      toast.error("Le nom est requis");
+   360→      return;
+   361→    }
+   362→    setSavingProfile(true);
+   363→    try {
+   364→      const res = await fetch("/api/auth", {
+   365→        method: "POST",
+   366→        headers: authHeaders(),
+   367→        body: JSON.stringify({
+   368→          action: "update_profile",
+   369→          name: profileName,
+   370→          phone: profilePhone,
+   371→        }),
+   372→      });
+   373→      const data = await res.json();
+   374→      if (res.ok) {
+   375→        toast.success(data.message || "Profil mis a jour");
+   376→      } else {
+   377→        toast.error(data.error || "Erreur lors de la sauvegarde");
+   378→      }
+   379→    } catch {
+   380→      toast.error("Erreur de connexion");
+   381→    } finally {
+   382→      setSavingProfile(false);
+   383→    }
+   384→  };
+   385→
+   386→  // Change Password
+   387→  const handleChangePassword = async () => {
+   388→    if (!currentPassword || !newPassword) {
+   389→      toast.error("Tous les champs sont requis");
+   390→      return;
+   391→    }
+   392→    if (newPassword.length < 8) {
+   393→      toast.error(
+   394→        "Le mot de passe doit contenir au moins 8 caracteres"
+   395→      );
+   396→      return;
+   397→    }
+   398→    if (newPassword !== confirmPassword) {
+   399→      toast.error("Les mots de passe ne correspondent pas");
+   400→      return;
+   401→    }
+   402→    setSavingPassword(true);
+   403→    try {
+   404→      const res = await fetch("/api/auth", {
+   405→        method: "POST",
+   406→        headers: authHeaders(),
+   407→        body: JSON.stringify({
+   408→          action: "change_password",
+   409→          currentPassword,
+   410→          newPassword,
+   411→        }),
+   412→      });
+   413→      const data = await res.json();
+   414→      if (res.ok) {
+   415→        toast.success(data.message || "Mot de passe mis a jour");
+   416→        setCurrentPassword("");
+   417→        setNewPassword("");
+   418→        setConfirmPassword("");
+   419→      } else {
+   420→        toast.error(data.error || "Erreur lors du changement");
+   421→      }
+   422→    } catch {
+   423→      toast.error("Erreur de connexion");
+   424→    } finally {
+   425→      setSavingPassword(false);
+   426→    }
+   427→  };
+   428→
+   429→  // Invite Member
+   430→  const handleInvite = async () => {
+   431→    if (!inviteEmail.trim()) {
+   432→      toast.error("L'email est requis");
+   433→      return;
+   434→    }
+   435→    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+   436→      toast.error("Format d'email invalide");
+   437→      return;
+   438→    }
+   439→    setInviting(true);
+   440→    try {
+   441→      const res = await fetch("/api/company/members", {
+   442→        method: "POST",
+   443→        headers: authHeaders(),
+   444→        body: JSON.stringify({
+   445→          action: "invite",
+   446→          email: inviteEmail,
+   447→          role: inviteRole,
+   448→        }),
+   449→      });
+   450→      const data = await res.json();
+   451→      if (res.ok) {
+   452→        toast.success(
+   453→          data.message || `Invitation envoyee a ${inviteEmail}`
+   454→        );
+   455→        if (data.tempPassword) {
+   456→          toast.info(
+   457→            `Mot de passe temporaire: ${data.tempPassword}`,
+   458→            { duration: 8000 }
+   459→          );
+   460→        }
+   461→        setInviteEmail("");
+   462→        setInviteRole("agent");
+   463→        setInviteOpen(false);
+   464→        fetchMembers();
+   465→        fetchCompany(); // refresh usage counts
+   466→      } else {
+   467→        toast.error(data.error || "Erreur lors de l'invitation");
+   468→      }
+   469→    } catch {
+   470→      toast.error("Erreur de connexion");
+   471→    } finally {
+   472→      setInviting(false);
+   473→    }
+   474→  };
+   475→
+   476→  // Delete Member
+   477→  const handleDeleteMember = async (memberId: string, memberName: string) => {
+   478→    if (!confirm(`Retirer ${memberName} de l'equipe ?`)) return;
+   479→    try {
+   480→      const res = await fetch(`/api/company/members?id=${memberId}`, {
+   481→        method: "DELETE",
+   482→        headers: authHeaders(),
+   483→      });
+   484→      const data = await res.json();
+   485→      if (res.ok) {
+   486→        toast.success(data.message || "Membre retire");
+   487→        fetchMembers();
+   488→        fetchCompany();
+   489→      } else {
+   490→        toast.error(data.error || "Erreur");
+   491→      }
+   492→    } catch {
+   493→      toast.error("Erreur de connexion");
+   494→    }
+   495→  };
+   496→
+   497→  // Save Notifications
+   498→  const handleSaveNotifs = async () => {
+   499→    setSavingNotifs(true);
+   500→    try {
+   501→      const res = await fetch("/api/company", {
+   502→        method: "POST",
+   503→        headers: authHeaders(),
+   504→        body: JSON.stringify({
+   505→          action: "update_notifications",
+   506→          ...notifs,
+   507→        }),
+   508→      });
+   509→      const data = await res.json();
+   510→      if (res.ok) {
+   511→        toast.success(data.message || "Notifications mises a jour");
+   512→      } else {
+   513→        toast.error(data.error || "Erreur");
+   514→      }
+   515→    } catch {
+   516→      toast.error("Erreur de connexion");
+   517→    } finally {
+   518→      setSavingNotifs(false);
+   519→    }
+   520→  };
+   521→
+   522→  // Trial countdown
+   523→  const getTrialInfo = () => {
+   524→    if (!subscription || subscription.status !== "trialing") return null;
+   525→    const end = new Date(subscription.currentPeriodEnd).getTime();
+   526→    const now = Date.now();
+   527→    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
+   528→    return daysLeft;
+   529→  };
+   530→
+   531→  const trialDays = getTrialInfo();
+   532→
+   533→  // Plan upgrade handler
+   534→  const handleUpgrade = (targetPlan: string) => {
+   535→    const currentIdx = PLAN_ORDER.indexOf(plan);
+   536→    const targetIdx = PLAN_ORDER.indexOf(targetPlan);
+   537→    if (targetIdx > currentIdx) {
+   538→      setPage("payments");
+   539→    }
+   540→  };
+   541→
+   542→  // ─────────────────────────────────────────────────────
+   543→  // RENDER
+   544→  // ─────────────────────────────────────────────────────
+   545→
+   546→  return (
+   547→    <>
+   548→      <Header title="Paramètres" subtitle="Configuration de votre espace" />
+   549→
+   550→      <div className="p-6 animate-fade-in">
+   551→        <Tabs defaultValue="company" className="w-full">
+   552→          <TabsList className="bg-card border border-border w-full mb-6 h-auto p-1 grid grid-cols-5">
+   553→            <TabsTrigger
+   554→              value="company"
+   555→              className="flex items-center gap-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-[#25D366]/10 data-[state=active]:text-[#25D366]"
+   556→            >
+   557→              <Building2 className="w-4 h-4" />
+   558→              <span className="hidden sm:inline">Entreprise</span>
+   559→            </TabsTrigger>
+   560→            <TabsTrigger
+   561→              value="account"
+   562→              className="flex items-center gap-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-[#25D366]/10 data-[state=active]:text-[#25D366]"
+   563→            >
+   564→              <User className="w-4 h-4" />
+   565→              <span className="hidden sm:inline">Mon Compte</span>
+   566→            </TabsTrigger>
+   567→            <TabsTrigger
+   568→              value="team"
+   569→              className="flex items-center gap-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-[#25D366]/10 data-[state=active]:text-[#25D366]"
+   570→            >
+   571→              <Users className="w-4 h-4" />
+   572→              <span className="hidden sm:inline">Equipe</span>
+   573→            </TabsTrigger>
+   574→            <TabsTrigger
+   575→              value="subscription"
+   576→              className="flex items-center gap-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-[#25D366]/10 data-[state=active]:text-[#25D366]"
+   577→            >
+   578→              <CreditCard className="w-4 h-4" />
+   579→              <span className="hidden sm:inline">Abonnement</span>
+   580→            </TabsTrigger>
+   581→            <TabsTrigger
+   582→              value="notifications"
+   583→              className="flex items-center gap-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-[#25D366]/10 data-[state=active]:text-[#25D366]"
+   584→            >
+   585→              <Bell className="w-4 h-4" />
+   586→              <span className="hidden sm:inline">Notifications</span>
+   587→            </TabsTrigger>
+   588→          </TabsList>
+   589→
+   590→          <TabsContent value="company">
+   591→            <Card className="border-0 shadow-sm">
+   592→              <CardHeader>
+   593→                <CardTitle className="text-sm flex items-center gap-2">
+   594→                  <Building2 className="w-4 h-4 text-[#25D366]" />
+   595→                  Profil Entreprise
+   596→                </CardTitle>
+   597→                <CardDescription className="text-xs text-muted-foreground">
+   598→                  Informations de votre entreprise visibles dans les conversations.
+   599→                </CardDescription>
+   600→              </CardHeader>
+   601→              <CardContent className="space-y-6">
+   602→                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   603→                  <div className="space-y-2">
+   604→                    <Label htmlFor="comp-name" className="text-xs font-medium">
+   605→                      Nom de l'entreprise
+   606→                    </Label>
+   607→                    <div className="relative">
+   608→                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   609→                      <Input
+   610→                        id="comp-name"
+   611→                        value={companyName}
+   612→                        onChange={(e) => setCompanyName(e.target.value)}
+   613→                        className="pl-9"
+   614→                        placeholder="Nom de votre entreprise"
+   615→                      />
+   616→                    </div>
+   617→                  </div>
+   618→
+   619→                  <div className="space-y-2">
+   620→                    <Label htmlFor="comp-phone" className="text-xs font-medium">
+   621→                      Telephone
+   622→                    </Label>
+   623→                    <div className="relative">
+   624→                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   625→                      <Input
+   626→                        id="comp-phone"
+   627→                        value={companyPhone}
+   628→                        onChange={(e) => setCompanyPhone(e.target.value)}
+   629→                        className="pl-9"
+   630→                        placeholder="+237 6XX XXX XXX"
+   631→                      />
+   632→                    </div>
+   633→                  </div>
+   634→
+   635→                  <div className="space-y-2">
+   636→                    <Label htmlFor="comp-country" className="text-xs font-medium">
+   637→                      Pays
+   638→                    </Label>
+   639→                    <div className="relative">
+   640→                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+   641→                      <Select
+   642→                        value={companyCountry}
+   643→                        onValueChange={setCompanyCountry}
+   644→                      >
+   645→                        <SelectTrigger className="pl-9">
+   646→                          <SelectValue placeholder="Choisir un pays" />
+   647→                        </SelectTrigger>
+   648→                        <SelectContent>
+   649→                          {AFRICAN_COUNTRIES.map((c) => (
+   650→                            <SelectItem key={c} value={c}>
+   651→                              {c}
+   652→                            </SelectItem>
+   653→                          ))}
+   654→                        </SelectContent>
+   655→                      </Select>
+   656→                    </div>
+   657→                  </div>
+   658→
+   659→                  <div className="space-y-2">
+   660→                    <Label
+   661→                      htmlFor="comp-whatsapp"
+   662→                      className="text-xs font-medium"
+   663→                    >
+   664→                      Numero WhatsApp
+   665→                    </Label>
+   666→                    <div className="relative">
+   667→                      <svg
+   668→                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+   669→                        viewBox="0 0 24 24"
+   670→                        fill="currentColor"
+   671→                      >
+   672→                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+   673→                      </svg>
+   674→                      <Input
+   675→                        id="comp-whatsapp"
+   676→                        value={companyWhatsapp}
+   677→                        onChange={(e) => setCompanyWhatsapp(e.target.value)}
+   678→                        className="pl-9"
+   679→                        placeholder="+237 6XX XXX XXX"
+   680→                      />
+   681→                    </div>
+   682→                  </div>
+   683→                </div>
+   684→
+   685→                <div className="flex justify-end">
+   686→                  <Button
+   687→                    onClick={handleSaveCompany}
+   688→                    disabled={savingCompany}
+   689→                    className="bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+   690→                  >
+   691→                    {savingCompany ? (
+   692→                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+   693→                    ) : (
+   694→                      <Check className="w-4 h-4 mr-2" />
+   695→                    )}
+   696→                    Sauvegarder
+   697→                  </Button>
+   698→                </div>
+   699→              </CardContent>
+   700→            </Card>
+   701→          </TabsContent>
+   702→
+   703→          {/* TAB 2: MON COMPTE                            */}
+   704→          <TabsContent value="account">
+   705→            <div className="space-y-6">
+   706→              {/* Profile Info */}
+   707→              <Card className="border-0 shadow-sm">
+   708→                <CardHeader>
+   709→                  <CardTitle className="text-sm flex items-center gap-2">
+   710→                    <User className="w-4 h-4 text-[#25D366]" />
+   711→                    Informations personnelles
+   712→                  </CardTitle>
+   713→                </CardHeader>
+   714→                <CardContent className="space-y-4">
+   715→                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   716→                    <div className="space-y-2">
+   717→                      <Label htmlFor="user-name" className="text-xs font-medium">
+   718→                        Nom complet
+   719→                      </Label>
+   720→                      <div className="relative">
+   721→                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   722→                        <Input
+   723→                          id="user-name"
+   724→                          value={profileName}
+   725→                          onChange={(e) => setProfileName(e.target.value)}
+   726→                          className="pl-9"
+   727→                          placeholder="Votre nom"
+   728→                        />
+   729→                      </div>
+   730→                    </div>
+   731→
+   732→                    <div className="space-y-2">
+   733→                      <Label htmlFor="user-email" className="text-xs font-medium">
+   734→                        Email
+   735→                      </Label>
+   736→                      <div className="relative">
+   737→                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   738→                        <Input
+   739→                          id="user-email"
+   740→                          value={user?.email || ""}
+   741→                          readOnly
+   742→                          disabled
+   743→                          className="pl-9 bg-muted cursor-not-allowed"
+   744→                        />
+   745→                      </div>
+   746→                      <p className="text-[10px] text-muted-foreground">
+   747→                        L'email ne peut pas etre modifie
+   748→                      </p>
+   749→                    </div>
+   750→
+   751→                    <div className="space-y-2">
+   752→                      <Label htmlFor="user-phone" className="text-xs font-medium">
+   753→                        Telephone
+   754→                      </Label>
+   755→                      <div className="relative">
+   756→                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   757→                        <Input
+   758→                          id="user-phone"
+   759→                          value={profilePhone}
+   760→                          onChange={(e) => setProfilePhone(e.target.value)}
+   761→                          className="pl-9"
+   762→                          placeholder="+237 6XX XXX XXX"
+   763→                        />
+   764→                      </div>
+   765→                    </div>
+   766→                  </div>
+   767→
+   768→                  <div className="flex justify-end">
+   769→                    <Button
+   770→                      onClick={handleSaveProfile}
+   771→                      disabled={savingProfile}
+   772→                      className="bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+   773→                    >
+   774→                      {savingProfile ? (
+   775→                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+   776→                      ) : (
+   777→                        <Check className="w-4 h-4 mr-2" />
+   778→                      )}
+   779→                      Sauvegarder
+   780→                    </Button>
+   781→                  </div>
+   782→                </CardContent>
+   783→              </Card>
+   784→
+   785→              {/* Change Password */}
+   786→              <Card className="border-0 shadow-sm">
+   787→                <CardHeader>
+   788→                  <CardTitle className="text-sm flex items-center gap-2">
+   789→                    <Shield className="w-4 h-4 text-[#25D366]" />
+   790→                    Changer le mot de passe
+   791→                  </CardTitle>
+   792→                  <CardDescription className="text-xs text-muted-foreground">
+   793→                    Modifiez votre mot de passe pour securiser votre compte.
+   794→                  </CardDescription>
+   795→                </CardHeader>
+   796→                <CardContent className="space-y-4">
+   797→                  <div className="max-w-md space-y-4">
+   798→                    <div className="space-y-2">
+   799→                      <Label
+   800→                        htmlFor="current-pw"
+   801→                        className="text-xs font-medium"
+   802→                      >
+   803→                        Mot de passe actuel
+   804→                      </Label>
+   805→                      <div className="relative">
+   806→                        <Input
+   807→                          id="current-pw"
+   808→                          type={showCurrentPw ? "text" : "password"}
+   809→                          value={currentPassword}
+   810→                          onChange={(e) => setCurrentPassword(e.target.value)}
+   811→                          placeholder="••••••••"
+   812→                        />
+   813→                        <button
+   814→                          type="button"
+   815→                          onClick={() => setShowCurrentPw(!showCurrentPw)}
+   816→                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+   817→                        >
+   818→                          {showCurrentPw ? (
+   819→                            <EyeOff className="w-4 h-4" />
+   820→                          ) : (
+   821→                            <Eye className="w-4 h-4" />
+   822→                          )}
+   823→                        </button>
+   824→                      </div>
+   825→                    </div>
+   826→
+   827→                    <div className="space-y-2">
+   828→                      <Label
+   829→                        htmlFor="new-pw"
+   830→                        className="text-xs font-medium"
+   831→                      >
+   832→                        Nouveau mot de passe
+   833→                      </Label>
+   834→                      <div className="relative">
+   835→                        <Input
+   836→                          id="new-pw"
+   837→                          type={showNewPw ? "text" : "password"}
+   838→                          value={newPassword}
+   839→                          onChange={(e) => setNewPassword(e.target.value)}
+   840→                          placeholder="Min. 8 caracteres, majuscule + chiffre"
+   841→                        />
+   842→                        <button
+   843→                          type="button"
+   844→                          onClick={() => setShowNewPw(!showNewPw)}
+   845→                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+   846→                        >
+   847→                          {showNewPw ? (
+   848→                            <EyeOff className="w-4 h-4" />
+   849→                          ) : (
+   850→                            <Eye className="w-4 h-4" />
+   851→                          )}
+   852→                        </button>
+   853→                      </div>
+   854→                    </div>
+   855→
+   856→                    <div className="space-y-2">
+   857→                      <Label
+   858→                        htmlFor="confirm-pw"
+   859→                        className="text-xs font-medium"
+   860→                      >
+   861→                        Confirmer le mot de passe
+   862→                      </Label>
+   863→                      <Input
+   864→                        id="confirm-pw"
+   865→                        type="password"
+   866→                        value={confirmPassword}
+   867→                        onChange={(e) => setConfirmPassword(e.target.value)}
+   868→                        placeholder="Repeter le nouveau mot de passe"
+   869→                      />
+   870→                      {confirmPassword &&
+   871→                        newPassword !== confirmPassword && (
+   872→                          <p className="text-[11px] text-red-500">
+   873→                            Les mots de passe ne correspondent pas
+   874→                          </p>
+   875→                        )}
+   876→                    </div>
+   877→                  </div>
+   878→
+   879→                  <div className="flex justify-end">
+   880→                    <Button
+   881→                      onClick={handleChangePassword}
+   882→                      disabled={
+   883→                        savingPassword ||
+   884→                        !currentPassword ||
+   885→                        !newPassword ||
+   886→                        !confirmPassword
+   887→                      }
+   888→                      variant="outline"
+   889→                    >
+   890→                      {savingPassword ? (
+   891→                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+   892→                      ) : (
+   893→                        <Shield className="w-4 h-4 mr-2" />
+   894→                      )}
+   895→                      Changer le mot de passe
+   896→                    </Button>
+   897→                  </div>
+   898→                </CardContent>
+   899→              </Card>
+   900→            </div>
+   901→          </TabsContent>
+   902→
+   903→          {/* TAB 3: GESTION D'EQUIPE                      */}
+   904→          <TabsContent value="team">
+   905→            <Card className="border-0 shadow-sm">
+   906→              <CardHeader>
+   907→                <div className="flex items-center justify-between">
+   908→                  <div>
+   909→                    <CardTitle className="text-sm flex items-center gap-2">
+   910→                      <Users className="w-4 h-4 text-[#25D366]" />
+   911→                      Gestion d'Equipe
+   912→                    </CardTitle>
+   913→                    <CardDescription className="text-xs text-muted-foreground mt-1">
+   914→                      {members.length} / {companyData?.maxAgents || user?.company?.plan === "enterprise" ? "∞" : "?"} agents utilises
+   915→                    </CardDescription>
+   916→                  </div>
+   917→                  <Button
+   918→                    onClick={() => setInviteOpen(true)}
+   919→                    size="sm"
+   920→                    className="bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+   921→                  >
+   922→                    <UserPlus className="w-4 h-4 mr-2" />
+   923→                    Inviter un membre
+   924→                  </Button>
+   925→                </div>
+   926→              </CardHeader>
+   927→              <CardContent>
+   928→                {loadingMembers ? (
+   929→                  <div className="flex items-center justify-center py-8">
+   930→                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+   931→                    <span className="ml-2 text-sm text-muted-foreground">
+   932→                      Chargement...
+   933→                    </span>
+   934→                  </div>
+   935→                ) : members.length === 0 ? (
+   936→                  <div className="text-center py-8">
+   937→                    <Users className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
+   938→                    <p className="text-sm text-muted-foreground">
+   939→                      Aucun membre dans l'equipe
+   940→                    </p>
+   941→                    <Button
+   942→                      variant="outline"
+   943→                      size="sm"
+   944→                      className="mt-3"
+   945→                      onClick={() => setInviteOpen(true)}
+   946→                    >
+   947→                      <UserPlus className="w-4 h-4 mr-2" />
+   948→                      Inviter un membre
+   949→                    </Button>
+   950→                  </div>
+   951→                ) : (
+   952→                  <div className="space-y-2 max-h-96 overflow-y-auto custom-scroll">
+   953→                    {members.map((m) => {
+   954→                      const isSelf = m.id === user?.id;
+   955→                      const initials = m.name
+   956→                        .split(" ")
+   957→                        .map((n) => n[0])
+   958→                        .join("")
+   959→                        .toUpperCase()
+   960→                        .slice(0, 2);
+   961→
+   962→                      return (
+   963→                        <div
+   964→                          key={m.id}
+   965→                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors group"
+   966→                        >
+   967→                          <div className="flex items-center gap-3">
+   968→                            <div className="w-9 h-9 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-bold shrink-0">
+   969→                              {initials}
+   970→                            </div>
+   971→                            <div className="min-w-0">
+   972→                              <p className="text-sm font-medium text-foreground truncate">
+   973→                                {m.name}
+   974→                                {isSelf && (
+   975→                                  <span className="text-[10px] text-muted-foreground ml-2">
+   976→                                    (vous)
+   977→                                  </span>
+   978→                                )}
+   979→                              </p>
+   980→                              <p className="text-xs text-muted-foreground truncate">
+   981→                                {m.email}
+   982→                              </p>
+   983→                            </div>
+   984→                          </div>
+   985→                          <div className="flex items-center gap-2">
+   986→                            <Badge
+   987→                              className={`text-[10px] font-medium border ${ROLE_BADGE_VARIANT[m.role] || ROLE_BADGE_VARIANT.agent}`}
+   988→                            >
+   989→                              {ROLE_LABELS[m.role] || m.role}
+   990→                            </Badge>
+   991→                            {!isSelf && (
+   992→                              <Button
+   993→                                variant="ghost"
+   994→                                size="icon"
+   995→                                className="h-8 w-8 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+   996→                                onClick={() =>
+   997→                                  handleDeleteMember(m.id, m.name)
+   998→                                }
+   999→                              >
+  1000→                                <Trash2 className="w-4 h-4" />
+  1001→                              </Button>
+  1002→                            )}
+  1003→                          </div>
+  1004→                        </div>
+  1005→                      );
+  1006→                    })}
+  1007→                  </div>
+  1008→                )}
+  1009→              </CardContent>
+  1010→            </Card>
+  1011→          </TabsContent>
+  1012→
+  1013→          {/* TAB 4: ABONNEMENT                           */}
+  1014→          <TabsContent value="subscription">
+  1015→            <div className="space-y-6">
+  1016→              {/* Current Plan Banner */}
+  1017→              <Card className="border-0 shadow-sm">
+  1018→                <CardContent className="p-6">
+  1019→                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  1020→                    <div className="flex items-center gap-4">
+  1021→                      <div className="w-12 h-12 rounded-xl bg-[#25D366]/10 flex items-center justify-center">
+  1022→                        <Crown className="w-6 h-6 text-[#25D366]" />
+  1023→                      </div>
+  1024→                      <div>
+  1025→                        <div className="flex items-center gap-2">
+  1026→                          <h3 className="font-semibold text-foreground">
+  1027→                            Plan{" "}
+  1028→                            {plan.charAt(0).toUpperCase() + plan.slice(1)}
+  1029→                          </h3>
+  1030→                          <Badge
+  1031→                            className={`text-[10px] ${
+  1032→                              subscription?.status === "trialing"
+  1033→                                ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+  1034→                                : "bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20"
+  1035→                            }`}
+  1036→                          >
+  1037→                            {subscription?.status === "trialing"
+  1038→                              ? "Periode d'essai"
+  1039→                              : "Actif"}
+  1040→                          </Badge>
+  1041→                        </div>
+  1042→                        {trialDays !== null && (
+  1043→                          <p className="text-xs text-amber-500 flex items-center gap-1 mt-1">
+  1044→                            <Clock className="w-3 h-3" />
+  1045→                            {trialDays} jour{trialDays > 1 ? "s" : ""}{" "}
+  1046→                            restant{trialDays > 1 ? "s" : ""} dans l'essai
+  1047→                          </p>
+  1048→                        )}
+  1049→                      </div>
+  1050→                    </div>
+  1051→                    <div className="flex gap-6 text-sm">
+  1052→                      <div className="text-center">
+  1053→                        <p className="text-2xl font-bold text-foreground">
+  1054→                          {usage?.contactCount ?? "-"}
+  1055→                        </p>
+  1056→                        <p className="text-[10px] text-muted-foreground">
+  1057→                          / {companyData?.maxContacts || "-"} contacts
+  1058→                        </p>
+  1059→                      </div>
+  1060→                      <Separator
+  1061→                        orientation="vertical"
+  1062→                        className="h-12"
+  1063→                      />
+  1064→                      <div className="text-center">
+  1065→                        <p className="text-2xl font-bold text-foreground">
+  1066→                          {usage?.agentCount ?? members.length}
+  1067→                        </p>
+  1068→                        <p className="text-[10px] text-muted-foreground">
+  1069→                          / {companyData?.maxAgents || "?"} agents
+  1070→                        </p>
+  1071→                      </div>
+  1072→                    </div>
+  1073→                  </div>
+  1074→                </CardContent>
+  1075→              </Card>
+  1076→
+  1077→              {/* Plan Cards */}
+  1078→              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  1079→                {PLANS.map((p) => {
+  1080→                  const isCurrent = plan === p.key;
+  1081→                  const isUpgrade =
+  1082→                    PLAN_ORDER.indexOf(p.key) > PLAN_ORDER.indexOf(plan);
+  1083→
+  1084→                  return (
+  1085→                    <Card
+  1086→                      key={p.key}
+  1087→                      className={`border-2 ${p.color} shadow-sm relative ${isCurrent ? "ring-2 ring-[#25D366] ring-offset-2 ring-offset-background" : ""}`}
+  1088→                    >
+  1089→                      {p.popular && (
+  1090→                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+  1091→                          <Badge className="bg-[#25D366] text-white text-[10px]">
+  1092→                            Populaire
+  1093→                          </Badge>
+  1094→                        </div>
+  1095→                      )}
+  1096→                      <CardContent className="p-5">
+  1097→                        <div className="flex items-center gap-2 mb-4">
+  1098→                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+  1099→                            <p.icon className="w-5 h-5 text-foreground" />
+  1100→                          </div>
+  1101→                          <div>
+  1102→                            <p className="font-semibold text-foreground">
+  1103→                              {p.name}
+  1104→                            </p>
+  1105→                            {isCurrent && (
+  1106→                              <Badge
+  1107→                                variant="outline"
+  1108→                                className="text-[9px]"
+  1109→                              >
+  1110→                                Plan actuel
+  1111→                              </Badge>
+  1112→                            )}
+  1113→                          </div>
+  1114→                        </div>
+  1115→                        <div className="mb-4">
+  1116→                          <span className="text-2xl font-bold text-foreground">
+  1117→                            {p.price}
+  1118→                          </span>
+  1119→                          <span className="text-sm text-muted-foreground">
+  1120→                            {" "}FCFA{p.period}
+  1121→                          </span>
+  1122→                        </div>
+  1123→                        <ul className="space-y-2 mb-5">
+  1124→                          {p.features.map((f) => (
+  1125→                            <li
+  1126→                              key={f}
+  1127→                              className="flex items-center gap-2 text-sm text-foreground"
+  1128→                            >
+  1129→                              <Check className="w-3.5 h-3.5 text-[#25D366] shrink-0" />
+  1130→                              {f}
+  1131→                            </li>
+  1132→                          ))}
+  1133→                        </ul>
+  1134→                        <Button
+  1135→                          className={`w-full ${isCurrent ? "bg-muted text-muted-foreground cursor-default" : isUpgrade ? "bg-[#25D366] hover:bg-[#25D366]/90 text-white" : "bg-muted text-muted-foreground"}`}
+  1136→                          disabled={isCurrent}
+  1137→                          onClick={() => handleUpgrade(p.key)}
+  1138→                        >
+  1139→                          {isCurrent
+  1140→                            ? "Plan actuel"
+  1141→                            : isUpgrade
+  1142→                              ? "Passer a ce plan"
+  1143→                              : "Payer via Mobile Money"}
+  1144→                        </Button>
+  1145→                      </CardContent>
+  1146→                    </Card>
+  1147→                  );
+  1148→                })}
+  1149→              </div>
+  1150→            </div>
+  1151→          </TabsContent>
+  1152→
+  1153→          {/* TAB 5: NOTIFICATIONS                          */}
+  1154→          <TabsContent value="notifications">
+  1155→            <Card className="border-0 shadow-sm">
+  1156→              <CardHeader>
+  1157→                <CardTitle className="text-sm flex items-center gap-2">
+  1158→                  <Bell className="w-4 h-4 text-[#25D366]" />
+  1159→                  Preferences de notifications
+  1160→                </CardTitle>
+  1161→                <CardDescription className="text-xs text-muted-foreground">
+  1162→                  Choisissez les evenements pour lesquels vous souhaitez recevoir des
+  1163→                  notifications.
+  1164→                </CardDescription>
+  1165→              </CardHeader>
+  1166→              <CardContent className="space-y-6">
+  1167→                <div className="space-y-4">
+  1168→                  {/* New Orders */}
+  1169→                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+  1170→                    <div className="flex items-center gap-3">
+  1171→                      <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
+  1172→                        <svg
+  1173→                          className="w-4 h-4 text-[#25D366]"
+  1174→                          fill="none"
+  1175→                          stroke="currentColor"
+  1176→                          viewBox="0 0 24 24"
+  1177→                        >
+  1178→                          <path
+  1179→                            strokeLinecap="round"
+  1180→                            strokeLinejoin="round"
+  1181→                            strokeWidth={2}
+  1182→                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+  1183→                          />
+  1184→                        </svg>
+  1185→                      </div>
+  1186→                      <div>
+  1187→                        <p className="text-sm font-medium text-foreground">
+  1188→                          Nouvelles commandes
+  1189→                        </p>
+  1190→                        <p className="text-[11px] text-muted-foreground">
+  1191→                          Recevez une notification a chaque nouvelle commande
+  1192→                        </p>
+  1193→                      </div>
+  1194→                    </div>
+  1195→                    <Switch
+  1196→                      checked={notifs.new_orders}
+  1197→                      onCheckedChange={(v) =>
+  1198→                        setNotifs((n) => ({ ...n, new_orders: v }))
+  1199→                      }
+  1200→                    />
+  1201→                  </div>
+  1202→
+  1203→                  {/* New Messages */}
+  1204→                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+  1205→                    <div className="flex items-center gap-3">
+  1206→                      <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
+  1207→                        <svg
+  1208→                          className="w-4 h-4 text-[#25D366]"
+  1209→                          viewBox="0 0 24 24"
+  1210→                          fill="currentColor"
+  1211→                        >
+  1212→                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  1213→                        </svg>
+  1214→                      </div>
+  1215→                      <div>
+  1216→                        <p className="text-sm font-medium text-foreground">
+  1217→                          Nouveaux messages
+  1218→                        </p>
+  1219→                        <p className="text-[11px] text-muted-foreground">
+  1220→                          Notifications pour les nouveaux messages WhatsApp
+  1221→                        </p>
+  1222→                      </div>
+  1223→                    </div>
+  1224→                    <Switch
+  1225→                      checked={notifs.new_messages}
+  1226→                      onCheckedChange={(v) =>
+  1227→                        setNotifs((n) => ({ ...n, new_messages: v }))
+  1228→                      }
+  1229→                    />
+  1230→                  </div>
+  1231→
+  1232→                  {/* Payment Confirmations */}
+  1233→                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+  1234→                    <div className="flex items-center gap-3">
+  1235→                      <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
+  1236→                        <CreditCard className="w-4 h-4 text-[#25D366]" />
+  1237→                      </div>
+  1238→                      <div>
+  1239→                        <p className="text-sm font-medium text-foreground">
+  1240→                          Confirmations de paiement
+  1241→                        </p>
+  1242→                        <p className="text-[11px] text-muted-foreground">
+  1243→                          Alertes lors de la reception des paiements
+  1244→                        </p>
+  1245→                      </div>
+  1246→                    </div>
+  1247→                    <Switch
+  1248→                      checked={notifs.payment_confirmations}
+  1249→                      onCheckedChange={(v) =>
+  1250→                        setNotifs((n) => ({
+  1251→                          ...n,
+  1252→                          payment_confirmations: v,
+  1253→                        }))
+  1254→                      }
+  1255→                    />
+  1256→                  </div>
+  1257→
+  1258→                  {/* Daily Reports */}
+  1259→                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+  1260→                    <div className="flex items-center gap-3">
+  1261→                      <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
+  1262→                        <svg
+  1263→                          className="w-4 h-4 text-[#25D366]"
+  1264→                          fill="none"
+  1265→                          stroke="currentColor"
+  1266→                          viewBox="0 0 24 24"
+  1267→                        >
+  1268→                          <path
+  1269→                            strokeLinecap="round"
+  1270→                            strokeLinejoin="round"
+  1271→                            strokeWidth={2}
+  1272→                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+  1273→                          />
+  1274→                        </svg>
+  1275→                      </div>
+  1276→                      <div>
+  1277→                        <p className="text-sm font-medium text-foreground">
+  1278→                          Rapports quotidiens
+  1279→                        </p>
+  1280→                        <p className="text-[11px] text-muted-foreground">
+  1281→                          Resume quotidien de l'activite par email
+  1282→                        </p>
+  1283→                      </div>
+  1284→                    </div>
+  1285→                    <Switch
+  1286→                      checked={notifs.daily_reports}
+  1287→                      onCheckedChange={(v) =>
+  1288→                        setNotifs((n) => ({ ...n, daily_reports: v }))
+  1289→                      }
+  1290→                    />
+  1291→                  </div>
+  1292→                </div>
+  1293→
+  1294→                <Separator />
+  1295→
+  1296→                <div className="flex justify-end">
+  1297→                  <Button
+  1298→                    onClick={handleSaveNotifs}
+  1299→                    disabled={savingNotifs}
+  1300→                    className="bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+  1301→                  >
+  1302→                    {savingNotifs ? (
+  1303→                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+  1304→                    ) : (
+  1305→                      <Check className="w-4 h-4 mr-2" />
+  1306→                    )}
+  1307→                    Sauvegarder
+  1308→                  </Button>
+  1309→                </div>
+  1310→              </CardContent>
+  1311→            </Card>
+  1312→          </TabsContent>
+  1313→        </Tabs>
+  1314→      </div>
+  1315→
+  1316→      {/* INVITE MEMBER DIALOG                         */}
+  1317→      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+  1318→        <DialogContent className="bg-card border-border sm:max-w-md">
+  1319→          <DialogHeader>
+  1320→            <DialogTitle className="flex items-center gap-2">
+  1321→              <UserPlus className="w-5 h-5 text-[#25D366]" />
+  1322→              Inviter un membre
+  1323→            </DialogTitle>
+  1324→            <DialogDescription className="text-xs text-muted-foreground">
+  1325→              Un email d'invitation sera envoye avec un mot de passe temporaire.
+  1326→            </DialogDescription>
+  1327→          </DialogHeader>
+  1328→          <div className="space-y-4 py-2">
+  1329→            <div className="space-y-2">
+  1330→              <Label
+  1331→                htmlFor="invite-email"
+  1332→                className="text-xs font-medium"
+  1333→              >
+  1334→                Adresse email
+  1335→              </Label>
+  1336→              <div className="relative">
+  1337→                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+  1338→                <Input
+  1339→                  id="invite-email"
+  1340→                  type="email"
+  1341→                  value={inviteEmail}
+  1342→                  onChange={(e) => setInviteEmail(e.target.value)}
+  1343→                  className="pl-9"
+  1344→                  placeholder="collaborateur@exemple.com"
+  1345→                  onKeyDown={(e) => {
+  1346→                    if (e.key === "Enter") handleInvite();
+  1347→                  }}
+  1348→                />
+  1349→              </div>
+  1350→            </div>
+  1351→            <div className="space-y-2">
+  1352→              <Label className="text-xs font-medium">Role</Label>
+  1353→              <Select value={inviteRole} onValueChange={setInviteRole}>
+  1354→                <SelectTrigger>
+  1355→                  <SelectValue placeholder="Choisir un role" />
+  1356→                </SelectTrigger>
+  1357→                <SelectContent>
+  1358→                  <SelectItem value="agent">
+  1359→                    <span className="flex items-center gap-2">
+  1360→                      <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+  1361→                      Agent — Peut gerer les conversations
+  1362→                    </span>
+  1363→                  </SelectItem>
+  1364→                  <SelectItem value="viewer">
+  1365→                    <span className="flex items-center gap-2">
+  1366→                      <span className="w-2 h-2 rounded-full bg-muted-foreground/50" />
+  1367→                      Lecteur — Consultation uniquement
+  1368→                    </span>
+  1369→                  </SelectItem>
+  1370→                  <SelectItem value="company_admin">
+  1371→                    <span className="flex items-center gap-2">
+  1372→                      <span className="w-2 h-2 rounded-full bg-[#25D366]" />
+  1373→                      Admin — Acces complet
+  1374→                    </span>
+  1375→                  </SelectItem>
+  1376→                </SelectContent>
+  1377→              </Select>
+  1378→            </div>
+  1379→          </div>
+  1380→          <DialogFooter>
+  1381→            <Button
+  1382→              variant="outline"
+  1383→              onClick={() => setInviteOpen(false)}
+  1384→              disabled={inviting}
+  1385→            >
+  1386→              Annuler
+  1387→            </Button>
+  1388→            <Button
+  1389→              onClick={handleInvite}
+  1390→              disabled={inviting || !inviteEmail.trim()}
+  1391→              className="bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+  1392→            >
+  1393→              {inviting ? (
+  1394→                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+  1395→              ) : (
+  1396→                <UserPlus className="w-4 h-4 mr-2" />
+  1397→              )}
+  1398→              Inviter
+  1399→            </Button>
+  1400→          </DialogFooter>
+  1401→        </DialogContent>
+  1402→      </Dialog>
+  1403→    </>
+  1404→  );
+  1405→}
+  1406→
