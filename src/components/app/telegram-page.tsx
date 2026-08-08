@@ -174,7 +174,7 @@ export default function TelegramPage() {
     address: "",
     phone: "",
     currency: "XAF",
-    paymentMethod: "",
+    paymentMethod: "none",
   });
   const [agentSaving, setAgentSaving] = useState(false);
 
@@ -322,7 +322,7 @@ export default function TelegramPage() {
       address: "",
       phone: "",
       currency: "XAF",
-      paymentMethod: "",
+      paymentMethod: "none",
     });
     setAgentDialogOpen(true);
   };
@@ -338,7 +338,7 @@ export default function TelegramPage() {
       address: agent.address || "",
       phone: agent.phone || "",
       currency: agent.currency,
-      paymentMethod: agent.paymentMethod || "",
+      paymentMethod: agent.paymentMethod || "none",
     });
     setAgentDialogOpen(true);
   };
@@ -823,10 +823,10 @@ export default function TelegramPage() {
                             <span>{agent.phone}</span>
                           </div>
                         )}
-                        {agent.paymentMethod && (
+                        {agent.paymentMethod && agent.paymentMethod !== "none" && (
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                            <span>{agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod}</span>
+                            <span>{agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod === "cash" ? "Espèces" : agent.paymentMethod}</span>
                           </div>
                         )}
                       </div>
@@ -1089,7 +1089,7 @@ export default function TelegramPage() {
                     <SelectItem value="orange_money">Orange Money</SelectItem>
                     <SelectItem value="mtn_money">MTN Mobile Money</SelectItem>
                     <SelectItem value="cash">Espèces</SelectItem>
-                    <SelectItem value="">Aucun</SelectItem>
+                    <SelectItem value="none">Aucun</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
