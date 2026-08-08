@@ -223,8 +223,9 @@ export default function DashboardPage() {
       content += `${i + 1}. ${p.productName} - ${formatXAF(p._sum.total || 0)} (${p._sum.quantity} ventes)\n`;
     });
     content += `\nDERNIERES COMMANDES\n${"-".repeat(40)}\n`;
-    (recentOrders || []).forEach((o: Record<string, unknown>) => {
-      content += `${o.orderNumber} | ${(o.contact as Record<string, unknown>)?.name || ""} | ${formatXAF(o.total as number)} | ${STATUS_LABELS[o.status as string] || o.status}\n`;
+    (recentOrders || []).forEach((o) => {
+      const order = o as Record<string, unknown>;
+      content += `${order.orderNumber} | ${(order.contact as Record<string, unknown>)?.name || ""} | ${formatXAF(order.total as number)} | ${STATUS_LABELS[order.status as string] || order.status}\n`;
     });
 
     const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
