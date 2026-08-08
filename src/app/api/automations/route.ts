@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -42,6 +43,12 @@ export async function POST(request: Request) {
     if (!VALID_AUTOMATION_TYPES.includes(type)) {
       return NextResponse.json({ error: "Type d'automatisation invalide" }, { status: 400 });
     }
+
+    // Check plan limit for automations
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const autoCount = await db.automation.count({ where: { companyId: session.companyId } });
+    const limitError = checkPlanLimit(company?.plan || "starter", "maxAutomations", autoCount);
+    if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const sanitizedName = sanitize(name);
     const sanitizedTemplate = sanitize(messageTemplate);

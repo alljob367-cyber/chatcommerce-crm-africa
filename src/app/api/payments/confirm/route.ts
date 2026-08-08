@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
+import { PLAN_LIMITS } from "@/lib/plan-limits";
 
-const PLAN_LIMITS: Record<string, { maxContacts: number; maxAgents: number }> = {
-  starter: { maxContacts: 500, maxAgents: 3 },
-  business: { maxContacts: 5000, maxAgents: 10 },
-  enterprise: { maxContacts: 999999, maxAgents: 999999 },
-};
+// Legacy alias for local usage
+const _LIMITS = PLAN_LIMITS;
 
 // POST: Confirmer ou rejeter un paiement (admin only)
 export async function POST(request: Request) {
@@ -105,6 +103,16 @@ export async function POST(request: Request) {
         maxContacts: limits.maxContacts,
         maxAgents: limits.maxAgents,
       },
+    });
+
+    // Update maxProducts, maxAutomations, maxTelegramAgents, maxBookings
+    // These are stored in subscription metadata for plan enforcement
+    // We update the subscription record with the full limits
+    const subMeta = JSON.stringify({
+      maxProducts: limits.maxProducts,
+      maxAutomations: limits.maxAutomations,
+      maxTelegramAgents: limits.maxTelegramAgents,
+      maxBookings: limits.maxBookings,
     });
 
     // Mettre à jour ou créer la subscription

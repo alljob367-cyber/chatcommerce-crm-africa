@@ -47,6 +47,7 @@ export default function AutomationsPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", type: "welcome", messageTemplate: "", delayMinutes: "0" });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchAutomations = useCallback(() => {
     if (!token) return;
@@ -61,11 +62,22 @@ export default function AutomationsPage() {
 
   const handleAdd = async () => {
     if (!token || !form.name || !form.messageTemplate) return;
-    await fetch("/api/automations", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
-    });
+    if (editingId) {
+      // Update existing automation
+      await fetch("/api/automations", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
+      });
+      setEditingId(null);
+    } else {
+      // Create new automation
+      await fetch("/api/automations", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
+      });
+    }
     setShowAdd(false);
     setForm({ name: "", type: "welcome", messageTemplate: "", delayMinutes: "0" });
     fetchAutomations();
@@ -88,6 +100,17 @@ export default function AutomationsPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchAutomations();
+  };
+
+  const handleEditAutomation = (auto: Automation) => {
+    setEditingId(auto.id);
+    setForm({
+      name: auto.name,
+      type: auto.type,
+      messageTemplate: auto.messageTemplate,
+      delayMinutes: String(auto.delayMinutes),
+    });
+    setShowAdd(true);
   };
 
   const typeIcons: Record<string, React.ElementType> = {
@@ -119,7 +142,7 @@ export default function AutomationsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Créer une automation</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Modifier l'automation" : "Créer une automation"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nom</Label><Input placeholder="Ex: Message de bienvenue" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>Type</Label>
@@ -134,7 +157,7 @@ export default function AutomationsPage() {
                 <Textarea placeholder="Bonjour {contact_name}, bienvenue chez {company_name} !" value={form.messageTemplate} onChange={(e) => setForm({ ...form, messageTemplate: e.target.value })} rows={4} />
               </div>
               <div><Label>Délai (minutes)</Label><Input type="number" value={form.delayMinutes} onChange={(e) => setForm({ ...form, delayMinutes: e.target.value })} /></div>
-              <Button className="w-full bg-primary" onClick={handleAdd}>Créer</Button>
+              <Button className="w-full bg-primary" onClick={handleAdd}>{editingId ? "Modifier" : "Créer"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -172,7 +195,7 @@ export default function AutomationsPage() {
                           {auto.delayMinutes > 0 ? `Délai: ${auto.delayMinutes} min` : "Immédiat"}
                         </div>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Edit2 className="w-3 h-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditAutomation(auto)}><Edit2 className="w-3 h-3" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => deleteAutomation(auto.id)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>

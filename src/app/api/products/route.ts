@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
+import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -52,6 +53,12 @@ export async function POST(request: Request) {
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Nom et prix requis" }, { status: 400 });
     }
+
+    // Check plan limit for products
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const productCount = await db.product.count({ where: { companyId: session.companyId, isActive: true } });
+    const limitError = checkPlanLimit(company?.plan || "starter", "maxProducts", productCount);
+    if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const sanitizedName = sanitize(name);
     const sanitizedDesc = description ? sanitize(description) : null;

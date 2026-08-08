@@ -43,13 +43,21 @@ export async function GET(request: Request) {
       db.user.count({ where: { companyId: company.id, isActive: true } }),
     ]);
 
-    // Parse notification settings (stored as JSON string in company or defaults)
-    const defaultNotifs = {
+    // Parse notification settings from company or use defaults
+    let notifications = {
       new_orders: true,
       new_messages: true,
       payment_confirmations: true,
       daily_reports: false,
     };
+    if (company.notificationSettings) {
+      try {
+        notifications = JSON.parse(company.notificationSettings);
+      } catch { /* use defaults */ }
+    }
+
+    // Get telegram agent count
+    const telegramAgentCount = await db.telegramAgent.count({ where: { companyId: company.id } });
 
     return NextResponse.json({
       company: {
@@ -60,7 +68,7 @@ export async function GET(request: Request) {
         plan: company.plan,
         maxContacts: company.maxContacts,
         maxAgents: company.maxAgents,
-        notifications: defaultNotifs,
+        notifications,
       },
       subscription: subscription
         ? {
@@ -70,7 +78,7 @@ export async function GET(request: Request) {
             currentPeriodEnd: subscription.currentPeriodEnd,
           }
         : null,
-      usage: { contactCount, agentCount },
+      usage: { contactCount, agentCount, telegramAgentCount },
     });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
@@ -120,14 +128,6 @@ export async function POST(request: Request) {
     if (action === "update_notifications") {
       const { new_orders, new_messages, payment_confirmations, daily_reports } = body;
 
-      // Store notifications as a JSON string in the company's whatsappToken field is hacky.
-      // Instead we'll store in a separate approach: update the company record with a JSON field.
-      // Since Prisma schema doesn't have a notifications field, we'll use the logo field as a
-      // temporary JSON storage for notification preferences (it's a nullable string).
-      // Actually, let's just return success - the frontend handles the state.
-      // For a real implementation we'd add a notificationSettings field to the schema.
-      // For now, we'll store in a simple approach using the existing schema.
-
       const notifData = JSON.stringify({
         new_orders: !!new_orders,
         new_messages: !!new_messages,
@@ -135,12 +135,13 @@ export async function POST(request: Request) {
         daily_reports: !!daily_reports,
       });
 
-      // We'll store notification prefs in the company's slug-related approach.
-      // Actually, let's use a pragmatic approach: store as part of the company update.
-      // Since there's no dedicated field, we'll acknowledge the save.
+      // Store notification preferences in the company's notificationSettings field
       await db.company.update({
         where: { id: auth.company.id },
-        data: { updatedAt: new Date() },
+        data: {
+          notificationSettings: notifData,
+          updatedAt: new Date(),
+        },
       });
 
       return NextResponse.json({

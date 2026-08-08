@@ -38,7 +38,7 @@ interface Product {
   stock: number;
   image?: string;
   isActive: boolean;
-  category?: { name: string } | null;
+  category?: { id: string; name: string } | null;
 }
 
 export default function ProductsPage() {
@@ -51,6 +51,7 @@ export default function ProductsPage() {
   const [showCat, setShowCat] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [form, setForm] = useState({ name: "", description: "", price: "", sku: "", stock: "", categoryId: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchData = useCallback(() => {
     if (!token) return;
@@ -71,11 +72,22 @@ export default function ProductsPage() {
 
   const handleAddProduct = async () => {
     if (!token || !form.name || !form.price) return;
-    await fetch("/api/products", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) || 0 }),
-    });
+    if (editingId) {
+      // Update existing product
+      await fetch("/api/products", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, ...form, price: parseFloat(form.price), stock: parseInt(form.stock) || 0 }),
+      });
+      setEditingId(null);
+    } else {
+      // Create new product
+      await fetch("/api/products", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, price: parseFloat(form.price), stock: parseInt(form.stock) || 0 }),
+      });
+    }
     setShowAdd(false);
     setForm({ name: "", description: "", price: "", sku: "", stock: "", categoryId: "" });
     fetchData();
@@ -90,6 +102,29 @@ export default function ProductsPage() {
     });
     setShowCat(false);
     setNewCat("");
+    fetchData();
+  };
+
+  const handleEditProduct = (p: Product) => {
+    setEditingId(p.id);
+    setForm({
+      name: p.name,
+      description: p.description || "",
+      price: String(p.price),
+      sku: p.sku,
+      stock: String(p.stock),
+      categoryId: p.category?.id || "",
+    });
+    setShowAdd(true);
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Supprimer ce produit ?")) return;
+    if (!token) return;
+    await fetch(`/api/products?id=${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     fetchData();
   };
 
@@ -115,7 +150,7 @@ export default function ProductsPage() {
             <Button className="bg-primary hover:bg-primary/90"><Plus className="w-4 h-4 mr-1" />Produit</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nouveau produit</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingId ? "Modifier le produit" : "Nouveau produit"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nom *</Label><Input placeholder="Poulet DG" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
               <div><Label>Description</Label><Textarea placeholder="Description du produit..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -131,7 +166,7 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="w-full bg-primary" onClick={handleAddProduct}>Ajouter</Button>
+              <Button className="w-full bg-primary" onClick={handleAddProduct}>{editingId ? "Modifier" : "Ajouter"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -176,8 +211,8 @@ export default function ProductsPage() {
                         )}
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7"><Edit2 className="w-3 h-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400"><Trash2 className="w-3 h-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProduct(p)}><Edit2 className="w-3 h-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => handleDeleteProduct(p.id)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     </div>
                     <div className="flex items-center justify-between mt-2">

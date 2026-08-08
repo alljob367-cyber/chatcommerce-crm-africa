@@ -85,3 +85,36 @@ export async function POST(
     return NextResponse.json({ error: msg }, { status });
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth(request);
+    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const serviceId = searchParams.get("serviceId");
+
+    if (!serviceId) {
+      return NextResponse.json({ error: "serviceId requis" }, { status: 400 });
+    }
+
+    // Verify agent belongs to company
+    const agent = await db.telegramAgent.findFirst({
+      where: { id, companyId: session.companyId },
+    });
+    if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
+
+    await db.businessService.delete({
+      where: { id: serviceId, agentId: id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}

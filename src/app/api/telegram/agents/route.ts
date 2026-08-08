@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -44,9 +45,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nom, token et type de business requis" }, { status: 400 });
     }
 
-    if (!["restaurant", "salon_coiffure"].includes(businessType)) {
+    const VALID_BUSINESS_TYPES = [
+      "restaurant", "salon_coiffure", "pharmacie", "taxi", "pressing",
+      "ecole", "supermarche", "clinique", "voyage", "boulangerie", "garage", "salle_sport",
+    ];
+    if (!VALID_BUSINESS_TYPES.includes(businessType)) {
       return NextResponse.json({ error: "Type de business invalide" }, { status: 400 });
     }
+
+    // Check plan limit for telegram agents
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const agentCount = await db.telegramAgent.count({ where: { companyId: session.companyId } });
+    const limitError = checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", agentCount);
+    if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const agent = await db.telegramAgent.create({
       data: {

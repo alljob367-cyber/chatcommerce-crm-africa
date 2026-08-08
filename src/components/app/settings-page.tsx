@@ -139,9 +139,11 @@ const PLANS = [
     period: "/mois",
     features: [
       "500 contacts",
-      "3 agents",
-      "1 000 messages/mois",
-      "Automatisations basiques",
+      "3 agents equipe",
+      "50 produits",
+      "3 automatisations",
+      "2 agents Telegram",
+      "100 reservations/mois",
       "Support email",
     ],
     color: "border-border",
@@ -155,10 +157,12 @@ const PLANS = [
     popular: true,
     features: [
       "5 000 contacts",
-      "10 agents",
-      "10 000 messages/mois",
+      "10 agents equipe",
+      "500 produits",
+      "20 automatisations",
+      "12 agents Telegram",
+      "5 000 reservations/mois",
       "IA Assistant",
-      "Automatisations avancees",
       "Support prioritaire",
       "API WhatsApp",
     ],
@@ -173,7 +177,10 @@ const PLANS = [
     features: [
       "Contacts illimites",
       "Agents illimites",
-      "Messages illimites",
+      "Produits illimites",
+      "Automatisations illimites",
+      "Agents Telegram illimites",
+      "Reservations illimites",
       "IA avancee",
       "API complete",
       "Support dedie 24/7",
@@ -1066,7 +1073,19 @@ export default function SettingsPage() {
                           {usage?.agentCount ?? members.length}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          / {companyData?.maxAgents || "?"} agents
+                          / {companyData?.maxAgents || "?"} equipe
+                        </p>
+                      </div>
+                      <Separator
+                        orientation="vertical"
+                        className="h-12"
+                      />
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-foreground">
+                          {usage?.telegramAgentCount ?? "-"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          agents Telegram
                         </p>
                       </div>
                     </div>
