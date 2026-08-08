@@ -1,0 +1,407 @@
+     1→     1→import { NextResponse } from "next/server";
+     2→     2→import { db } from "@/lib/db";
+     3→     3→import { verifyToken } from "@/lib/auth";
+     4→     4→import { sanitize, handleError } from "@/lib/security";
+     5→     5→
+     6→     6→async function auth(request: Request) {
+     7→     7→  const token = request.headers.get("authorization")?.replace("Bearer ", "");
+     8→     8→  if (!token) return null;
+     9→     9→  return verifyToken(token);
+    10→    10→}
+    11→    11→
+    12→    12→// ─── ALL 12 AGENT TEMPLATES ───
+    13→    13→interface AgentTemplate {
+    14→    14→  name: string;
+    15→    15→  token: string;
+    16→    16→  botUsername: string;
+    17→    17→  businessType: string;
+    18→    18→  welcomeMessage: string;
+    19→    19→  address: string;
+    20→    20→  phone: string;
+    21→    21→  openHours: string;
+    22→    22→  currency: string;
+    23→    23→  paymentMethod: string;
+    24→    24→  services: { name: string; description: string; price: number; duration: number | null; sortOrder: number }[];
+    25→    25→}
+    26→    26→
+    27→    27→const AGENT_TEMPLATES: Omit<AgentTemplate, "services">[] = [
+    28→    28→  {
+    29→    29→    name: "Restaurant Le Paradis",
+    30→    30→    token: "PLACEHOLDER_RESTAURANT_TOKEN",
+    31→    31→    botUsername: "leparadis_resto_bot",
+    32→    32→    businessType: "restaurant",
+    33→    33→    welcomeMessage: "Bienvenue au Restaurant Le Paradis ! 🍽️\n\nCommandez vos plats préférés directement ici.\nNous livrons à domicile ! 🚗",
+    34→    34→    address: "Douala, Quartier Bonapriso",
+    35→    35→    phone: "+237 612 345 678",
+    36→    36→    openHours: JSON.stringify({ lun: "09:00-22:00", mar: "09:00-22:00", mer: "09:00-22:00", jeu: "09:00-22:00", ven: "09:00-23:00", sam: "10:00-23:00", dim: "11:00-21:00" }),
+    37→    37→    currency: "XAF",
+    38→    38→    paymentMethod: "orange_money",
+    39→    39→  },
+    40→    40→  {
+    41→    41→    name: "Salon Élégance",
+    42→    42→    token: "PLACEHOLDER_SALON_TOKEN",
+    43→    43→    botUsername: "elegance_salon_bot",
+    44→    44→    businessType: "salon_coiffure",
+    45→    45→    welcomeMessage: "Bienvenue au Salon Élégance ! ✂️💅\n\nRéservez votre créneau en quelques clics.\nNos coiffeurs experts vous attendent !",
+    46→    46→    address: "Douala, Quartier Akwa",
+    47→    47→    phone: "+237 698 765 432",
+    48→    48→    openHours: JSON.stringify({ lun: "08:00-19:00", mar: "08:00-19:00", mer: "08:00-19:00", jeu: "08:00-19:00", ven: "08:00-20:00", sam: "08:00-20:00", dim: "09:00-17:00" }),
+    49→    49→    currency: "XAF",
+    50→    50→    paymentMethod: "mtn_money",
+    51→    51→  },
+    52→    52→  {
+    53→    53→    name: "Pharmacie SantéPlus",
+    54→    54→    token: "PLACEHOLDER_PHARMACIE_TOKEN",
+    55→    55→    botUsername: "santeplus_pharma_bot",
+    56→    56→    businessType: "pharmacie",
+    57→    57→    welcomeMessage: "Bienvenue à Pharmacie SantéPlus ! 💊🏥\n\nCommandez vos médicaments et produits de santé.\nVérification de disponibilité instantanée !",
+    58→    58→    address: "Douala, Quartier Makepe",
+    59→    59→    phone: "+237 633 111 222",
+    60→    60→    openHours: JSON.stringify({ lun: "07:00-21:00", mar: "07:00-21:00", mer: "07:00-21:00", jeu: "07:00-21:00", ven: "07:00-21:00", sam: "08:00-20:00", dim: "09:00-18:00" }),
+    61→    61→    currency: "XAF",
+    62→    62→    paymentMethod: "orange_money",
+    63→    63→  },
+    64→    64→  {
+    65→    65→    name: "ExpressTaxi Douala",
+    66→    66→    token: "PLACEHOLDER_TAXI_TOKEN",
+    67→    67→    botUsername: "expresstaxi_dl_bot",
+    68→    68→    businessType: "taxi_transport",
+    69→    69→    welcomeMessage: "Bienvenue chez ExpressTaxi ! 🚕\n\nRéservez votre course en quelques secondes.\nDevis instantané, suivi en temps réel !",
+    70→    70→    address: "Douala (toute la ville)",
+    71→    71→    phone: "+237 655 444 555",
+    72→    72→    openHours: JSON.stringify({ lun: "05:00-23:00", mar: "05:00-23:00", mer: "05:00-23:00", jeu: "05:00-23:00", ven: "05:00-23:59", sam: "05:00-23:59", dim: "06:00-22:00" }),
+    73→    73→    currency: "XAF",
+    74→    74→    paymentMethod: "mtn_money",
+    75→    75→  },
+    76→    76→  {
+    77→    77→    name: "Pressing CleanPro",
+    78→    78→    token: "PLACEHOLDER_PRESSING_TOKEN",
+    79→    79→    botUsername: "cleanpro_pressing_bot",
+    80→    80→    businessType: "pressing_laverie",
+    81→    81→    welcomeMessage: "Bienvenue au Pressing CleanPro ! 👔✨\n\nDéposez votre linge en un clic.\nSuivi de commande et livraison à domicile !",
+    82→    82→    address: "Douala, Quartier Bonapriso",
+    83→    83→    phone: "+237 677 888 999",
+    84→    84→    openHours: JSON.stringify({ lun: "07:00-19:00", mar: "07:00-19:00", mer: "07:00-19:00", jeu: "07:00-19:00", ven: "07:00-20:00", sam: "08:00-18:00", dim: "Fermé" }),
+    85→    85→    currency: "XAF",
+    86→    86→    paymentMethod: "orange_money",
+    87→    87→  },
+    88→    88→  {
+    89→    89→    name: "Académie ExcelPro",
+    90→    90→    token: "PLACEHOLDER_ECOLE_TOKEN",
+    91→    91→    botUsername: "excelpro_academy_bot",
+    92→    92→    businessType: "ecole_formation",
+    93→    93→    welcomeMessage: "Bienvenue à l'Académie ExcelPro ! 📚🎓\n\nConsultez nos formations et inscrivez-vous en ligne.\nEmploi du temps et paiements simplifiés !",
+    94→    94→    address: "Douala, Quartier Deido",
+    95→    95→    phone: "+237 699 222 333",
+    96→    96→    openHours: JSON.stringify({ lun: "08:00-18:00", mar: "08:00-18:00", mer: "08:00-18:00", jeu: "08:00-18:00", ven: "08:00-17:00", sam: "09:00-13:00", dim: "Fermé" }),
+    97→    97→    currency: "XAF",
+    98→    98→    paymentMethod: "mtn_money",
+    99→    99→  },
+   100→   100→  // ─── 6 NOUVEAUX AGENTS ───
+   101→   101→  {
+   102→   102→    name: "Supermarché Afrimart",
+   103→   103→    token: "PLACEHOLDER_SUPERMARCHE_TOKEN",
+   104→   104→    botUsername: "afrimart_super_bot",
+   105→   105→    businessType: "supermarche",
+   106→   106→    welcomeMessage: "Bienvenue à Afrimart ! 🛒🥘\n\nCommandez vos courses en ligne.\nLivraison rapide à domicile ! 🚗",
+   107→   107→    address: "Douala, Quartier Bali",
+   108→   108→    phone: "+237 611 222 333",
+   109→   109→    openHours: JSON.stringify({ lun: "07:00-21:00", mar: "07:00-21:00", mer: "07:00-21:00", jeu: "07:00-21:00", ven: "07:00-21:30", sam: "07:00-21:30", dim: "08:00-14:00" }),
+   110→   110→    currency: "XAF",
+   111→   111→    paymentMethod: "orange_money",
+   112→   112→  },
+   113→   113→  {
+   114→   114→    name: "Clinique Vie Saine",
+   115→   115→    token: "PLACEHOLDER_CLINIQUE_TOKEN",
+   116→   116→    botUsername: "viesaine_clinic_bot",
+   117→   117→    businessType: "clinique",
+   118→   118→    welcomeMessage: "Bienvenue à la Clinique Vie Saine ! 🏥❤️\n\nPrenez rendez-vous avec nos médecins.\nConsultations, analyses et suivi médical !",
+   119→   119→    address: "Douala, Quartier Bonanjo",
+   120→   120→    phone: "+237 622 333 444",
+   121→   121→    openHours: JSON.stringify({ lun: "07:00-19:00", mar: "07:00-19:00", mer: "07:00-19:00", jeu: "07:00-19:00", ven: "07:00-19:00", sam: "08:00-16:00", dim: "09:00-14:00" }),
+   122→   122→    currency: "XAF",
+   123→   123→    paymentMethod: "mtn_money",
+   124→   124→  },
+   125→   125→  {
+   126→   126→    name: "Voyages & Destinations",
+   127→   127→    token: "PLACEHOLDER_VOYAGE_TOKEN",
+   128→   128→    botUsername: "voyages_dest_bot",
+   129→   129→    businessType: "agence_voyage",
+   130→   130→    welcomeMessage: "Bienvenue chez Voyages & Destinations ! ✈️🌍\n\nRéservez vos billets d'avion, hôtels et excursions.\nOffres exclusives toute l'année !",
+   131→   131→    address: "Douala, Avenue de la Liberté",
+   132→   132→    phone: "+237 644 555 666",
+   133→   133→    openHours: JSON.stringify({ lun: "08:00-18:00", mar: "08:00-18:00", mer: "08:00-18:00", jeu: "08:00-18:00", ven: "08:00-18:00", sam: "09:00-14:00", dim: "Fermé" }),
+   134→   134→    currency: "XAF",
+   135→   135→    paymentMethod: "orange_money",
+   136→   136→  },
+   137→   137→  {
+   138→   138→    name: "Boulangerie La Mie Dorée",
+   139→   139→    token: "PLACEHOLDER_BOULANGERIE_TOKEN",
+   140→   140→    botUsername: "miedoree_bakery_bot",
+   141→   141→    businessType: "boulangerie",
+   142→   142→    welcomeMessage: "Bienvenue à La Mie Dorée ! 🥖🥐\n\nCommandez votre pain frais et pâtisseries.\nRetrait sur place ou livraison ! 🚗",
+   143→   143→    address: "Douala, Quartier Nylon",
+   144→   144→    phone: "+237 666 777 888",
+   145→   145→    openHours: JSON.stringify({ lun: "05:30-20:00", mar: "05:30-20:00", mer: "05:30-20:00", jeu: "05:30-20:00", ven: "05:30-21:00", sam: "05:30-21:00", dim: "06:00-14:00" }),
+   146→   146→    currency: "XAF",
+   147→   147→    paymentMethod: "orange_money",
+   148→   148→  },
+   149→   149→  {
+   150→   150→    name: "Garage Auto Pro",
+   151→   151→    token: "PLACEHOLDER_GARAGE_TOKEN",
+   152→   152→    botUsername: "autoprogarage_bot",
+   153→   153→    businessType: "garage_auto",
+   154→   154→    welcomeMessage: "Bienvenue au Garage Auto Pro ! 🔧🚗\n\nRéservez votre entretien ou réparation.\nDevis instantané et suivi de votre véhicule !",
+   155→   155→    address: "Douala, Quartier Ndokoti",
+   156→   156→    phone: "+237 688 999 000",
+   157→   157→    openHours: JSON.stringify({ lun: "07:30-18:30", mar: "07:30-18:30", mer: "07:30-18:30", jeu: "07:30-18:30", ven: "07:30-18:30", sam: "08:00-16:00", dim: "Fermé" }),
+   158→   158→    currency: "XAF",
+   159→   159→    paymentMethod: "mtn_money",
+   160→   160→  },
+   161→   161→  {
+   162→   162→    name: "FitClub Douala",
+   163→   163→    token: "PLACEHOLDER_SPORT_TOKEN",
+   164→   164→    botUsername: "fitclub_dl_bot",
+   165→   165→    businessType: "salle_sport",
+   166→   166→    welcomeMessage: "Bienvenue au FitClub Douala ! 💪🏋️\n\nConsultez nos cours et inscrivez-vous.\nMusculation, yoga, cardio, zumba et plus !",
+   167→   167→    address: "Douala, Quartier Kotto",
+   168→   168→    phone: "+237 655 111 222",
+   169→   169→    openHours: JSON.stringify({ lun: "06:00-22:00", mar: "06:00-22:00", mer: "06:00-22:00", jeu: "06:00-22:00", ven: "06:00-22:00", sam: "07:00-20:00", dim: "08:00-16:00" }),
+   170→   170→    currency: "XAF",
+   171→   171→    paymentMethod: "orange_money",
+   172→   172→  },
+   173→   173→];
+   174→   174→
+   175→   175→const ALL_SERVICES: Record<string, { name: string; description: string; price: number; duration: number | null; sortOrder: number }[]> = {
+   176→   176→  restaurant: [
+   177→   177→    { name: "Poulet DG", description: "Poulet à l'ail avec plantain frit et légumes", price: 4500, duration: null, sortOrder: 1 },
+   178→   178→    { name: "Ndolé", description: "Épinards amers avec arachides et viande fumée", price: 3500, duration: null, sortOrder: 2 },
+   179→   179→    { name: "Eru", description: "Feuilles d'eau avec viande de chèvre et poisson fumé", price: 3000, duration: null, sortOrder: 3 },
+   180→   180→    { name: "Kondré", description: "Ragoût de plantain avec viande de bœuf", price: 2500, duration: null, sortOrder: 4 },
+   181→   181→    { name: "Sanga", description: "Plat de maïs avec feuilles de manioc et poisson", price: 2000, duration: null, sortOrder: 5 },
+   182→   182→    { name: "Poisson Braisé", description: "Poisson grillé à la sauce tomate oignon", price: 5000, duration: null, sortOrder: 6 },
+   183→   183→    { name: "Riz au Gras", description: "Riz cuit avec légumes et viande", price: 2000, duration: null, sortOrder: 7 },
+   184→   184→    { name: "Jus de Mangue Frais", description: "Jus de mangue naturel fait maison", price: 1000, duration: null, sortOrder: 8 },
+   185→   185→    { name: "Bissap", description: "Jus d'hibiscus glacé", price: 800, duration: null, sortOrder: 9 },
+   186→   186→    { name: "Ginger Juice", description: "Jus de gingembre frais pimenté", price: 900, duration: null, sortOrder: 10 },
+   187→   187→    { name: "Beignets Haricots", description: "Beignets de haricots noirs, portion de 5", price: 500, duration: null, sortOrder: 11 },
+   188→   188→    { name: "Eau Minérale", description: "Bouteille 1.5L", price: 400, duration: null, sortOrder: 12 },
+   189→   189→  ],
+   190→   190→  salon_coiffure: [
+   191→   191→    { name: "Coupe Homme", description: "Coupe + barbe classique", price: 2000, duration: 30, sortOrder: 1 },
+   192→   192→    { name: "Coupe Femme", description: "Coupe et coiffage", price: 3500, duration: 45, sortOrder: 2 },
+   193→   193→    { name: "Tresses Classiques", description: "Tresses collées ou mèches", price: 5000, duration: 120, sortOrder: 3 },
+   194→   194→    { name: "Tresses Collées", description: "Tresses collées avec rallonges", price: 8000, duration: 180, sortOrder: 4 },
+   195→   195→    { name: "Vanilles / Twists", description: "Vanilles ou twists africains", price: 6000, duration: 120, sortOrder: 5 },
+   196→   196→    { name: "Tissage", description: "Pose de tissage complet", price: 10000, duration: 150, sortOrder: 6 },
+   197→   197→    { name: "Barbe", description: "Taille de barbe soignée", price: 1000, duration: 20, sortOrder: 7 },
+   198→   198→    { name: "Coloration", description: "Coloration cheveux complète", price: 7000, duration: 90, sortOrder: 8 },
+   199→   199→    { name: "Lissage Brésilien", description: "Traitement lissant longue durée", price: 15000, duration: 120, sortOrder: 9 },
+   200→   200→    { name: "Soin Deep", description: "Soin profond nourrissant", price: 3000, duration: 40, sortOrder: 10 },
+   201→   201→    { name: "Manucure", description: "Pose de vernis et soin des ongles", price: 2000, duration: 30, sortOrder: 11 },
+   202→   202→    { name: "Pédicure", description: "Soin complet des pieds", price: 2500, duration: 45, sortOrder: 12 },
+   203→   203→    { name: "Pack Mariée", description: "Coiffure + maquillage pour mariées", price: 25000, duration: 180, sortOrder: 13 },
+   204→   204→    { name: "Pack Enfant", description: "Coupe enfant (moins de 12 ans)", price: 1500, duration: 25, sortOrder: 14 },
+   205→   205→  ],
+   206→   206→  pharmacie: [
+   207→   207→    { name: "Consultation Pharmaceutique", description: "Conseil personnalisé avec le pharmacien", price: 500, duration: 15, sortOrder: 1 },
+   208→   208→    { name: "Commande Médicaments", description: "Commande de médicaments sur ordonnance", price: 0, duration: null, sortOrder: 2 },
+   209→   209→    { name: "PANSEMENTS & Soins", description: "Kit pansements, antiseptiques, compresses", price: 1500, duration: null, sortOrder: 3 },
+   210→   210→    { name: "Vitamines & Suppléments", description: "Complexes vitaminiques et compléments alimentaires", price: 3500, duration: null, sortOrder: 4 },
+   211→   211→    { name: "Produits Maternité", description: "Articles pour femmes enceintes et bébés", price: 5000, duration: null, sortOrder: 5 },
+   212→   212→    { name: "Test COVID-19", description: "Test antigénique rapide", price: 3000, duration: 10, sortOrder: 6 },
+   213→   213→    { name: "Tension Artérielle", description: "Mesure de la tension et conseil", price: 0, duration: 5, sortOrder: 7 },
+   214→   214→    { name: "Produits Hygiène", description: "Gel hydroalcoolique, masques, savon", price: 1200, duration: null, sortOrder: 8 },
+   215→   215→    { name: "Livraison à Domicile", description: "Livraison de médicaments dans un rayon de 5 km", price: 1000, duration: 60, sortOrder: 9 },
+   216→   216→    { name: "Rappel de Traitement", description: "Service de rappel pour prises de médicaments", price: 0, duration: null, sortOrder: 10 },
+   217→   217→  ],
+   218→   218→  taxi_transport: [
+   219→   219→    { name: "Course intra-ville", description: "Trajet court dans Douala (moins de 5 km)", price: 1500, duration: null, sortOrder: 1 },
+   220→   220→    { name: "Course inter-quartier", description: "Trajet moyen (5-15 km)", price: 3000, duration: null, sortOrder: 2 },
+   221→   221→    { name: "Course longue distance", description: "Trajet longue distance (+15 km)", price: 5000, duration: null, sortOrder: 3 },
+   222→   222→    { name: "Aéroport", description: "Départ ou arrivée aéroport international", price: 8000, duration: null, sortOrder: 4 },
+   223→   223→    { name: "Course nocturne", description: "Course entre 22h et 5h du matin", price: 4000, duration: null, sortOrder: 5 },
+   224→   224→    { name: "Course VIP", description: "Véhicule confortable, climatisé, eau offerte", price: 6000, duration: null, sortOrder: 6 },
+   225→   225→    { name: "Déménagement", description: "Transport de meubles et effets personnels", price: 15000, duration: null, sortOrder: 7 },
+   226→   226→    { name: "Course Horaire", description: "Réservation pour une durée de 1 heure", price: 5000, duration: 60, sortOrder: 8 },
+   227→   227→    { name: "Course Mensuelle", description: "Forfait 20 courses/mois, économisez 30%", price: 80000, duration: null, sortOrder: 9 },
+   228→   228→  ],
+   229→   229→  pressing_laverie: [
+   230→   230→    { name: "Lavage chemise", description: "Lavage et repassage chemise", price: 500, duration: null, sortOrder: 1 },
+   231→   231→    { name: "Lavage costume", description: "Nettoyage à sec costume complet", price: 3000, duration: null, sortOrder: 2 },
+   232→   232→    { name: "Lavage robe", description: "Nettoyage délicat robe", price: 2000, duration: null, sortOrder: 3 },
+   233→   233→    { name: "Lavage jean", description: "Lavage et repassage jean", price: 800, duration: null, sortOrder: 4 },
+   234→   234→    { name: "Repassage seul", description: "Repassage de vêtements (par pièce)", price: 300, duration: null, sortOrder: 5 },
+   235→   235→    { name: "Nettoyage tapis", description: "Nettoyage tapis et moquette", price: 5000, duration: null, sortOrder: 6 },
+   236→   236→    { name: "Nettoyage rideaux", description: "Nettoyage rideaux et voilages", price: 4000, duration: null, sortOrder: 7 },
+   237→   237→    { name: "Blanchisserie", description: "Lavage draps, serviettes, couvertures (par kg)", price: 1500, duration: null, sortOrder: 8 },
+   238→   238→    { name: "Pack Formule Mensuelle", description: "10 lavages/mois au prix de 8", price: 4000, duration: null, sortOrder: 9 },
+   239→   239→    { name: "Livraison Express 24h", description: "Livraison en moins de 24 heures", price: 1500, duration: null, sortOrder: 10 },
+   240→   240→    { name: "Cuir & Maroquinerie", description: "Entretien sacs, chaussures, ceintures", price: 2500, duration: null, sortOrder: 11 },
+   241→   241→  ],
+   242→   242→  ecole_formation: [
+   243→   243→    { name: "Inscription Formation", description: "Inscription annuelle à une formation", price: 50000, duration: null, sortOrder: 1 },
+   244→   244→    { name: "Pack Informatique", description: "Word, Excel, PowerPoint, Internet (3 mois)", price: 75000, duration: null, sortOrder: 2 },
+   245→   245→    { name: "Pack Langues", description: "Anglais ou Espagnol intensif (3 mois)", price: 90000, duration: null, sortOrder: 3 },
+   246→   246→    { name: "Pack Marketing Digital", description: "Réseaux sociaux, SEO, Publicité en ligne", price: 120000, duration: null, sortOrder: 4 },
+   247→   247→    { name: "Pack Comptabilité", description: "Initiation à la comptabilité et gestion", price: 85000, duration: null, sortOrder: 5 },
+   248→   248→    { name: "Pack Cuisine & Pâtisserie", description: "Formation cuisine camerounaise et pâtisserie", price: 65000, duration: null, sortOrder: 6 },
+   249→   249→    { name: "Pack Coiffure", description: "Formation professionnelle coiffure (6 mois)", price: 150000, duration: null, sortOrder: 7 },
+   250→   250→    { name: "Atelier Weekend", description: "Atelier intensif samedi-dimanche", price: 15000, duration: null, sortOrder: 8 },
+   251→   251→    { name: "Certification", description: "Passage de certification professionnelle", price: 25000, duration: null, sortOrder: 9 },
+   252→   252→    { name: "Soutien Scolaire", description: "Cours particuliers Maths/Français (1 mois)", price: 30000, duration: null, sortOrder: 10 },
+   253→   253→    { name: "Pack Entrepreneuriat", description: "Création d'entreprise, business plan", price: 100000, duration: null, sortOrder: 11 },
+   254→   254→  ],
+   255→   255→  supermarche: [
+   256→   256→    { name: "Sac Riz 25kg", description: "Riz parfumé long grain, sac de 25 kg", price: 18000, duration: null, sortOrder: 1 },
+   257→   257→    { name: "Huile de Palme 5L", description: "Huile de palme rouge authentique, bidon 5 litres", price: 5500, duration: null, sortOrder: 2 },
+   258→   258→    { name: "Sardines Lot de 12", description: "Boîtes de sardines, lot de 12", price: 3600, duration: null, sortOrder: 3 },
+   259→   259→    { name: "Pâte Haricots 500g", description: "Pâte d'arachide ou haricots, pot de 500g", price: 1500, duration: null, sortOrder: 4 },
+   260→   260→    { name: "Concentré Tomate", description: "Concentré de tomates, lot de 6 sachets", price: 2000, duration: null, sortOrder: 5 },
+   261→   261→    { name: "Poulet Congelé 1kg", description: "Poulet entier congelé, par kilo", price: 2800, duration: null, sortOrder: 6 },
+   262→   262→    { name: "Poisson Machoiron 1kg", description: "Poisson fumé machoiron, par kilo", price: 3500, duration: null, sortOrder: 7 },
+   263→   263→    { name: "Sucre 1kg", description: "Sucre blanc raffiné, paquet 1 kg", price: 900, duration: null, sortOrder: 8 },
+   264→   264→    { name: "Lait en Poudre 400g", description: "Lait concentré en poudre Nestlé", price: 1800, duration: null, sortOrder: 9 },
+   265→   265→    { name: "Savon Lot de 6", description: "Savon de Marseille, lot de 6", price: 2400, duration: null, sortOrder: 10 },
+   266→   266→    { name: "Livraison Courses", description: "Livraison à domicile dans rayon de 5 km", price: 1000, duration: 60, sortOrder: 11 },
+   267→   267→    { name: "Pack Famille Hebdo", description: "Courses familiales pour 1 semaine (varié)", price: 35000, duration: null, sortOrder: 12 },
+   268→   268→  ],
+   269→   269→  clinique: [
+   270→   270→    { name: "Consultation Générale", description: "Consultation médecin généraliste", price: 5000, duration: 30, sortOrder: 1 },
+   271→   271→    { name: "Consultation Spécialiste", description: "Consultation médecin spécialiste", price: 10000, duration: 30, sortOrder: 2 },
+   272→   272→    { name: "Analyses de Sang", description: "Bilan sanguin complet (NFS, glycémie, cholestérol)", price: 8000, duration: null, sortOrder: 3 },
+   273→   273→    { name: "Échographie", description: "Échographie abdominale ou pelvienne", price: 12000, duration: 20, sortOrder: 4 },
+   274→   274→    { name: "Radiographie", description: "Radio thorax ou membre", price: 7000, duration: 15, sortOrder: 5 },
+   275→   275→    { name: "Consultation Prénatale", description: "Suivi grossesse avec échographie", price: 15000, duration: 45, sortOrder: 6 },
+   276→   276→    { name: "Vaccination", description: "Vaccin selon calendrier national", price: 3000, duration: 15, sortOrder: 7 },
+   277→   277→    { name: "Test Paludisme", description: "TDR (Test de Diagnostic Rapide) paludisme", price: 2000, duration: 10, sortOrder: 8 },
+   278→   278→    { name: "Consultation Pédiatrique", description: "Consultation pour enfants (-12 ans)", price: 5000, duration: 30, sortOrder: 9 },
+   279→   279→    { name: "Soin Infirmier", description: "Injection, pansement, perfusion", price: 2000, duration: 20, sortOrder: 10 },
+   280→   280→  ],
+   281→   281→  agence_voyage: [
+   282→   282→    { name: "Billet Avion Douala - Yaoundé", description: "Vol aller-retour Douala / Yaoundé", price: 35000, duration: null, sortOrder: 1 },
+   283→   283→    { name: "Billet Avion Douala - Douala", description: "Vol domestique Aller simple", price: 25000, duration: null, sortOrder: 2 },
+   284→   284→    { name: "Billet International Afrique", description: "Vol vers Abidjan, Libreville, Malabo...", price: 120000, duration: null, sortOrder: 3 },
+   285→   285→    { name: "Billet International Europe", description: "Vol vers Paris, Bruxelles, Lyon...", price: 350000, duration: null, sortOrder: 4 },
+   286→   286→    { name: "Hôtel Douala 1 Nuit", description: "Chambre double petit-déjeuner inclus", price: 25000, duration: null, sortOrder: 5 },
+   287→   287→    { name: "Hôtel Yaoundé 1 Nuit", description: "Chambre double petit-déjeuner inclus", price: 22000, duration: null, sortOrder: 6 },
+   288→   288→    { name: "Excursion Limbé", description: "Journée Mont Cameroun + plages, transport inclus", price: 15000, duration: null, sortOrder: 7 },
+   289→   289→    { name: "Excursion Kribi", description: "Week-end chutes de la Lobé + plage, tout compris", price: 45000, duration: null, sortOrder: 8 },
+   290→   290→    { name: "Visa Assistance", description: "Accompagnement visa Schengen, USA, Canada", price: 50000, duration: null, sortOrder: 9 },
+   291→   291→    { name: "Assurance Voyage", description: "Assurance couverture médicale bagages", price: 15000, duration: null, sortOrder: 10 },
+   292→   292→  ],
+   293→   293→  boulangerie: [
+   294→   294→    { name: "Baguette Tradition", description: "Baguette tradition française croustillante", price: 200, duration: null, sortOrder: 1 },
+   295→   295→    { name: "Pain de Campagne", description: "Pain complet maison de 500g", price: 350, duration: null, sortOrder: 2 },
+   296→   296→    { name: "Croissant Beurre", description: "Croissant au beurre pur charentais", price: 300, duration: null, sortOrder: 3 },
+   297→   297→    { name: "Pain au Chocolat", description: "Pain au chocolat fondant", price: 350, duration: null, sortOrder: 4 },
+   298→   298→    { name: "Chausson aux Pommes", description: "Chausson garni de compote de pommes", price: 300, duration: null, sortOrder: 5 },
+   299→   299→    { name: "Beignet", description: "Beignet sucré enrobé de sucre", price: 100, duration: null, sortOrder: 6 },
+   300→   300→    { name: "Brioche Tressée", description: "Brioche moelleuse tressée", price: 500, duration: null, sortOrder: 7 },
+   301→   301→    { name: "Gâteau Chocolat", description: "Moelleux au chocolat (6 parts)", price: 3500, duration: null, sortOrder: 8 },
+   302→   302→    { name: "Gâteau Anniversaire", description: "Gâteau personnalisé, décoration incluse", price: 10000, duration: null, sortOrder: 9 },
+   303→   303→    { name: "Macarons (Boîte 12)", description: "Macarons artisanaux assortis", price: 6000, duration: null, sortOrder: 10 },
+   304→   304→    { name: "Pack Petit-Déj", description: "2 croissants + 2 pains au chocolat + 1 brioche", price: 1200, duration: null, sortOrder: 11 },
+   305→   305→  ],
+   306→   306→  garage_auto: [
+   307→   307→    { name: "Vidange Standard", description: "Vidange huile moteur + filtre", price: 15000, duration: 60, sortOrder: 1 },
+   308→   308→    { name: "Vidange Complète", description: "Vidange + filtres (huile, air, habitacle)", price: 25000, duration: 90, sortOrder: 2 },
+   309→   309→    { name: "Révision Générale", description: "Check-up complet du véhicule", price: 35000, duration: 120, sortOrder: 3 },
+   310→   310→    { name: "Changement Pneus x2", description: "Montage et équilibrage de 2 pneus", price: 10000, duration: 60, sortOrder: 4 },
+   311→   311→    { name: "Changement Pneus x4", description: "Montage et équilibrage de 4 pneus", price: 18000, duration: 90, sortOrder: 5 },
+   312→   312→    { name: "Diagnostic Électronique", description: "Lecture et effacement codes défaut", price: 5000, duration: 30, sortOrder: 6 },
+   313→   313→    { name: "Freinage Avant", description: "Remplacement plaquettes et disques avant", price: 45000, duration: 120, sortOrder: 7 },
+   314→   314→    { name: "Batterie", description: "Remplacement batterie voiture standard", price: 40000, duration: 30, sortOrder: 8 },
+   315→   315→    { name: "Climatisation", description: "Recharge et contrôle gaz climatisation", price: 20000, duration: 60, sortOrder: 9 },
+   316→   316→    { name: "Dépannage 24h", description: "Service de dépannage et remorquage", price: 15000, duration: null, sortOrder: 10 },
+   317→   317→  ],
+   318→   318→  salle_sport: [
+   319→   319→    { name: "Abonnement Mensuel", description: "Accès illimité musculation + cardio", price: 15000, duration: null, sortOrder: 1 },
+   320→   320→    { name: "Abonnement Trimestriel", description: "3 mois accès illimité (économisez 10%)", price: 40000, duration: null, sortOrder: 2 },
+   321→   321→    { name: "Abonnement Annuel", description: "12 mois accès illimité (économisez 25%)", price: 135000, duration: null, sortOrder: 3 },
+   322→   322→    { name: "Cours de Yoga", description: "Séance de yoga (1h), tous niveaux", price: 3000, duration: 60, sortOrder: 4 },
+   323→   323→    { name: "Cours de Zumba", description: "Séance de zumba fitness (1h)", price: 2500, duration: 60, sortOrder: 5 },
+   324→   324→    { name: "Coaching Personnel", description: "Séance coaching individuel avec coach (1h)", price: 10000, duration: 60, sortOrder: 6 },
+   325→   325→    { name: "Pack Musculation", description: "Programme personnalisé 3 mois + coaching", price: 75000, duration: null, sortOrder: 7 },
+   326→   326→    { name: "Pack Minceur Femme", description: "Programme fitness + nutrition 2 mois", price: 60000, duration: null, sortOrder: 8 },
+   327→   327→    { name: "Boxe / Arts Martiaux", description: "Cours de boxe ou muay thaï (1h)", price: 4000, duration: 60, sortOrder: 9 },
+   328→   328→    { name: "Journée Découverte", description: "Pass journée pour tester toutes les activités", price: 2000, duration: null, sortOrder: 10 },
+   329→   329→  ],
+   330→   330→};
+   331→   331→
+   332→   332→export async function POST(request: Request) {
+   333→   333→  try {
+   334→   334→    const session = await auth(request);
+   335→   335→    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+   336→   336→
+   337→   337→    const companyId = session.companyId;
+   338→   338→    const body = await request.json();
+   339→   339→    const agentType = body.agentType; // optional: create specific type
+   340→   340→
+   341→   341→    // Check existing agents
+   342→   342→    const existingAgents = await db.telegramAgent.findMany({ where: { companyId } });
+   343→   343→    const existingTypes = existingAgents.map((a) => a.businessType);
+   344→   344→
+   345→   345→    // Determine which agents to create
+   346→   346→    const templatesToCreate = agentType
+   347→   347→      ? AGENT_TEMPLATES.filter((t) => t.businessType === agentType && !existingTypes.includes(agentType))
+   348→   348→      : AGENT_TEMPLATES.filter((t) => !existingTypes.includes(t.businessType));
+   349→   349→
+   350→   350→    if (templatesToCreate.length === 0) {
+   351→   351→      return NextResponse.json({
+   352→   352→        success: true,
+   353→   353→        message: agentType ? `Agent ${agentType} déjà configuré` : "Tous les agents sont déjà configurés",
+   354→   354→        agents: existingAgents.length,
+   355→   355→      });
+   356→   356→    }
+   357→   357→
+   358→   358→    const created: { type: string; name: string; services: number }[] = [];
+   359→   359→
+   360→   360→    for (const template of templatesToCreate) {
+   361→   361→      const agent = await db.telegramAgent.create({
+   362→   362→        data: {
+   363→   363→          companyId,
+   364→   364→          name: template.name,
+   365→   365→          token: template.token,
+   366→   366→          botUsername: template.botUsername,
+   367→   367→          businessType: template.businessType,
+   368→   368→          isActive: false,
+   369→   369→          welcomeMessage: template.welcomeMessage,
+   370→   370→          address: template.address,
+   371→   371→          phone: template.phone,
+   372→   372→          openHours: template.openHours,
+   373→   373→          currency: template.currency,
+   374→   374→          paymentMethod: template.paymentMethod,
+   375→   375→        },
+   376→   376→      });
+   377→   377→
+   378→   378→      const services = ALL_SERVICES[template.businessType] || [];
+   379→   379→      for (const svc of services) {
+   380→   380→        await db.businessService.create({
+   381→   381→          data: {
+   382→   382→            agentId: agent.id,
+   383→   383→            name: svc.name,
+   384→   384→            description: svc.description,
+   385→   385→            price: svc.price,
+   386→   386→            duration: svc.duration,
+   387→   387→            sortOrder: svc.sortOrder,
+   388→   388→            isActive: true,
+   389→   389→          },
+   390→   390→        });
+   391→   391→      }
+   392→   392→
+   393→   393→      created.push({ type: template.businessType, name: template.name, services: services.length });
+   394→   394→    }
+   395→   395→
+   396→   396→    return NextResponse.json({
+   397→   397→      success: true,
+   398→   398→      message: `${created.length} agent(s) créé(s) avec succès !`,
+   399→   399→      agents: created,
+   400→   400→      totalAgents: existingAgents.length + created.length,
+   401→   401→    });
+   402→   402→  } catch (error: unknown) {
+   403→   403→    const { error: msg, status } = handleError(error);
+   404→   404→    return NextResponse.json({ error: msg }, { status });
+   405→   405→  }
+   406→   406→}
+   407→   407→
