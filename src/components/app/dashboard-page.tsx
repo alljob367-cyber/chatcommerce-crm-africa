@@ -94,13 +94,17 @@ export default function DashboardPage() {
       const res = await fetch(`/api/dashboard?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        console.error("[Dashboard] API error:", res.status);
+        return; // keep previous state
+      }
       const data = await res.json();
-      setKpis(data.kpis);
-      setRevByDay(data.revenueByDay);
-      setOrdersByStatus(data.ordersByStatus);
-      setTopProducts(data.topProducts);
-      setRecentOrders(data.recentOrders);
-      setTeamPerf(data.teamPerformance);
+      setKpis(data.kpis ?? null);
+      setRevByDay(data.revenueByDay || []);
+      setOrdersByStatus(data.ordersByStatus || []);
+      setTopProducts(data.topProducts || []);
+      setRecentOrders(data.recentOrders || []);
+      setTeamPerf(data.teamPerformance || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -115,7 +119,7 @@ export default function DashboardPage() {
   const formatXAF = (n: number) =>
     new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
 
-  const pieData = ordersByStatus.map((os) => ({
+  const pieData = (ordersByStatus || []).map((os) => ({
     name: STATUS_LABELS[os.status] || os.status,
     value: os._count.id,
   }));
@@ -211,15 +215,15 @@ export default function DashboardPage() {
     }
 
     content += `COMMANDES PAR STATUT\n${"-".repeat(40)}\n`;
-    ordersByStatus.forEach((os) => {
+    (ordersByStatus || []).forEach((os) => {
       content += `${STATUS_LABELS[os.status] || os.status}: ${os._count.id}\n`;
     });
     content += `\nTOP PRODUITS\n${"-".repeat(40)}\n`;
-    topProducts.forEach((p, i) => {
+    (topProducts || []).forEach((p, i) => {
       content += `${i + 1}. ${p.productName} - ${formatXAF(p._sum.total || 0)} (${p._sum.quantity} ventes)\n`;
     });
     content += `\nDERNIERES COMMANDES\n${"-".repeat(40)}\n`;
-    (recentOrders as Array<Record<string, unknown>>).forEach((o) => {
+    (recentOrders || []).forEach((o: Record<string, unknown>) => {
       content += `${o.orderNumber} | ${(o.contact as Record<string, unknown>)?.name || ""} | ${formatXAF(o.total as number)} | ${STATUS_LABELS[o.status as string] || o.status}\n`;
     });
 
@@ -444,7 +448,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topProducts.map((p, i) => (
+                {(topProducts || []).map((p, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
@@ -464,7 +468,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-                {topProducts.length === 0 && (
+                {(topProducts || []).length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">Aucun produit</p>
                 )}
               </div>
@@ -478,7 +482,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(teamPerf as Array<Record<string, unknown>>).map((t: Record<string, unknown>) => (
+                {((teamPerf || []) as Array<Record<string, unknown>>).map((t: Record<string, unknown>) => (
                   <div key={t.id as string} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold">
                       {String(t.name).split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
@@ -494,7 +498,7 @@ export default function DashboardPage() {
                     </Badge>
                   </div>
                 ))}
-                {teamPerf.length === 0 && (
+                {(teamPerf || []).length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">Aucun membre</p>
                 )}
               </div>
@@ -508,7 +512,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(recentOrders as Array<Record<string, unknown>>).slice(0, 5).map((o: Record<string, unknown>) => (
+                {((recentOrders || []) as Array<Record<string, unknown>>).slice(0, 5).map((o: Record<string, unknown>) => (
                   <div key={o.id as string} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-foreground">{o.orderNumber as string}</p>
@@ -526,7 +530,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
-                {recentOrders.length === 0 && (
+                {(recentOrders || []).length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">Aucune commande</p>
                 )}
               </div>
