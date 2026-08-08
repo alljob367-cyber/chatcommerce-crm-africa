@@ -3,11 +3,11 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "unset DATABASE_URL && next dev -p 3000 2>&1 | tee dev.log",
-    "build": "unset DATABASE_URL && prisma generate && prisma db push --skip-generate --accept-data-loss 2>&1; next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "build": "prisma generate && (prisma db push --skip-generate --accept-data-loss 2>/dev/null || true) && next build",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
-    "db:push": "unset DATABASE_URL && prisma db push",
+    "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset"
