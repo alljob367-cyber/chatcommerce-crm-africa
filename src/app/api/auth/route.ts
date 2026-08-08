@@ -275,6 +275,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    await bootstrap();
     const token = request.headers.get("authorization")?.replace("Bearer ", "");
     if (!token) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
