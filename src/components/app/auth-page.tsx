@@ -460,9 +460,7 @@ export default function AuthPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00E676] to-[#00BFA5] flex items-center justify-center shadow-lg shadow-[#00E676]/30">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
+              <Image src="/logo.png" alt="ChatCommerce CRM" width={36} height={36} className="rounded-xl object-cover shadow-lg shadow-[#00E676]/30" />
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#00E676] rounded-full animate-pulse" />
             </div>
             <span className="font-bold text-lg text-white">
@@ -878,8 +876,8 @@ export default function AuthPage() {
             <div className="absolute inset-0 bg-zinc-950/80" />
             <FloatingParticles />
             <div className="relative p-10 md:p-16 space-y-8">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-[#00E676] to-[#00BFA5] flex items-center justify-center mx-auto shadow-2xl shadow-[#00E676]/30">
-                <Bot className="w-10 h-10 text-white" />
+              <div className="relative mx-auto" style={{ width: 80, height: 80 }}>
+                <Image src="/logo.png" alt="ChatCommerce CRM" width={80} height={80} className="rounded-2xl object-cover shadow-2xl shadow-[#00E676]/30" />
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-white">
                 Prêt à automatiser votre <span className="text-[#00E676]">activité</span> ?
@@ -915,9 +913,7 @@ export default function AuthPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00E676] to-[#00BFA5] flex items-center justify-center">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
+              <Image src="/logo.png" alt="ChatCommerce CRM" width={32} height={32} className="rounded-lg object-cover" />
               <span className="font-bold text-white">ChatCommerce CRM Africa</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-zinc-500">
