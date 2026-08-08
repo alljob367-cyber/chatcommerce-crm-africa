@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/app";
 import AuthPage from "@/components/app/auth-page";
 import Sidebar from "@/components/app/sidebar";
@@ -16,6 +16,7 @@ import SettingsPage from "@/components/app/settings-page";
 import PaymentsPage from "@/components/app/payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
 import TelegramPage from "@/components/app/telegram-page";
+import { ErrorBoundary } from "@/components/app/error-boundary";
 
 function PageRenderer({ page }: { page: string }) {
   switch (page) {
@@ -35,8 +36,41 @@ function PageRenderer({ page }: { page: string }) {
   }
 }
 
+// Loading skeleton shown during hydration
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-10 rounded-lg bg-primary/20 animate-pulse" />
+        <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
-  const { isAuthenticated, currentPage, sidebarOpen } = useAppStore();
+  return (
+    <ErrorBoundary>
+      <HomeInner />
+    </ErrorBoundary>
+  );
+}
+
+function HomeInner() {
+  const { isAuthenticated, hydrated, currentPage, sidebarOpen, hydrate } = useAppStore();
+  const [mounted, setMounted] = useState(false);
+
+  // Hydrate store from localStorage + set mounted flag
+  useEffect(() => {
+    hydrate();
+    setMounted(true);
+  }, [hydrate]);
+
+  // During SSR and before hydration: show loading skeleton
+  // This ensures server and client render the same thing
+  if (!mounted || !hydrated) {
+    return <LoadingScreen />;
+  }
 
   if (!isAuthenticated) {
     return <AuthPage />;

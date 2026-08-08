@@ -28,6 +28,7 @@ interface AppState {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
+  hydrated: boolean;
 
   // Navigation
   currentPage: Page;
@@ -43,17 +44,50 @@ interface AppState {
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setDashboardData: (data: Record<string, unknown>) => void;
+  hydrate: () => void;
+}
+
+// Safe localStorage reader (works on server and client)
+function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("cc_token");
+}
+
+function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("cc_user");
+    if (!raw) return null;
+    return JSON.parse(raw) as User;
+  } catch {
+    // Corrupted data — clear it
+    localStorage.removeItem("cc_user");
+    return null;
+  }
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  token: typeof window !== "undefined" ? localStorage.getItem("cc_token") : null,
-  user: typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("cc_user") || "null")
-    : null,
-  isAuthenticated: typeof window !== "undefined" ? !!localStorage.getItem("cc_token") : false,
+  // SSR defaults — always false/null on server
+  token: null,
+  user: null,
+  isAuthenticated: false,
+  hydrated: false,
+
   currentPage: "dashboard",
   sidebarOpen: true,
   dashboardData: null,
+
+  // Rehydrate from localStorage after mount (client-only)
+  hydrate: () => {
+    const token = getStoredToken();
+    const user = getStoredUser();
+    set({
+      token,
+      user,
+      isAuthenticated: !!token,
+      hydrated: true,
+    });
+  },
 
   setAuth: (token, user) => {
     if (typeof window !== "undefined") {
