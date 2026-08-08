@@ -10,12 +10,50 @@ async function auth(request: Request) {
   return verifyToken(token);
 }
 
+type Period = "7d" | "30d" | "90d" | "custom";
+
+function getDateRange(period: Period, customStart?: string, customEnd?: string) {
+  const now = new Date();
+  const start = new Date();
+  switch (period) {
+    case "7d":
+      start.setDate(now.getDate() - 6);
+      break;
+    case "30d":
+      start.setDate(now.getDate() - 29);
+      break;
+    case "90d":
+      start.setDate(now.getDate() - 89);
+      break;
+    case "custom":
+      if (customStart) {
+        start.setTime(new Date(customStart).getTime());
+      } else {
+        start.setDate(now.getDate() - 29);
+      }
+      break;
+  }
+  start.setHours(0, 0, 0, 0);
+  const end = customEnd ? new Date(customEnd) : new Date();
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
 export async function GET(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const companyId = session.companyId;
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get("period") || "7d") as Period;
+    const customStart = searchParams.get("start") || undefined;
+    const customEnd = searchParams.get("end") || undefined;
+
+    const { start, end } = getDateRange(period, customStart, customEnd);
+
+    // Total days for chart
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
     // Run all queries in parallel
     const [
@@ -29,73 +67,47 @@ export async function GET(request: Request) {
       closedConversations,
       contactsBySource,
       ordersByStatus,
-      revenueByDay,
       topProducts,
       teamPerformance,
       recentOrders,
       totalMessages,
-      avgResponseTime,
+      // Real average response time
+      responseTimeData,
     ] = await Promise.all([
       db.contact.count({ where: { companyId } }),
 
-      db.order.count({ where: { companyId } }),
+      db.order.count({ where: { companyId, createdAt: { gte: start, lte: end } } }),
 
       db.order.aggregate({
-        where: { companyId, paymentStatus: "paid" },
+        where: { companyId, paymentStatus: "paid", createdAt: { gte: start, lte: end } },
         _sum: { total: true },
       }),
 
-      db.order.count({ where: { companyId, status: "delivered" } }),
+      db.order.count({ where: { companyId, status: "delivered", createdAt: { gte: start, lte: end } } }),
 
-      db.conversation.count({ where: { companyId, status: "new" } }),
+      db.conversation.count({ where: { companyId, status: "new", createdAt: { gte: start, lte: end } } }),
 
-      db.conversation.count({ where: { companyId, status: "open" } }),
+      db.conversation.count({ where: { companyId, status: "open", createdAt: { gte: start, lte: end } } }),
 
-      db.conversation.count({ where: { companyId, status: "waiting" } }),
+      db.conversation.count({ where: { companyId, status: "waiting", createdAt: { gte: start, lte: end } } }),
 
-      db.conversation.count({ where: { companyId, status: "closed" } }),
+      db.conversation.count({ where: { companyId, status: "closed", createdAt: { gte: start, lte: end } } }),
 
       db.contact.groupBy({
         by: ["source"],
-        where: { companyId },
+        where: { companyId, createdAt: { gte: start, lte: end } },
         _count: { id: true },
       }),
 
       db.order.groupBy({
         by: ["status"],
-        where: { companyId },
+        where: { companyId, createdAt: { gte: start, lte: end } },
         _count: { id: true },
       }),
 
-      // Revenue by last 7 days
-      Promise.all(
-        Array.from({ length: 7 }, (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (6 - i));
-          date.setHours(0, 0, 0, 0);
-          const nextDate = new Date(date);
-          nextDate.setDate(nextDate.getDate() + 1);
-          return db.order
-            .aggregate({
-              where: {
-                companyId,
-                createdAt: { gte: date, lt: nextDate },
-                paymentStatus: "paid",
-              },
-              _sum: { total: true },
-              _count: true,
-            })
-            .then((r) => ({
-              date: date.toISOString().split("T")[0],
-              revenue: r._sum.total || 0,
-              orders: r._count,
-            }));
-        })
-      ),
-
       db.orderItem.groupBy({
         by: ["productId", "productName"],
-        where: { order: { companyId } },
+        where: { order: { companyId, createdAt: { gte: start, lte: end } } },
         _sum: { quantity: true, total: true },
         orderBy: { _sum: { total: "desc" } },
         take: 5,
@@ -113,14 +125,14 @@ export async function GET(request: Request) {
             select: { id: true },
           },
           createdOrders: {
+            where: { createdAt: { gte: start, lte: end } },
             select: { id: true, total: true, paymentStatus: true },
-            take: 50,
           },
         },
       }),
 
       db.order.findMany({
-        where: { companyId },
+        where: { companyId, createdAt: { gte: start, lte: end } },
         include: {
           contact: { select: { name: true, phone: true } },
           items: { select: { productName: true, quantity: true, total: true } },
@@ -129,16 +141,71 @@ export async function GET(request: Request) {
         take: 10,
       }),
 
-      db.message.count({ where: { conversation: { companyId } } }),
+      db.message.count({ where: { conversation: { companyId }, createdAt: { gte: start, lte: end } } }),
 
-      // Simulated average response time
-      Promise.resolve(Math.floor(Math.random() * 10 + 2)),
+      // Real average response time calculation
+      db.message.findMany({
+        where: {
+          conversation: { companyId },
+          createdAt: { gte: start, lte: end },
+          senderType: { in: ["customer", "agent"] },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, conversationId: true, senderType: true, createdAt: true },
+      }),
     ]);
+
+    // Calculate real avg response time (admin reply after user message)
+    const messageMap = new Map<string, { lastUser: Date | null; delays: number[] }>();
+    for (const msg of responseTimeData) {
+      if (!messageMap.has(msg.conversationId)) {
+        messageMap.set(msg.conversationId, { lastUser: null, delays: [] });
+      }
+      const entry = messageMap.get(msg.conversationId)!;
+      if (msg.senderType === "customer") {
+        entry.lastUser = msg.createdAt;
+      } else if (msg.senderType === "agent" && entry.lastUser) {
+        const delay = msg.createdAt.getTime() - entry.lastUser.getTime();
+        if (delay >= 0) {
+          entry.delays.push(delay / 60000); // minutes
+        }
+        entry.lastUser = null;
+      }
+    }
+    const allDelays = Array.from(messageMap.values()).flatMap((e) => e.delays);
+    const avgResponseTime = allDelays.length > 0
+      ? Math.round(allDelays.reduce((a, b) => a + b, 0) / allDelays.length)
+      : 0;
+
+    // Revenue by day
+    const revenueByDay = await Promise.all(
+      Array.from({ length: Math.min(totalDays, 90) }, (_, i) => {
+        const date = new Date(start);
+        date.setDate(date.getDate() + i);
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        return db.order
+          .aggregate({
+            where: {
+              companyId,
+              createdAt: { gte: date, lt: nextDate },
+              paymentStatus: "paid",
+            },
+            _sum: { total: true },
+            _count: true,
+          })
+          .then((r) => ({
+            date: date.toISOString().split("T")[0],
+            revenue: r._sum.total || 0,
+            orders: r._count,
+          }));
+      })
+    );
 
     const totalRev = totalRevenue._sum.total || 0;
     const conversionRate =
       totalOrders > 0
-        ? ((deliveredOrders / totalContacts) * 100).toFixed(1)
+        ? ((deliveredOrders / Math.max(totalContacts, 1)) * 100).toFixed(1)
         : "0";
 
     return NextResponse.json({
@@ -165,6 +232,8 @@ export async function GET(request: Request) {
         totalRevenue: t.createdOrders.reduce((s, o) => s + o.total, 0),
       })),
       recentOrders,
+      period,
+      dateRange: { start: start.toISOString(), end: end.toISOString() },
     });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
