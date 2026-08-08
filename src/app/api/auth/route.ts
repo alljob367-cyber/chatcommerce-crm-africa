@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, ensureBootstrapped } from "@/lib/db";
 import { hashPassword, createToken, verifyToken } from "@/lib/auth";
 import { seedDatabase } from "@/lib/seed";
 import { isValidEmail, isValidPassword, rateLimit, handleError, secureRandom } from "@/lib/security";
 
+// Bootstrap DB on first API call
+let bootstrapped = false;
+async function bootstrap() {
+  if (!bootstrapped) {
+    bootstrapped = true;
+    await ensureBootstrapped();
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    await bootstrap();
     const body = await request.json();
     const { action } = body;
 

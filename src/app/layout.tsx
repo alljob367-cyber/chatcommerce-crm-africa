@@ -16,11 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ChatCommerce CRM Africa - WhatsApp CRM pour PME Africaines",
+  title: "ChatCommerce CRM Africa - Plateforme CRM Telegram pour PME Africaines",
   description:
-    "Le premier CRM WhatsApp conçu pour les entreprises africaines. Gérez vos clients, automatisez vos conversations et augmentez vos revenus.",
+    "Le premier CRM Telegram conçu pour les entreprises africaines. Créez des bots intelligents, automatisez vos ventes et gérez vos clients depuis Telegram.",
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.png",
   },
 };
 
@@ -36,7 +36,7 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
           storageKey="cc-theme"
