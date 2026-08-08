@@ -335,7 +335,7 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (data.token && data.user) {
-        setAuth(data.token, data.user);
+        setAuth(data.token, { ...data.user, company: data.company });
       } else {
         setError(data.error || "Erreur de connexion demo");
       }
@@ -357,7 +357,7 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (data.token && data.user) {
-        setAuth(data.token, data.user);
+        setAuth(data.token, { ...data.user, company: data.company });
       } else {
         setError(data.error || "Identifiants incorrects");
       }
@@ -379,7 +379,7 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (data.token && data.user) {
-        setAuth(data.token, data.user);
+        setAuth(data.token, { ...data.user, company: data.company });
       } else {
         setError(data.error || "Erreur d'inscription");
       }
