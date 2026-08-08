@@ -78,10 +78,10 @@ export async function GET(request: Request) {
 
     // Bookings per day this month (for chart)
     const dailyBookings = await db.$queryRawUnsafe<{ date: string; count: number }[]>(
-      `SELECT DATE(createdAt) as date, COUNT(*) as count 
-       FROM TelegramBooking 
-       WHERE companyId = ? AND createdAt >= ? 
-       GROUP BY DATE(createdAt) 
+      `SELECT DATE("createdAt") as date, COUNT(*) as count 
+       FROM "TelegramBooking" 
+       WHERE "companyId" = $1 AND "createdAt" >= $2 
+       GROUP BY DATE("createdAt") 
        ORDER BY date DESC 
        LIMIT 30`,
       companyId, thisMonthStartISO

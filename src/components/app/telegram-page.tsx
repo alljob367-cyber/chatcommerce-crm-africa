@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAppStore } from "@/store/app";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -198,7 +198,7 @@ export default function TelegramPage() {
   const [serviceSaving, setServiceSaving] = useState(false);
   const [servicesLoading, setServicesLoading] = useState(false);
 
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   // ─── Fetch Data ────────────────────────────────────────────────
 
@@ -738,7 +738,7 @@ export default function TelegramPage() {
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="text-xs">
-                                    {b.agent.businessType === "restaurant" ? (
+                                    {b.agent?.businessType === "restaurant" ? (
                                       <UtensilsCrossed className="w-3 h-3 mr-1" />
                                     ) : (
                                       <Scissors className="w-3 h-3 mr-1" />
@@ -952,7 +952,7 @@ export default function TelegramPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-1">
-                                  {b.agent.businessType === "restaurant" ? (
+                                  {b.agent?.businessType === "restaurant" ? (
                                     <UtensilsCrossed className="w-3 h-3 text-orange-500" />
                                   ) : (
                                     <Scissors className="w-3 h-3 text-purple-500" />
@@ -960,7 +960,7 @@ export default function TelegramPage() {
                                   <span className="text-sm">{b.serviceName || "—"}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{b.agent.name}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{b.agent?.name || "-"}</TableCell>
                               <TableCell className="text-sm">{b.bookingDate || "—"}</TableCell>
                               <TableCell className="text-sm">{b.bookingTime || "—"}</TableCell>
                               <TableCell className="text-sm">{b.customerPhone || "—"}</TableCell>
