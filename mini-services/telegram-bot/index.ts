@@ -245,15 +245,31 @@ async function handleStart(token: string, agent: TelegramAgent, chatId: number, 
     ? `\n\n⚠️ <i>Nous sommes actuellement fermés. Vous pouvez quand même parcourir notre menu et réserver pour plus tard.</i>`
     : "";
 
+  const BUSINESS_ICONS: Record<string, string> = {
+    restaurant: "🍽️", salon_coiffure: "✂️💅", pharmacie: "💊🏥",
+    taxi_transport: "🚕", pressing_laverie: "👔✨", ecole_formation: "📚🎓",
+  };
+  const BUSINESS_MENU_LABEL: Record<string, string> = {
+    restaurant: "🍽️ Voir le Menu", salon_coiffure: "💇 Nos Services",
+    pharmacie: "💊 Nos Produits", taxi_transport: "🚕 Réserver Course",
+    pressing_laverie: "👔 Nos Services", ecole_formation: "📚 Nos Formations",
+  };
+  const BUSINESS_ORDER_LABEL: Record<string, string> = {
+    restaurant: "📦 Ma Commande", salon_coiffure: "📋 Ma Réservation",
+    pharmacie: "🛒 Ma Commande", taxi_transport: "🚕 Ma Course",
+    pressing_laverie: "📦 Ma Commande", ecole_formation: "📝 Mon Inscription",
+  };
+  const icon = BUSINESS_ICONS[agent.businessType] || "🤖";
+  const menuLabel = BUSINESS_MENU_LABEL[agent.businessType] || "📋 Nos Services";
+  const orderLabel = BUSINESS_ORDER_LABEL[agent.businessType] || "📦 Ma Commande";
+
   const welcome = agent.welcomeMessage ||
-    (agent.businessType === "restaurant"
-      ? `Bienvenue chez <b>${agent.name}</b> ! 🍽️\n\nCommandez vos plats préférés directement ici.\nLivraison à domicile disponible ! 🚗`
-      : `Bienvenue chez <b>${agent.name}</b> ! ✂️💅\n\nRéservez votre créneau en quelques clics.\nNos experts vous attendent !`);
+    `Bienvenue chez <b>${agent.name}</b> ! ${icon}\n\nCommandez et réservez directement ici.\nService rapide et fiable ! ⚡`;
 
   const kb = inlineKeyboard([
     [
-      { text: agent.businessType === "restaurant" ? "🍽️ Voir le Menu" : "💇 Nos Services", callback_data: "menu" },
-      { text: "📦 Ma Commande", callback_data: "cart" },
+      { text: menuLabel, callback_data: "menu" },
+      { text: orderLabel, callback_data: "cart" },
     ],
     [
       { text: "📞 Contact", callback_data: "contact" },
@@ -271,8 +287,13 @@ async function handleMenu(token: string, agent: TelegramAgent, chatId: number) {
     return;
   }
 
+  const BUSINESS_TITLE: Record<string, string> = {
+    restaurant: "🍽️ <b>Notre Menu</b>", salon_coiffure: "💇 <b>Nos Prestations</b>",
+    pharmacie: "💊 <b>Nos Produits</b>", taxi_transport: "🚕 <b>Nos Courses</b>",
+    pressing_laverie: "👔 <b>Nos Services</b>", ecole_formation: "📚 <b>Nos Formations</b>",
+  };
   const isResto = agent.businessType === "restaurant";
-  let text = isResto ? "🍽️ <b>Notre Menu</b>\n\n" : "💇 <b>Nos Prestations</b>\n\n";
+  let text = (BUSINESS_TITLE[agent.businessType] || "📋 <b>Nos Services</b>") + "\n\n";
   const rows: Array<Array<{ text: string; callback_data: string }>> = [];
 
   for (const svc of services) {
@@ -343,9 +364,14 @@ async function handleViewCart(token: string, agent: TelegramAgent, chatId: numbe
     return;
   }
 
+  const CART_TITLE: Record<string, string> = {
+    restaurant: "🛒 <b>Votre Commande</b>", salon_coiffure: "📋 <b>Votre Réservation</b>",
+    pharmacie: "🛒 <b>Votre Commande</b>", taxi_transport: "🚕 <b>Votre Course</b>",
+    pressing_laverie: "📦 <b>Votre Commande</b>", ecole_formation: "📝 <b>Votre Inscription</b>",
+  };
   const isResto = agent.businessType === "restaurant";
   let total = 0;
-  let text = isResto ? "🛒 <b>Votre Commande</b>\n\n" : "📋 <b>Votre Réservation</b>\n\n";
+  let text = (CART_TITLE[agent.businessType] || "🛒 <b>Votre Commande</b>") + "\n\n";
 
   for (const item of session.cart) {
     const itemTotal = item.price * item.quantity;

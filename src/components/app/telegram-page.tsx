@@ -507,13 +507,13 @@ export default function TelegramPage() {
             Agents Telegram
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Bots de réservation prêts à l&apos;emploi pour restaurants et salons de coiffure
+            6 types de bots pre-configures : Restaurant, Salon, Pharmacie, Taxi, Pressing, Ecole
           </p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleOneClickSetup} disabled={settingUp} variant="outline" className="gap-2">
             {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {hasAgents ? "Réinitialiser les Démos" : "Créer Agents Prêts à l&apos;Emploi"}
+            {hasAgents ? "Ajouter Agents Manquants" : "Creer les 6 Agents"}
           </Button>
           <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
             <Plus className="w-4 h-4" />
@@ -529,36 +529,36 @@ export default function TelegramPage() {
             <div className="w-20 h-20 rounded-full bg-[#0088cc]/10 flex items-center justify-center">
               <Sparkles className="w-10 h-10 text-[#0088cc]" />
             </div>
-            <div className="space-y-2 max-w-md">
-              <h2 className="text-xl font-bold text-foreground">Agents Telegram Prêts à l&apos;Emploi</h2>
+            <div className="space-y-2 max-w-lg">
+              <h2 className="text-xl font-bold text-foreground">6 Agents Telegram Prêts à l&apos;Emploi</h2>
               <p className="text-muted-foreground">
-                Créez instantanément des bots de réservation pour votre restaurant et votre salon de coiffure.
-                Les menus et services sont pré-configurés — il vous suffit d&apos;ajouter votre token Telegram.
+                Créez instantanément des bots pour toutes vos activites commerciales.
+                Menus, services et tarifs sont pre-configures — collez votre token et c&apos;est parti.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
-              <Card className="border hover:shadow-md transition-shadow cursor-pointer" onClick={handleOneClickSetup}>
-                <CardContent className="p-6 flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                    <UtensilsCrossed className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <h3 className="font-semibold">Restaurant</h3>
-                  <p className="text-xs text-muted-foreground text-center">12 plats camerounais pré-configurés</p>
-                </CardContent>
-              </Card>
-              <Card className="border hover:shadow-md transition-shadow cursor-pointer" onClick={handleOneClickSetup}>
-                <CardContent className="p-6 flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <Scissors className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold">Salon de Coiffure</h3>
-                  <p className="text-xs text-muted-foreground text-center">14 prestations pré-configurées</p>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-2xl">
+              {[
+                { icon: UtensilsCrossed, label: "Restaurant", desc: "12 plats camerounais", bg: "bg-orange-100 dark:bg-orange-900/30", color: "text-orange-600" },
+                { icon: Scissors, label: "Salon Coiffure", desc: "14 prestations", bg: "bg-purple-100 dark:bg-purple-900/30", color: "text-purple-600" },
+                { icon: Bot, label: "Pharmacie", desc: "10 services sante", bg: "bg-green-100 dark:bg-green-900/30", color: "text-green-600" },
+                { icon: MapPin, label: "Taxi Transport", desc: "9 types de courses", bg: "bg-blue-100 dark:bg-blue-900/30", color: "text-blue-600" },
+                { icon: ShoppingBag, label: "Pressing", desc: "11 services laverie", bg: "bg-cyan-100 dark:bg-cyan-900/30", color: "text-cyan-600" },
+                { icon: Users, label: "Ecole / Formation", desc: "11 formations", bg: "bg-amber-100 dark:bg-amber-900/30", color: "text-amber-600" },
+              ].map((a) => (
+                <Card key={a.label} className="border hover:shadow-md transition-shadow cursor-pointer" onClick={handleOneClickSetup}>
+                  <CardContent className="p-4 flex flex-col items-center gap-2">
+                    <div className={`w-10 h-10 rounded-xl ${a.bg} flex items-center justify-center`}>
+                      <a.icon className={`w-5 h-5 ${a.color}`} />
+                    </div>
+                    <h3 className="font-semibold text-xs">{a.label}</h3>
+                    <p className="text-[10px] text-muted-foreground text-center">{a.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
             <Button size="lg" onClick={handleOneClickSetup} disabled={settingUp} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
               {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {settingUp ? "Création en cours..." : "Créer Mes 2 Agents Maintenant"}
+              {settingUp ? "Création en cours..." : "Creer Mes 6 Agents Maintenant"}
             </Button>
           </CardContent>
         </Card>

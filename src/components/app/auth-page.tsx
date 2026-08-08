@@ -5,33 +5,100 @@ import { useAppStore } from "@/store/app";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  MessageCircle,
+  Bot,
   ArrowRight,
   Sparkles,
   Check,
   Menu,
   X,
-  Smartphone,
   ShoppingBag,
-  Bot,
   BarChart3,
   Users,
-  Inbox,
-  ChevronRight,
   Star,
   Sun,
   Moon,
+  Zap,
+  Store,
+  Scissors,
+  Pill,
+  Car,
+  Shirt,
+  GraduationCap,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Globe,
+  Shield,
+  TrendingUp,
+  MessageCircle,
+  Clock,
+  Banknote,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
+
+const AGENT_TYPES = [
+  { icon: Store, label: "Restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire" },
+  { icon: Scissors, label: "Salon Coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "" },
+  { icon: Pill, label: "Pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "Nouveau" },
+  { icon: Car, label: "Taxi / Transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "Nouveau" },
+  { icon: Shirt, label: "Pressing / Laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "Nouveau" },
+  { icon: GraduationCap, label: "Ecole / Formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "Nouveau" },
+];
+
+const FEATURES = [
+  { icon: Bot, title: "Bots Telegram Prêts", desc: "6 types d'agents pré-configurés. Aucune compétence technique requise. Activez en 2 minutes." },
+  { icon: ShoppingBag, title: "Commandes Automatiques", desc: "Vos clients commandent 24h/24 via Telegram. Panier, checkout, confirmation tout automatique." },
+  { icon: BarChart3, title: "Dashboard CRM", desc: "KPI en temps réel, revenus, commandes, taux de conversion. Export CSV et rapports." },
+  { icon: Users, title: "Gestion Clients", desc: "CRM complet : contacts, conversations historique, suivi des leads et prospects." },
+  { icon: Zap, title: "Zero Configuration", desc: "Un clic pour créer un bot. Collez votre token BotFather. C'est tout. Pas de code." },
+  { icon: Globe, title: "Made for Africa", desc: "Paiement Mobile Money (Orange Money, MTN MoMo), FCFA, multilingue FR/EN." },
+];
+
+const TESTIMONIALS = [
+  { name: "Marie Nkoulou", role: "Restauratrice, Douala", text: "Mes commandes ont augmenté de 40% depuis que j'utilise le bot Telegram. Mes clients commandent depuis leur téléphone sans appeler.", stars: 5 },
+  { name: "Ibrahim Toure", role: "Salon de coiffure, Yaoundé", text: "Le système de réservation automatique m'a fait gagner 2 heures par jour. Plus besoin de répondre au téléphone pour les RDV.", stars: 5 },
+  { name: "Fatou Mboup", role: "Pharmacienne, Dakar", text: "Les rappels de médicaments et les commandes en ligne ont fidélisé mes clients. Un outil indispensable.", stars: 5 },
+  { name: "Jean-Pierre Kamga", role: "Taxi, Douala", text: "Mes clients réservent leur course directement sur Telegram. Fini les appels perdus et les errances.", stars: 4 },
+];
+
+const PRICING = [
+  {
+    name: "Starter",
+    price: "Gratuit",
+    period: "",
+    desc: "Pour démarrer votre activité en ligne",
+    features: ["1 bot Telegram", "CRM complet", "Dashboard KPI", "Commandes automatiques", "Communauté WhatsApp"],
+    cta: "Demarrer Gratuitement",
+    popular: false,
+  },
+  {
+    name: "Business",
+    price: "9 900",
+    period: "FCFA/mois",
+    desc: "Pour les PME qui veulent grandir",
+    features: ["3 bots Telegram", "CRM complet", "Dashboard avancé", "Export rapports PDF", "Support prioritaire", "Paiement Mobile Money", "API intégrée"],
+    cta: "Essai Gratuit 14 jours",
+    popular: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Sur devis",
+    period: "",
+    desc: "Pour les grandes structures et franchises",
+    features: ["Bots illimités", "CRM multi-sites", "API complète", "White-label", "Formation dédiée", "SLA garanti", "Intégration sur mesure"],
+    cta: "Contacter les ventes",
+    popular: false,
+  },
+];
 
 export default function AuthPage() {
   const { setAuth } = useAppStore();
@@ -45,13 +112,10 @@ export default function AuthPage() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [form, setForm] = useState({
-    name: "",
     email: "demo@chatcommerce.africa",
     password: "demo",
-    companyName: "",
-    country: "Cameroun",
-    phone: "",
   });
   const [registerForm, setRegisterForm] = useState({
     name: "",
@@ -62,41 +126,13 @@ export default function AuthPage() {
     phone: "",
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", email: form.email, password: form.password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur");
-      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur de connexion");
-    } finally { setLoading(false); }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "register", ...registerForm }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur");
-      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur");
-    } finally { setLoading(false); }
-  };
+  // Auto-rotate testimonials
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTestimonial((p) => (p + 1) % TESTIMONIALS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDemo = async () => {
     setLoading(true);
@@ -108,275 +144,253 @@ export default function AuthPage() {
         body: JSON.stringify({ action: "demo" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur");
-      setAuth(data.token, { id: data.user.id, name: data.user.name, email: data.user.email, role: data.user.role, company: data.company });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur");
-    } finally { setLoading(false); }
+      if (data.token && data.user) {
+        setAuth(data.token, data.user);
+      } else {
+        setError(data.error || "Erreur de connexion demo");
+      }
+    } catch {
+      setError("Erreur de connexion au serveur");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateForm = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
-  const updateRegister = (field: string, value: string) => setRegisterForm((f) => ({ ...f, [field]: value }));
+  const handleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "login", ...form }),
+      });
+      const data = await res.json();
+      if (data.token && data.user) {
+        setAuth(data.token, data.user);
+      } else {
+        setError(data.error || "Identifiants incorrects");
+      }
+    } catch {
+      setError("Erreur de connexion");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const navItems = [
-    { label: "Fonctionnalités", href: "#features" },
-    { label: "Tarifs", href: "#pricing" },
-    { label: "Ressources", href: "#resources" },
-    { label: "À propos", href: "#about" },
-  ];
-
-  const features = [
-    { icon: Inbox, title: "Boîte WhatsApp partagée", desc: "Centralisez toutes vos conversations WhatsApp dans une seule interface collaborative.", color: "bg-green-100 text-green-600 dark:bg-green-500/15 dark:text-green-400" },
-    { icon: ShoppingBag, title: "Catalogue produits", desc: "Affichez vos produits et services directement dans WhatsApp pour vos clients.", color: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400" },
-    { icon: Smartphone, title: "Gestion des commandes", desc: "Suivez vos commandes, paiements Mobile Money et livraisons en temps réel.", color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-400" },
-    { icon: Bot, title: "Assistant IA", desc: "Répondez automatiquement 24h/24 en français, anglais et espagnol.", color: "bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400" },
-    { icon: BarChart3, title: "Tableau de bord", desc: "Analysez vos ventes, performances et croissance avec des KPIs clairs.", color: "bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400" },
-    { icon: Users, title: "Multi-utilisateurs", desc: "Collaborez en équipe avec rôles et permissions personnalisés.", color: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400" },
-  ];
-
-  const trustedBy = [
-    "HOTEL LA CALEBASSE",
-    "Le Gourmet RESTAURANT",
-    "SuperMarket BATA",
-    "Belle & Chic BOUTIQUE",
-    "Pharmacie SANTÉ PLUS",
-    "Voyages EXPLORER",
-  ];
-
-  const plans = [
-    { name: "Starter", price: "5 000", period: "/mois", desc: "Pour démarrer votre activité WhatsApp", features: ["500 contacts", "3 agents", "1 000 messages/mois", "Automatisations basiques", "Support email"], cta: "Démarrer maintenant", popular: false },
-    { name: "Business", price: "29 900", period: "/mois", desc: "Pour les entreprises en croissance", features: ["5 000 contacts", "10 agents", "10 000 messages/mois", "Assistant IA", "Automatisations avancées", "Support prioritaire", "API WhatsApp"], cta: "Essai gratuit 14 jours", popular: true },
-    { name: "Enterprise", price: "Sur mesure", period: "", desc: "Pour les grandes organisations", features: ["Contacts illimités", "Agents illimités", "Messages illimités", "IA avancée", "API complète", "Support dédié 24/7", "Intégrations sur mesure"], cta: "Contacter les ventes", popular: false },
-  ];
+  const handleRegister = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "register", ...registerForm }),
+      });
+      const data = await res.json();
+      if (data.token && data.user) {
+        setAuth(data.token, data.user);
+      } else {
+        setError(data.error || "Erreur d'inscription");
+      }
+    } catch {
+      setError("Erreur d'inscription");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* ===== HEADER / NAV ===== */}
-      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-[#25D366] rounded-xl flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-[#0F172A] dark:text-white text-lg">ChatCommerce</span>
-              <span className="hidden sm:inline text-xs text-gray-400 font-medium bg-gray-50 dark:bg-muted px-2 py-0.5 rounded-full ml-1">CRM Afrique</span>
+    <div className={`min-h-screen ${isDark ? "dark" : ""}`}>
+      {/* NAVBAR */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200/50 dark:border-zinc-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center">
+              <Bot className="w-5 h-5 text-white" />
             </div>
-
-            {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-6">
-              {navItems.map((item) => (
-                <a key={item.label} href={item.href} className="text-sm text-gray-600 dark:text-gray-300 hover:text-[#0F172A] dark:hover:text-white transition-colors font-medium">
-                  {item.label}
-                </a>
-              ))}
-            </nav>
-
-            {/* Desktop CTAs */}
-            <div className="hidden md:flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white"
-                onClick={() => setTheme(isDark ? "light" : "dark")}
-              >
-                <Sun className={`w-4 h-4 transition-all ${isDark ? "rotate-90 scale-0" : "rotate-0 scale-100"}`} />
-                <Moon className={`absolute w-4 h-4 transition-all ${isDark ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`} />
-              </Button>
-              <Button variant="ghost" className="text-sm text-gray-600 hover:text-[#0F172A] dark:text-gray-300 dark:hover:text-white" onClick={() => setShowLogin(true)}>
-                Se connecter
-              </Button>
-              <Dialog open={showLogin} onOpenChange={setShowLogin}>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Connexion</DialogTitle></DialogHeader>
-                  <form onSubmit={handleLogin} className="space-y-3">
-                    <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} required /></div>
-                    <div><Label>Mot de passe</Label><Input type="password" value={form.password} onChange={(e) => updateForm("password", e.target.value)} required /></div>
-                    {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
-                    <Button type="submit" className="w-full bg-[#0F172A] hover:bg-[#1e293b]" disabled={loading}>
-                      {loading ? "Chargement..." : "Se connecter"} <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                    <Button type="button" variant="outline" className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366] hover:text-white" onClick={handleDemo} disabled={loading}>
-                      <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-
-              <Button className="bg-[#25D366] hover:bg-[#128C7E] text-white text-sm font-medium px-5" onClick={() => setShowRegister(true)}>
-                Démarrer maintenant
-              </Button>
-              <Dialog open={showRegister} onOpenChange={setShowRegister}>
-                <DialogContent className="max-w-md">
-                  <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
-                  <p className="text-sm text-gray-500">Démarrez avec ChatCommerce à partir de 5 000 FCFA/mois. Paiement par Mobile Money.</p>
-                  <form onSubmit={handleRegister} className="space-y-3">
-                    <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
-                    <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
-                    <div><Label>Pays</Label>
-                      <select value={registerForm.country} onChange={(e) => updateRegister("country", e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm">
-                        {["Cameroun", "Gabon", "Congo", "Guinée Équatoriale", "Côte d'Ivoire", "Sénégal", "Mali", "Burkina Faso", "Guinée", "Togo", "Bénin"].map((c) => (<option key={c} value={c}>{c}</option>))}
-                      </select>
-                    </div>
-                    <div><Label>Email</Label><Input type="email" placeholder="vous@exemple.com" value={registerForm.email} onChange={(e) => updateRegister("email", e.target.value)} required /></div>
-                    <div><Label>Téléphone</Label><Input placeholder="+237 6XX XXX XXX" value={registerForm.phone} onChange={(e) => updateRegister("phone", e.target.value)} /></div>
-                    <div><Label>Mot de passe</Label><Input type="password" placeholder="••••••••" value={registerForm.password} onChange={(e) => updateRegister("password", e.target.value)} required /></div>
-                    {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
-                    <Button type="submit" className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" disabled={loading}>
-                      {loading ? "Création..." : "Créer mon compte"} <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Mobile menu button */}
-            <button className="md:hidden p-2" onClick={() => setMobileMenu(!mobileMenu)}>
-              {mobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            <span className="font-bold text-lg text-zinc-900 dark:text-white">
+              ChatCommerce<span className="text-[#25D366]"> CRM</span>
+            </span>
           </div>
-
-          {/* Mobile menu */}
-          {mobileMenu && (
-            <div className="md:hidden pb-4 border-t border-gray-100 dark:border-border pt-4 space-y-3 animate-fade-in">
-              {navItems.map((item) => (
-                <a key={item.label} href={item.href} className="block text-sm text-gray-600 dark:text-gray-300 py-2" onClick={() => setMobileMenu(false)}>
-                  {item.label}
-                </a>
-              ))}
-              <div className="flex flex-col gap-2 pt-3 border-t border-gray-50 dark:border-border">
-                <Button variant="outline" className="w-full" onClick={() => { setShowLogin(true); setMobileMenu(false); }}>Se connecter</Button>
-                <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleDemo}>
-                  <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
-                </Button>
-              </div>
-            </div>
-          )}
+          <div className="hidden md:flex items-center gap-6">
+            <a href="#agents" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-[#25D366] transition">Agents</a>
+            <a href="#features" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-[#25D366] transition">Fonctionnalites</a>
+            <a href="#tarifs" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-[#25D366] transition">Tarifs</a>
+            <a href="#temoignages" className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-[#25D366] transition">Temoignages</a>
+            {mounted && (
+              <button onClick={() => setTheme(isDark ? "light" : "dark")} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => setShowLogin(true)} className="text-xs">
+              Connexion
+            </Button>
+            <Button size="sm" onClick={() => setShowRegister(true)} className="bg-[#25D366] hover:bg-[#128C7E] text-white text-xs">
+              Commencer Gratuit
+            </Button>
+          </div>
+          <button className="md:hidden" onClick={() => setMobileMenu(!mobileMenu)}>
+            {mobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
-      </header>
-
-      {/* ===== HERO SECTION ===== */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 lg:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left: Text */}
-            <div className="animate-fade-in">
-              <div className="inline-flex items-center gap-2 bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-400 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-                <Sparkles className="w-4 h-4" />
-                Premier CRM WhatsApp pour l&apos;Afrique
-              </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] dark:text-white leading-tight mb-6">
-                Transformez WhatsApp en{" "}
-                <span className="text-[#25D366]">machine à vendre</span>
-              </h1>
-              <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed mb-8 max-w-xl">
-                Gérez vos clients, commandes et ventes depuis une seule plateforme. Répondez plus vite,
-                vendez plus et faites grandir votre business africain.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Button
-                  size="lg"
-                  className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20"
-                  onClick={() => setShowRegister(true)}
-                >
-                  Commencer à 5 000 FCFA/mois
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-gray-200 dark:border-border text-[#0F172A] dark:text-white text-base font-medium px-8 h-12 hover:bg-gray-50 dark:hover:bg-muted"
-                  onClick={handleDemo}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Voir la démo
-                </Button>
-              </div>
-              {/* Trust badges */}
-              <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500 dark:text-gray-400">
-                {[
-                  "Installation facile",
-                  "Sans carte bancaire",
-                  "Annulation à tout moment",
-                ].map((text) => (
-                  <span key={text} className="flex items-center gap-1.5">
-                    <Check className="w-4 h-4 text-[#25D366]" />
-                    {text}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Image */}
-            <div className="relative animate-fade-in" style={{ animationDelay: "200ms" }}>
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-green-900/10">
-                <img
-                  src="/landing-hero.png"
-                  alt="ChatCommerce CRM - Transformez WhatsApp en machine à vendre"
-                  className="w-full h-auto"
-                />
-              </div>
-              {/* Floating elements */}
-              <div className="absolute -top-4 -right-4 bg-white dark:bg-card rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "600ms" }}>
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-500/15 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#0F172A] dark:text-white">+1 258 clients</p>
-                  <p className="text-[10px] text-gray-400">Ce mois-ci</p>
-                </div>
-              </div>
-              <div className="absolute -bottom-4 -left-4 bg-white dark:bg-card rounded-xl shadow-lg p-3 hidden lg:flex items-center gap-2 animate-fade-in" style={{ animationDelay: "800ms" }}>
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-500/15 rounded-full flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#0F172A] dark:text-white">12.8M XAF</p>
-                  <p className="text-[10px] text-gray-400">Chiffre d&apos;affaires</p>
-                </div>
-              </div>
+        {/* Mobile Menu */}
+        {mobileMenu && (
+          <div className="md:hidden bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 p-4 space-y-3">
+            <a href="#agents" className="block text-sm py-2" onClick={() => setMobileMenu(false)}>Agents</a>
+            <a href="#features" className="block text-sm py-2" onClick={() => setMobileMenu(false)}>Fonctionnalites</a>
+            <a href="#tarifs" className="block text-sm py-2" onClick={() => setMobileMenu(false)}>Tarifs</a>
+            <a href="#temoignages" className="block text-sm py-2" onClick={() => setMobileMenu(false)}>Temoignages</a>
+            <div className="flex gap-2 pt-2">
+              <Button size="sm" variant="outline" className="flex-1" onClick={() => { setShowLogin(true); setMobileMenu(false); }}>Connexion</Button>
+              <Button size="sm" className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={() => { setShowRegister(true); setMobileMenu(false); }}>S'inscrire</Button>
             </div>
           </div>
-        </div>
-      </section>
+        )}
+      </nav>
 
-      {/* ===== TRUSTED BY ===== */}
-      <section className="border-y border-gray-100 dark:border-border bg-gray-50/50 dark:bg-muted/30 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-400 font-medium mb-6 uppercase tracking-wider">
-            Ils nous font confiance
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            {trustedBy.map((brand) => (
-              <span key={brand} className="text-gray-300 dark:text-gray-600 font-bold text-sm tracking-wide hover:text-gray-400 dark:hover:text-gray-500 transition-colors">
-                {brand}
+      {/* HERO SECTION */}
+      <section className="pt-24 pb-16 md:pt-32 md:pb-24 px-4 sm:px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-4xl mx-auto space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#25D366]/10 rounded-full border border-[#25D366]/20">
+              <Sparkles className="w-4 h-4 text-[#25D366]" />
+              <span className="text-sm font-medium text-[#25D366]">La 1ere plateforme CRM Telegram pour l'Afrique</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight">
+              Automatisez vos ventes avec des
+              <span className="block bg-gradient-to-r from-[#25D366] via-[#128C7E] to-[#075E54] bg-clip-text text-transparent">
+                Bots Telegram Intelligents
               </span>
+            </h1>
+            <p className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+              Creez votre bot en <strong className="text-zinc-900 dark:text-white">1 clic</strong>. Recevez des commandes, prenez des rendez-vous et gérez vos clients depuis Telegram. <strong className="text-zinc-900 dark:text-white">Zero configuration. Zero code.</strong>
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button size="lg" onClick={handleDemo} disabled={loading} className="bg-[#25D366] hover:bg-[#128C7E] text-white px-8 py-6 text-base font-semibold shadow-lg shadow-[#25D366]/25 hover:shadow-[#128C7E]/25 transition-all">
+                {loading ? "Connexion..." : (
+                  <>
+                    <Bot className="w-5 h-5 mr-2" />
+                    Voir la Demo en Direct
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => setShowRegister(true)} className="px-8 py-6 text-base">
+                Creer mon compte gratuitement
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-6 pt-4 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#25D366]" /> Gratuit</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#25D366]" /> Sans carte bancaire</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#25D366]" /> Fonctionne en 2 min</span>
+            </div>
+          </div>
+
+          {/* Stats bar */}
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+            {[
+              { value: "6", label: "Types de Bots" },
+              { value: "44M+", label: "PME en Afrique" },
+              { value: "24/7", label: "Ventes automatiques" },
+              { value: "<2min", label: "Mise en place" },
+            ].map((s) => (
+              <div key={s.label} className="text-center p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50">
+                <p className="text-2xl md:text-3xl font-bold text-[#25D366]">{s.value}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{s.label}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ===== FEATURES ===== */}
-      <section id="features" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
-              Tout ce dont vous avez besoin pour vendre sur WhatsApp
+      {/* AGENTS SECTION */}
+      <section id="agents" className="py-16 md:py-24 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20">6 Agents Telegram</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+              Un bot pour chaque activite
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">
-              Une plateforme complète qui transforme chaque conversation en opportunité de vente.
+            <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+              Choisissez votre type d'activite. Tout est pre-configure : services, tarifs, horaires. Il suffit d'activer.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {AGENT_TYPES.map((agent) => (
+              <Card key={agent.label} className="group border-0 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+                <CardContent className="p-6">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    <agent.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{agent.label}</h3>
+                    {agent.badge && (
+                      <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20">
+                        {agent.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{agent.desc}</p>
+                  <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[#25D366]">
+                    <Send className="w-4 h-4" />
+                    <span>Disponible sur Telegram</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section className="py-16 md:py-24 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+              Comment ca marche ?
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400">3 etapes. C'est tout.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              { step: "1", icon: Zap, title: "Choisissez votre agent", desc: "Restaurant, Salon, Pharmacie, Taxi, Pressing ou Ecole. Un clic et c'est configure." },
+              { step: "2", icon: Bot, title: "Activez sur Telegram", desc: "Collez votre token @BotFather. Le bot est immediatement en ligne et pret a recevoir des commandes." },
+              { step: "3", icon: TrendingUp, title: "Recevez des commandes", desc: "Vos clients commandent 24h/24. Vous recevez les notifications et gerez tout depuis le dashboard." },
+            ].map((s) => (
+              <div key={s.step} className="text-center relative">
+                <div className="w-16 h-16 rounded-2xl bg-[#25D366]/10 border-2 border-[#25D366]/20 flex items-center justify-center mx-auto mb-4">
+                  <s.icon className="w-8 h-8 text-[#25D366]" />
+                </div>
+                <span className="absolute top-0 right-1/4 md:right-auto md:left-[calc(50%+50px)] text-5xl font-black text-zinc-100 dark:text-zinc-800">{s.step}</span>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES SECTION */}
+      <section id="features" className="py-16 md:py-24 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+              Tout ce qu'il vous faut pour vendre
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+              Un CRM complet integre avec des bots Telegram puissants. Gerez votre activite depuis une seule plateforme.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feat) => (
-              <Card key={feat.title} className="border-0 shadow-sm hover:shadow-lg transition-all duration-300 group py-0 overflow-hidden">
+            {FEATURES.map((f) => (
+              <Card key={f.title} className="border-0 shadow-sm hover:shadow-md transition-all">
                 <CardContent className="p-6">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${feat.color} mb-4 group-hover:scale-110 transition-transform`}>
-                    <feat.icon className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-xl bg-[#25D366]/10 flex items-center justify-center mb-4">
+                    <f.icon className="w-6 h-6 text-[#25D366]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-[#0F172A] dark:text-white mb-2">{feat.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{feat.desc}</p>
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-2">{f.title}</h3>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{f.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -384,141 +398,89 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* ===== DASHBOARD PREVIEW ===== */}
-      <section className="py-20 bg-[#0F172A] relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#25D366] rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#2563EB] rounded-full blur-3xl" />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-[#25D366] text-sm font-semibold uppercase tracking-wider mb-4">
-                Une expérience simple et puissante
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-                Gérez votre business depuis WhatsApp
-              </h2>
-              <p className="text-gray-400 leading-relaxed mb-8">
-                Un tableau de bord intuitif qui vous donne une vue complète sur vos clients,
-                vos ventes et la performance de votre équipe. Tout ce dont vous avez besoin,
-                en un coup d&apos;oeil.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                {[
-                  { value: "1 258", label: "Total clients" },
-                  { value: "568", label: "Commandes" },
-                  { value: "12.85M", label: "Chiffre d'affaires (XAF)" },
-                  { value: "24.6%", label: "Taux de conversion" },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
+      {/* TESTIMONIALS */}
+      <section id="temoignages" className="py-16 md:py-24 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+              Ils nous font confiance
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400">Plus de 500 commerçants africains utilisent ChatCommerce CRM</p>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-1 mb-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`w-5 h-5 ${i < TESTIMONIALS[currentTestimonial].stars ? "fill-yellow-400 text-yellow-400" : "text-zinc-300"}`} />
+                  ))}
+                </div>
+                <p className="text-lg text-zinc-700 dark:text-zinc-300 leading-relaxed mb-6 italic">
+                  &ldquo;{TESTIMONIALS[currentTestimonial].text}&rdquo;
+                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-zinc-900 dark:text-white">{TESTIMONIALS[currentTestimonial].name}</p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{TESTIMONIALS[currentTestimonial].role}</p>
                   </div>
-                ))}
-              </div>
-              <Button
-                className="bg-[#25D366] hover:bg-[#128C7E] text-white font-semibold"
-                onClick={handleDemo}
-              >
-                Voir la démo complète <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-            <div className="relative">
-              <img
-                src="/landing-hero.png"
-                alt="Dashboard ChatCommerce"
-                className="rounded-2xl shadow-2xl shadow-black/30 w-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/20 to-transparent rounded-2xl" />
-            </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setCurrentTestimonial((p) => (p - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)} className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm text-zinc-400">{currentTestimonial + 1}/{TESTIMONIALS.length}</span>
+                    <button onClick={() => setCurrentTestimonial((p) => (p + 1) % TESTIMONIALS.length)} className="w-8 h-8 rounded-full border border-zinc-200 dark:border-zinc-700 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
 
-      {/* ===== TESTIMONIALS ===== */}
-      <section className="py-20 bg-gray-50 dark:bg-muted/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
-              Ce que disent nos utilisateurs
+      {/* PRICING SECTION */}
+      <section id="tarifs" className="py-16 md:py-24 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+              Tarifs simples et transparents
             </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-lg">Des entrepreneurs africains qui font confiance à ChatCommerce.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: "Aminata Diallo", role: "Restauratrice, Dakar", text: "ChatCommerce a transformé la façon dont je gère mes commandes WhatsApp. Mes ventes ont augmenté de 40% en 3 mois !", rating: 5 },
-              { name: "Jean-Pierre Mbarga", role: "Gérant supermarché, Douala", text: "L'automatisation des réponses me fait gagner 3 heures par jour. Je peux me concentrer sur la croissance de mon business.", rating: 5 },
-              { name: "Fatou Bamba", role: "Propriétaire boutique, Abidjan", text: "Le catalogue produits sur WhatsApp est incroyable. Mes clients commandent directement sans appeler. C'est magique !", rating: 5 },
-            ].map((t) => (
-              <Card key={t.name} className="border-0 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#0F172A] text-white flex items-center justify-center text-xs font-bold">
-                      {t.name.split(" ").map((n) => n[0]).join("")}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#0F172A] dark:text-white">{t.name}</p>
-                      <p className="text-xs text-gray-400">{t.role}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== PRICING ===== */}
-      <section id="pricing" className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-white mb-4">
-              Des tarifs adaptés au marché africain
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-lg">Commencez à 5 000 FCFA/mois, évoluez à votre rythme.</p>
+            <p className="text-zinc-600 dark:text-zinc-400">Commencez gratuitement. Evoluez quand vous etes pret.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {plans.map((plan) => (
-              <Card
-                key={plan.name}
-                className={`border-0 shadow-sm hover:shadow-lg transition-all duration-300 relative ${plan.popular ? "ring-2 ring-[#25D366] scale-105" : ""}`}
-              >
+            {PRICING.map((plan) => (
+              <Card key={plan.name} className={`border-0 shadow-md hover:shadow-lg transition-all relative ${plan.popular ? "ring-2 ring-[#25D366]" : ""}`}>
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-[#25D366] text-white text-xs font-bold px-4 py-1 rounded-full">Le plus populaire</span>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#25D366] text-white text-xs font-bold rounded-full">
+                    Le plus populaire
                   </div>
                 )}
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-[#0F172A] dark:text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-400 mt-1 mb-4">{plan.desc}</p>
-                  <div className="mb-6">
-                    {plan.price === "Sur mesure" ? (
-                      <p className="text-3xl font-bold text-[#0F172A] dark:text-white">Sur mesure</p>
+                <CardContent className="p-8">
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{plan.desc}</p>
+                  <div className="mt-4 mb-6">
+                    {plan.price === "Gratuit" ? (
+                      <span className="text-4xl font-extrabold text-[#25D366]">Gratuit</span>
                     ) : (
                       <>
-                        <span className="text-4xl font-extrabold text-[#0F172A] dark:text-white">{plan.price}</span>
-                        <span className="text-gray-400 text-sm ml-1">FCFA{plan.period}</span>
+                        <span className="text-4xl font-extrabold text-zinc-900 dark:text-white">{plan.price}</span>
+                        {plan.period && <span className="text-sm text-zinc-500 ml-1">{plan.period}</span>}
                       </>
                     )}
                   </div>
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-3 mb-8">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <li key={f} className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                         <Check className="w-4 h-4 text-[#25D366] shrink-0" />
                         {f}
                       </li>
                     ))}
                   </ul>
                   <Button
-                    className={`w-full font-medium ${plan.popular ? "bg-[#25D366] hover:bg-[#128C7E] text-white" : "bg-[#0F172A] hover:bg-[#1e293b] text-white"}`}
-                    onClick={plan.popular ? () => setShowRegister(true) : handleDemo}
+                    className={`w-full ${plan.popular ? "bg-[#25D366] hover:bg-[#128C7E] text-white" : ""}`}
+                    variant={plan.popular ? "default" : "outline"}
+                    onClick={() => setShowRegister(true)}
                   >
                     {plan.cta}
                   </Button>
@@ -529,120 +491,125 @@ export default function AuthPage() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA ===== */}
-      <section className="py-20 bg-[#0F172A]">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Prêt à transformer WhatsApp en machine à vendre ?
-          </h2>
-          <p className="text-gray-400 text-lg mb-8 max-w-2xl mx-auto">
-            Rejoignez des centaines d&apos;entreprises africaines qui utilisent ChatCommerce pour
-            augmenter leurs ventes et fidéliser leurs clients.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-semibold px-8 h-12 shadow-lg shadow-green-500/20" onClick={() => setShowRegister(true)}>
-              Commencer à 5 000 FCFA/mois <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 text-base font-medium px-8 h-12" onClick={handleDemo}>
-              <Sparkles className="w-4 h-4 mr-2" />Voir la démo
-            </Button>
-          </div>
+      {/* CTA SECTION */}
+      <section className="py-16 md:py-24 px-4 sm:px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <Card className="border-0 shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-br from-[#25D366] to-[#075E54] p-10 md:p-16">
+              <Bot className="w-16 h-16 text-white/80 mx-auto mb-6" />
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Pret a automatiser votre activite ?
+              </h2>
+              <p className="text-lg text-white/80 max-w-xl mx-auto mb-8">
+                Rejoignez des centaines de commerçants africains qui vendent 24h/24 avec des bots Telegram.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button size="lg" onClick={handleDemo} disabled={loading} className="bg-white text-[#075E54] hover:bg-white/90 px-8 py-6 text-base font-semibold shadow-lg">
+                  {loading ? "Connexion..." : "Essayer Gratuitement"}
+                </Button>
+                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 px-8 py-6 text-base">
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Contacter sur Telegram
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
-      <footer className="bg-[#0a0f1a] text-gray-400 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 bg-[#25D366] rounded-lg flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-bold text-white">ChatCommerce</span>
+      {/* FOOTER */}
+      <footer className="py-12 px-4 sm:px-6 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#25D366] to-[#128C7E] flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
               </div>
-              <p className="text-sm leading-relaxed">
-                Le premier CRM WhatsApp conçu pour les entreprises africaines.
-              </p>
+              <span className="font-bold text-zinc-900 dark:text-white">ChatCommerce CRM Africa</span>
             </div>
-            <div>
-              <h4 className="font-semibold text-white text-sm mb-3">Produit</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#features" className="hover:text-white transition-colors">Fonctionnalités</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Tarifs</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Intégrations</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
-              </ul>
+            <div className="flex items-center gap-6 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> Donnees securisees</span>
+              <span className="flex items-center gap-1"><Globe className="w-4 h-4" /> Made in Africa</span>
+              <span className="flex items-center gap-1"><Banknote className="w-4 h-4" /> Mobile Money</span>
             </div>
-            <div>
-              <h4 className="font-semibold text-white text-sm mb-3">Ressources</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tutoriels</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white text-sm mb-3">Pays</h4>
-              <ul className="space-y-2 text-sm">
-                <li>Cameroun</li>
-                <li>Côte d&apos;Ivoire</li>
-                <li>Sénégal</li>
-                <li>Guinée Équatoriale</li>
-                <li>+ 7 autres pays</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs">&copy; 2026 ChatCommerce CRM Afrique. Tous droits réservés.</p>
-            <div className="flex gap-4 text-xs">
-              <a href="#" className="hover:text-white transition-colors">Confidentialité</a>
-              <a href="#" className="hover:text-white transition-colors">CGU</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
+            <p className="text-sm text-zinc-400 dark:text-zinc-500">
+              &copy; {new Date().getFullYear()} ALLJOB BATACONNECT IA
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* Login/Register dialogs for mobile */}
+      {/* LOGIN DIALOG */}
       <Dialog open={showLogin} onOpenChange={setShowLogin}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Connexion</DialogTitle></DialogHeader>
-          <form onSubmit={handleLogin} className="space-y-3">
-            <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => updateForm("email", e.target.value)} required /></div>
-            <div><Label>Mot de passe</Label><Input type="password" value={form.password} onChange={(e) => updateForm("password", e.target.value)} required /></div>
-            {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
-            <Button type="submit" className="w-full bg-[#0F172A] hover:bg-[#1e293b]" disabled={loading}>
-              {loading ? "Chargement..." : "Se connecter"} <ArrowRight className="w-4 h-4 ml-2" />
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">Connexion</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-sm">Email</Label>
+              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" placeholder="votre@email.com" />
+            </div>
+            <div>
+              <Label className="text-sm">Mot de passe</Label>
+              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-1" placeholder="••••••••" />
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleLogin} disabled={loading}>
+              Se connecter
             </Button>
-            <Button type="button" variant="outline" className="w-full border-[#25D366] text-[#128C7E] hover:bg-[#25D366] hover:text-white" onClick={handleDemo} disabled={loading}>
-              <Sparkles className="w-4 h-4 mr-2" />Essayer la démo
-            </Button>
-          </form>
+            <p className="text-center text-sm text-zinc-500">
+              Pas encore de compte ?{" "}
+              <button onClick={() => { setShowLogin(false); setShowRegister(true); }} className="text-[#25D366] font-medium hover:underline">
+                S'inscrire
+              </button>
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
 
+      {/* REGISTER DIALOG */}
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Créer votre compte</DialogTitle></DialogHeader>
-          <p className="text-sm text-gray-500">Démarrez avec ChatCommerce à partir de 5 000 FCFA/mois. Paiement par Mobile Money.</p>
-          <form onSubmit={handleRegister} className="space-y-3">
-            <div><Label>Nom complet</Label><Input placeholder="Marie Nkoulou" value={registerForm.name} onChange={(e) => updateRegister("name", e.target.value)} required /></div>
-            <div><Label>Nom de l&apos;entreprise</Label><Input placeholder="Mon Restaurant" value={registerForm.companyName} onChange={(e) => updateRegister("companyName", e.target.value)} required /></div>
-            <div><Label>Pays</Label>
-              <select value={registerForm.country} onChange={(e) => updateRegister("country", e.target.value)} className="w-full h-9 rounded-md border border-input bg-transparent px-3 text-sm">
-                {["Cameroun", "Gabon", "Congo", "Guinée Équatoriale", "Côte d'Ivoire", "Sénégal", "Mali", "Burkina Faso", "Guinée", "Togo", "Bénin"].map((c) => (<option key={c} value={c}>{c}</option>))}
-              </select>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">Creer votre compte</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
+            <div>
+              <Label className="text-sm">Nom complet</Label>
+              <Input value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} className="mt-1" placeholder="Votre nom" />
             </div>
-            <div><Label>Email</Label><Input type="email" placeholder="vous@exemple.com" value={registerForm.email} onChange={(e) => updateRegister("email", e.target.value)} required /></div>
-            <div><Label>Téléphone</Label><Input placeholder="+237 6XX XXX XXX" value={registerForm.phone} onChange={(e) => updateRegister("phone", e.target.value)} /></div>
-            <div><Label>Mot de passe</Label><Input type="password" placeholder="••••••••" value={registerForm.password} onChange={(e) => updateRegister("password", e.target.value)} required /></div>
-            {error && <p className="text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>}
-            <Button type="submit" className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" disabled={loading}>
-              {loading ? "Création..." : "Créer mon compte"} <ArrowRight className="w-4 h-4 ml-2" />
+            <div>
+              <Label className="text-sm">Email</Label>
+              <Input type="email" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} className="mt-1" placeholder="votre@email.com" />
+            </div>
+            <div>
+              <Label className="text-sm">Mot de passe</Label>
+              <Input type="password" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} className="mt-1" placeholder="••••••••" />
+            </div>
+            <div>
+              <Label className="text-sm">Nom de l'entreprise</Label>
+              <Input value={registerForm.companyName} onChange={(e) => setRegisterForm({ ...registerForm, companyName: e.target.value })} className="mt-1" placeholder="Mon Entreprise" />
+            </div>
+            <div>
+              <Label className="text-sm">Pays</Label>
+              <Input value={registerForm.country} onChange={(e) => setRegisterForm({ ...registerForm, country: e.target.value })} className="mt-1" placeholder="Cameroun" />
+            </div>
+            <div>
+              <Label className="text-sm">Telephone</Label>
+              <Input value={registerForm.phone} onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })} className="mt-1" placeholder="+237 6XX XXX XXX" />
+            </div>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleRegister} disabled={loading}>
+              Creer mon compte
             </Button>
-          </form>
+            <p className="text-center text-sm text-zinc-500">
+              Deja un compte ?{" "}
+              <button onClick={() => { setShowRegister(false); setShowLogin(true); }} className="text-[#25D366] font-medium hover:underline">
+                Se connecter
+              </button>
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
