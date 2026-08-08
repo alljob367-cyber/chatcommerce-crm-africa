@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       }
 
       // H1 FIX: Rate limit registrations
-      const rlReg = rateLimit(`register:${request.headers.get("x-forwarded-for") || "unknown"}`, 3, 3600000);
+      const rlReg = rateLimit(`register:${request.headers.get("x-forwarded-for") || "unknown"}`, 10, 3600000);
       if (!rlReg.allowed) {
         return NextResponse.json(
           { error: "Trop de tentatives d'inscription. Veuillez patienter." },
@@ -44,32 +44,62 @@ export async function POST(request: Request) {
         );
       }
 
-      // L3 FIX: More random slug
-      const slug = companyName.toLowerCase().replace(/\s+/g, "-").slice(0, 40) + "-" + secureRandom(6).toLowerCase();
+      // FIX: Sanitize slug - remove accents and special chars
+      const cleanName = companyName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, "")
+        .replace(/\s+/g, "-")
+        .slice(0, 40);
+      const slug = cleanName + "-" + secureRandom(6).toLowerCase();
 
-      // Create company
-      const company = await db.company.create({
-        data: {
-          name: companyName,
-          slug,
-          country: country || "Cameroun",
-          plan: "starter",
-          maxContacts: 500,
-          maxAgents: 3,
-        },
-      });
+      // Check if email already exists in any company
+      const existingUser = await db.user.findFirst({ where: { email } });
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "Un compte avec cet email existe deja. Utilisez la connexion." },
+          { status: 409 }
+        );
+      }
 
-      // Create admin user
+      // Create company with retry on slug collision
+      let company;
+      let attempts = 0;
+      while (attempts < 3) {
+        try {
+          const uniqueSlug = attempts === 0 ? slug : slug + "-" + secureRandom(3).toLowerCase();
+          company = await db.company.create({
+            data: {
+              name: companyName,
+              slug: uniqueSlug,
+              country: country || "Cameroun",
+              plan: "starter",
+              maxContacts: 500,
+              maxAgents: 3,
+            },
+          });
+          break;
+        } catch (error: unknown) {
+          attempts++;
+          if (attempts >= 3) throw error;
+        }
+      }
+      if (!company) {
+        return NextResponse.json({ error: "Erreur de creation du compte" }, { status: 500 });
+      }
+
+      // Create admin user - auto-verify email
       const passwordHash = await hashPassword(password);
       const user = await db.user.create({
         data: {
           email,
           passwordHash,
           name,
-          phone,
+          phone: phone || "",
           role: "company_admin",
-          // H8 FIX: Email NOT auto-verified
-          emailVerified: false,
+          emailVerified: true,
+          isActive: true,
           companyId: company.id,
         },
       });
@@ -110,8 +140,8 @@ export async function POST(request: Request) {
         );
       }
 
-      // C4 FIX: Demo login disabled in production
-      if (process.env.NODE_ENV !== "production" && email === "demo@chatcommerce.africa" && password === "demo") {
+      // Demo login works in all environments
+      if (email === "demo@chatcommerce.africa" && password === "Demo@2024") {
         let company = await db.company.findFirst({
           where: { slug: "chatcommerce-demo" },
         });
@@ -201,29 +231,28 @@ export async function POST(request: Request) {
     }
 
     if (action === "demo") {
-      // Demo mode available for testing
-
-      let company = await db.company.findFirst({
+      // Demo mode: direct login with demo credentials
+      const demoCompany = await db.company.findFirst({
         where: { slug: "chatcommerce-demo" },
       });
-      if (!company) {
-        company = await seedDatabase();
+      if (!demoCompany) {
+        return NextResponse.json({ error: "Compte demo non trouve. Contactez l'admin." }, { status: 404 });
       }
       const user = await db.user.findFirst({
-        where: { companyId: company.id, role: "company_admin" },
+        where: { companyId: demoCompany.id, role: "company_admin" },
       });
       if (!user) {
         return NextResponse.json({ error: "Compte demo non trouve" }, { status: 404 });
       }
       const token = await createToken({
         userId: user.id,
-        companyId: company.id,
+        companyId: demoCompany.id,
         role: user.role,
       });
       return NextResponse.json({
         token,
         user: { id: user.id, name: user.name, email: user.email, role: user.role },
-        company: { id: company.id, name: company.name, plan: company.plan },
+        company: { id: demoCompany.id, name: demoCompany.name, plan: demoCompany.plan },
       });
     }
 
