@@ -26,6 +26,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ agents });
   } catch (error: unknown) {
+    console.error("[API /telegram/agents]", error);
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });
   }
