@@ -45,6 +45,7 @@ import {
   Rocket,
   Sparkles,
   Shield,
+  Zap,
   Trash2,
   UserPlus,
   Clock,
@@ -138,7 +139,7 @@ const PLANS = [
     key: "starter",
     name: "Starter",
     icon: Rocket,
-    price: "2 000",
+    price: "5 000",
     period: "FCFA/mois",
     features: [
       "500 contacts",
@@ -155,12 +156,34 @@ const PLANS = [
     color: "border-border",
   },
   {
+    key: "pro",
+    name: "Pro",
+    icon: Zap,
+    price: "14 900",
+    period: "FCFA/mois",
+    popular: true,
+    features: [
+      "2 000 contacts",
+      "5 agents equipe",
+      "200 produits",
+      "10 automatisations",
+      "5 agents Telegram",
+      "3 000 messages/mois",
+      "500 reservations/mois",
+      "10 campagnes Telegram Ads",
+      "3 livreurs",
+      "IA Assistant",
+      "Communaute WhatsApp",
+      "Support email",
+    ],
+    color: "border-[#25D366]",
+  },
+  {
     key: "business",
     name: "Business",
     icon: Crown,
     price: "29 900",
     period: "FCFA/mois",
-    popular: true,
     features: [
       "5 000 contacts",
       "10 agents equipe",
@@ -169,14 +192,14 @@ const PLANS = [
       "12 agents Telegram",
       "10 000 messages/mois",
       "5 000 reservations/mois",
-      "Campagnes Telegram Ads",
-      "Livraisons avec livreurs",
+      "50 campagnes Telegram Ads",
+      "10 livreurs",
       "IA Assistant",
       "Rapports PDF",
       "Paiement Mobile Money",
       "Support prioritaire",
     ],
-    color: "border-[#25D366]",
+    color: "border-blue-400",
   },
   {
     key: "enterprise",
@@ -206,7 +229,7 @@ const PLANS = [
   },
 ];
 
-const PLAN_ORDER = ["starter", "business", "enterprise"];
+const PLAN_ORDER = ["starter", "pro", "business", "enterprise"];
 
 // ─────────────────────────────────────────────────────
 // HELPER: API call wrapper with auth

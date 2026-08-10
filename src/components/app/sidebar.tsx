@@ -34,7 +34,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean; businessOnly?: boolean }[] = [
+const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean; proOnly?: boolean }[] = [
   { page: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { page: "inbox", label: "Inbox WhatsApp", icon: MessageSquare },
   { page: "contacts", label: "Contacts", icon: Users },
@@ -48,7 +48,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "drivers", label: "Livreurs", icon: Bike },
   { page: "deliveries", label: "Livraisons", icon: Truck },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
-  { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone, businessOnly: true },
+  { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone, proOnly: true },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
   { page: "reports", label: "Rapports", icon: BarChart3 },
@@ -68,6 +68,7 @@ export default function Sidebar() {
 
   const planColors: Record<string, string> = {
     starter: "bg-muted text-muted-foreground",
+    pro: "bg-[#25D366]/10 text-[#25D366]",
     business: "bg-blue-500/10 text-blue-500 dark:text-blue-400",
     enterprise: "bg-purple-500/10 text-purple-500 dark:text-purple-400",
   };
@@ -99,7 +100,7 @@ export default function Sidebar() {
         {navItems
           .filter((item) => {
             if (item.adminOnly && user?.role !== "super_admin" && user?.role !== "company_admin") return false;
-            if (item.businessOnly && user?.company?.plan !== "business" && user?.company?.plan !== "enterprise") return false;
+            if (item.proOnly && user?.company?.plan !== "pro" && user?.company?.plan !== "business" && user?.company?.plan !== "enterprise") return false;
             return true;
           })
           .map(({ page, label, icon: Icon, badge }) => {

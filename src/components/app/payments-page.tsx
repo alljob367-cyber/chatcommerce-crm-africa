@@ -26,13 +26,15 @@ import {
 } from "lucide-react";
 
 const PLAN_PRICES: Record<string, number> = {
-  starter: 2000,
+  starter: 5000,
+  pro: 14900,
   business: 29900,
   enterprise: 99900,
 };
 
 const PLAN_NAMES: Record<string, string> = {
   starter: "Starter",
+  pro: "Pro",
   business: "Business",
   enterprise: "Enterprise",
 };
@@ -194,15 +196,21 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
     {
       key: "starter",
       name: "Starter",
-      price: 2000,
+      price: 5000,
       features: ["500 contacts", "3 agents", "2 agents Telegram", "50 produits", "1 000 messages/mois", "Commandes automatiques", "Communaute WhatsApp"],
+    },
+    {
+      key: "pro",
+      name: "Pro",
+      price: 14900,
+      popular: true,
+      features: ["2 000 contacts", "5 agents", "5 agents Telegram", "200 produits", "3 000 messages/mois", "10 campagnes Telegram Ads", "3 livreurs", "IA Assistant", "Communaute WhatsApp"],
     },
     {
       key: "business",
       name: "Business",
       price: 29900,
-      popular: true,
-      features: ["5 000 contacts", "10 agents", "12 agents Telegram", "500 produits", "10 000 messages/mois", "Campagnes Telegram Ads", "Livraisons avec livreurs", "IA Assistant", "Rapports PDF", "Paiement Mobile Money"],
+      features: ["5 000 contacts", "10 agents", "12 agents Telegram", "500 produits", "10 000 messages/mois", "50 campagnes Telegram Ads", "10 livreurs", "IA Assistant", "Rapports PDF", "Paiement Mobile Money", "Support prioritaire"],
     },
     {
       key: "enterprise",

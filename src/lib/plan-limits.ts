@@ -1,6 +1,8 @@
 /**
  * Plan limits for ChatCommerce CRM Africa
  * Used across all creation APIs to enforce subscription tiers
+ * 
+ * 4 plans: starter → pro → business → enterprise
  */
 export const PLAN_LIMITS: Record<string, {
   maxContacts: number;
@@ -22,7 +24,18 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 100,
     maxMessages: 1000,
     maxDrivers: 0,
-    maxCampaigns: 0, // Telegram Ads: Business plan only
+    maxCampaigns: 0, // Telegram Ads: Pro+ only
+  },
+  pro: {
+    maxContacts: 2000,
+    maxAgents: 5,
+    maxProducts: 200,
+    maxAutomations: 10,
+    maxTelegramAgents: 5,
+    maxBookings: 500,
+    maxMessages: 3000,
+    maxDrivers: 3,
+    maxCampaigns: 10, // Telegram Ads: limited
   },
   business: {
     maxContacts: 5000,
@@ -48,6 +61,10 @@ export const PLAN_LIMITS: Record<string, {
   },
 };
 
+// Plan hierarchy — used for upgrade checks
+export const PLAN_ORDER = ["starter", "pro", "business", "enterprise"] as const;
+export type PlanType = typeof PLAN_ORDER[number];
+
 /**
  * Check if a company has reached the limit for a specific resource.
  * Usage in API routes:
@@ -65,11 +82,11 @@ export async function checkPlanLimit(
   if (currentCount >= max) {
     const labels: Record<string, string> = {
       maxContacts: "contacts",
-      maxAgents: "membres d'équipe",
+      maxAgents: "membres d'equipe",
       maxProducts: "produits",
       maxAutomations: "automatisations",
       maxTelegramAgents: "agents Telegram",
-      maxBookings: "réservations",
+      maxBookings: "reservations",
       maxMessages: "messages",
       maxDrivers: "chauffeurs",
       maxCampaigns: "campagnes",

@@ -4,7 +4,8 @@ import { verifyToken } from "@/lib/auth";
 import { secureRandom, handleError } from "@/lib/security";
 
 const PLAN_PRICES: Record<string, number> = {
-  starter: 2000,
+  starter: 5000,
+  pro: 14900,
   business: 29900,
   enterprise: 99900,
 };
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!["starter", "business", "enterprise"].includes(plan)) {
+    if (!["starter", "pro", "business", "enterprise"].includes(plan)) {
       return NextResponse.json({ error: "Plan invalide" }, { status: 400 });
     }
 
