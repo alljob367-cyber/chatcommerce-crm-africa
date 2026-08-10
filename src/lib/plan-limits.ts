@@ -4,13 +4,14 @@
  */
 export const PLAN_LIMITS: Record<string, {
   maxContacts: number;
-  maxAgents: number; // Team members (Users)
+  maxAgents: number;
   maxProducts: number;
   maxAutomations: number;
   maxTelegramAgents: number;
   maxBookings: number;
   maxMessages: number;
   maxDrivers: number;
+  maxCampaigns: number;
 }> = {
   starter: {
     maxContacts: 500,
@@ -21,6 +22,7 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 100,
     maxMessages: 1000,
     maxDrivers: 0,
+    maxCampaigns: 5,
   },
   business: {
     maxContacts: 5000,
@@ -31,6 +33,7 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 5000,
     maxMessages: 10000,
     maxDrivers: 10,
+    maxCampaigns: 50,
   },
   enterprise: {
     maxContacts: 999999,
@@ -41,6 +44,7 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 999999,
     maxMessages: 999999,
     maxDrivers: 999999,
+    maxCampaigns: 999999,
   },
 };
 
@@ -68,6 +72,7 @@ export async function checkPlanLimit(
       maxBookings: "réservations",
       maxMessages: "messages",
       maxDrivers: "chauffeurs",
+      maxCampaigns: "campagnes",
     };
 
     if (max >= 999999) return null; // Unlimited

@@ -21,6 +21,7 @@ import DeliveriesPage from "@/components/app/deliveries-page";
 import SyncPage from "@/components/app/sync-page";
 import ReportsPage from "@/components/app/reports-page";
 import ApiDocsPage from "@/components/app/api-docs-page";
+import CampaignsPage from "@/components/app/campaigns-page";
 import { ErrorBoundary } from "@/components/app/error-boundary";
 
 function PageRenderer({ page }: { page: string }) {
@@ -35,6 +36,7 @@ function PageRenderer({ page }: { page: string }) {
     case "ai": return <AIPage />;
     case "settings": return <SettingsPage />;
     case "payments": return <PaymentsPage />;
+    case "campaigns": return <CampaignsPage />;
     case "admin-payments": return <AdminPaymentsPage />;
     case "telegram": return <TelegramPage />;
     case "drivers": return <DriversPage />;

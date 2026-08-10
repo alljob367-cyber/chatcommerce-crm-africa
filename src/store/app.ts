@@ -16,6 +16,7 @@ export type Page =
   | "telegram"
   | "drivers"
   | "deliveries"
+  | "campaigns"
   | "reports"
   | "api-docs";
 

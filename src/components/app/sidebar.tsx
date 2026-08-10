@@ -23,6 +23,7 @@ import {
   FileText,
   Bike,
   Truck,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -47,6 +48,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "drivers", label: "Livreurs", icon: Bike },
   { page: "deliveries", label: "Livraisons", icon: Truck },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
+  { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
   { page: "reports", label: "Rapports", icon: BarChart3 },

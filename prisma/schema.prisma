@@ -336,25 +336,53 @@ model Automation {
 }
 
 model Campaign {
-  id            String   @id @default(cuid())
-  companyId     String
-  name          String
-  message       String
-  status        String   @default("draft") // draft, scheduled, running, completed, failed
-  recipientCount Int     @default(0)
-  sentCount     Int      @default(0)
-  deliveredCount Int     @default(0)
-  repliedCount  Int      @default(0)
-  scheduledAt   DateTime?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  companyId       String
+  name            String
+  type            String   @default("telegram") // telegram, whatsapp, sms, email
+  status          String   @default("draft") // draft, scheduled, running, paused, completed, failed, cancelled
+  message         String
+  messageTemplate String?  // JSON template with variables {name}, {company}, etc.
+  imageUrl        String?
+  buttonUrl       String?
+  buttonText      String?
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  // Targeting
+  targetAudience  String?  // JSON: { businessType?, city?, country?, tags?, minOrders?, isActive? }
+  segmentType     String   @default("all") // all, contacts, leads, customers, vip, inactive
+  recipientCount  Int      @default(0)
+
+  // Execution stats
+  sentCount       Int      @default(0)
+  deliveredCount  Int      @default(0)
+  readCount       Int      @default(0)
+  repliedCount    Int      @default(0)
+  clickedCount    Int      @default(0)
+  failedCount     Int      @default(0)
+
+  // Budget (for Telegram Ads)
+  budget          Float    @default(0)
+  budgetSpent     Float    @default(0)
+  costPerMessage  Float    @default(0)
+
+  // Scheduling
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+
+  // Telegram-specific
+  telegramAgentId String?
+  telegramAgent   TelegramAgent? @relation(fields: [telegramAgentId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([status])
+  @@index([type])
 }
 
 model ActivityLog {
@@ -440,7 +468,8 @@ model TelegramAgent {
   company       Company         @relation(fields: [companyId], references: [id])
   services      BusinessService[]
   bookings      TelegramBooking[]
-  deliveries   Delivery[]
+  deliveries    Delivery[]
+  campaigns     Campaign[]
 
   @@index([companyId])
 }
