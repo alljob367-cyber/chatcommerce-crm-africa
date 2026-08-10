@@ -657,11 +657,74 @@ export interface ExecutionReport {
 }
 
 /**
+ * Execute automations for a SINGLE company.
+ * Used by the client-side trigger (when a user is logged in).
+ */
+export async function executeAutomationsForCompany(companyId: string): Promise<ExecutionReport> {
+  const startTime = Date.now();
+  const details: ExecutionReport["details"] = [];
+  const errors: string[] = [];
+  let totalExecuted = 0;
+
+  try {
+    const company = await db.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, name: true },
+    });
+
+    if (!company) {
+      return { success: false, executed: 0, details: [], errors: ["Entreprise introuvable"], durationMs: 0 };
+    }
+
+    try {
+      const companyResults: AutomationResult[] = [];
+
+      const welcomeResults = await processWelcomeAutomations(company.id);
+      companyResults.push(...welcomeResults);
+
+      const abandonedResults = await processAbandonedOrderAutomations(company.id);
+      companyResults.push(...abandonedResults);
+
+      const reactivationResults = await processReactivationAutomations(company.id);
+      companyResults.push(...reactivationResults);
+
+      const scheduledResults = await processScheduledAutomations(company.id);
+      companyResults.push(...scheduledResults);
+
+      const successCount = companyResults.filter((r) => r.success).length;
+      totalExecuted += successCount;
+
+      if (companyResults.length > 0) {
+        details.push({
+          companyId: company.id,
+          companyName: company.name,
+          results: companyResults,
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Erreur inconnue";
+      errors.push(`Entreprise ${company.name} (${company.id}): ${errorMsg}`);
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Erreur inconnue";
+    errors.push(`Erreur globale: ${errorMsg}`);
+  }
+
+  const durationMs = Date.now() - startTime;
+
+  return {
+    success: errors.length === 0,
+    executed: totalExecuted,
+    details,
+    errors,
+    durationMs,
+  };
+}
+
+/**
  * Fonction principale appelée par le cron chaque minute.
  * Parcourt toutes les entreprises actives et exécute
  * les automatisations correspondantes pour chacune d'elles.
- * Chaque entreprise est traitée indépendamment pour éviter
- * qu'une erreur ne bloque les autres.
  */
 export async function executeAutomations(): Promise<ExecutionReport> {
   const startTime = Date.now();
@@ -670,57 +733,20 @@ export async function executeAutomations(): Promise<ExecutionReport> {
   let totalExecuted = 0;
 
   try {
-    // Récupérer toutes les entreprises actives
     const companies = await db.company.findMany({
       where: { isActive: true },
       select: { id: true, name: true },
     });
 
     for (const company of companies) {
-      try {
-        // Limiter à un traitement par entreprise par exécution du cron
-        const companyResults: AutomationResult[] = [];
-
-        // Exécuter chaque type d'automatisation
-        const welcomeResults = await processWelcomeAutomations(company.id);
-        companyResults.push(...welcomeResults);
-
-        const abandonedResults = await processAbandonedOrderAutomations(company.id);
-        companyResults.push(...abandonedResults);
-
-        const reactivationResults = await processReactivationAutomations(company.id);
-        companyResults.push(...reactivationResults);
-
-        const scheduledResults = await processScheduledAutomations(company.id);
-        companyResults.push(...scheduledResults);
-
-        const successCount = companyResults.filter((r) => r.success).length;
-        totalExecuted += successCount;
-
-        if (companyResults.length > 0) {
-          details.push({
-            companyId: company.id,
-            companyName: company.name,
-            results: companyResults,
-          });
-        }
-      } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Erreur inconnue";
-        errors.push(
-          `Entreprise ${company.name} (${company.id}): ${errorMsg}`
-        );
-        console.error(
-          `[Automatisation] Erreur pour l'entreprise ${company.id}:`,
-          error
-        );
-      }
+      const report = await executeAutomationsForCompany(company.id);
+      totalExecuted += report.executed;
+      details.push(...report.details);
+      errors.push(...report.errors);
     }
   } catch (error) {
-    const errorMsg =
-      error instanceof Error ? error.message : "Erreur inconnue";
+    const errorMsg = error instanceof Error ? error.message : "Erreur inconnue";
     errors.push(`Erreur globale: ${errorMsg}`);
-    console.error("[Automatisation] Erreur globale d'exécution:", error);
   }
 
   const durationMs = Date.now() - startTime;

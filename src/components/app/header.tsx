@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/app/notification-bell";
+import AutomationTrigger from "@/components/app/automation-trigger";
 
 interface HeaderProps {
   title: string;
@@ -57,8 +58,11 @@ export default function Header({ title, subtitle, children }: HeaderProps) {
           <span className="sr-only">Changer le theme</span>
         </Button>
 
-        {/* Notifications Bell (SSE-powered) */}
+        {/* Notifications Bell (polling) */}
         <NotificationBell />
+
+        {/* Silent automation trigger (replaces Vercel Cron on Hobby plan) */}
+        <AutomationTrigger />
 
         {user?.company && (
           <span className="hidden sm:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
