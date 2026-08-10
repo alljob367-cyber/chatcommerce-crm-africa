@@ -4,7 +4,7 @@ import { verifyToken } from "@/lib/auth";
 import { secureRandom, handleError } from "@/lib/security";
 
 const PLAN_PRICES: Record<string, number> = {
-  starter: 5000,
+  starter: 2000,
   business: 29900,
   enterprise: 99900,
 };

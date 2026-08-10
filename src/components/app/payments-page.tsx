@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 const PLAN_PRICES: Record<string, number> = {
-  starter: 5000,
+  starter: 2000,
   business: 29900,
   enterprise: 99900,
 };
@@ -194,7 +194,7 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
     {
       key: "starter",
       name: "Starter",
-      price: 5000,
+      price: 2000,
       features: ["500 contacts", "3 agents", "1 000 messages/mois"],
     },
     {

@@ -34,7 +34,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean }[] = [
+const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean; businessOnly?: boolean }[] = [
   { page: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { page: "inbox", label: "Inbox WhatsApp", icon: MessageSquare },
   { page: "contacts", label: "Contacts", icon: Users },
@@ -48,7 +48,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "drivers", label: "Livreurs", icon: Bike },
   { page: "deliveries", label: "Livraisons", icon: Truck },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
-  { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone },
+  { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone, businessOnly: true },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
   { page: "reports", label: "Rapports", icon: BarChart3 },
@@ -97,7 +97,11 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto custom-scroll">
         {navItems
-          .filter((item) => !item.adminOnly || (user?.role === "super_admin" || user?.role === "company_admin"))
+          .filter((item) => {
+            if (item.adminOnly && user?.role !== "super_admin" && user?.role !== "company_admin") return false;
+            if (item.businessOnly && user?.company?.plan !== "business" && user?.company?.plan !== "enterprise") return false;
+            return true;
+          })
           .map(({ page, label, icon: Icon, badge }) => {
           const isActive = currentPage === page;
           return (
