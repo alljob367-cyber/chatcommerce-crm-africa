@@ -16,6 +16,8 @@ import SettingsPage from "@/components/app/settings-page";
 import PaymentsPage from "@/components/app/payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
 import TelegramPage from "@/components/app/telegram-page";
+import DriversPage from "@/components/app/drivers-page";
+import DeliveriesPage from "@/components/app/deliveries-page";
 import SyncPage from "@/components/app/sync-page";
 import ReportsPage from "@/components/app/reports-page";
 import ApiDocsPage from "@/components/app/api-docs-page";
@@ -35,6 +37,8 @@ function PageRenderer({ page }: { page: string }) {
     case "payments": return <PaymentsPage />;
     case "admin-payments": return <AdminPaymentsPage />;
     case "telegram": return <TelegramPage />;
+    case "drivers": return <DriversPage />;
+    case "deliveries": return <DeliveriesPage />;
     case "sync": return <SyncPage />;
     case "reports": return <ReportsPage />;
     case "api-docs": return <ApiDocsPage />;

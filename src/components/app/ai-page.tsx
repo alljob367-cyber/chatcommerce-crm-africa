@@ -53,9 +53,13 @@ export default function AIPage() {
     setLoading(true);
 
     try {
+      const token = useAppStore.getState().token;
       const res = await fetch("/api/ai", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ message: input, language: "fr" }),
       });
       const data = await res.json();

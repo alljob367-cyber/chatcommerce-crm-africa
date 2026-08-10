@@ -57,6 +57,14 @@ export async function POST(request: Request) {
     const cleanMessage = sanitize(message || "");
 
     // Create or find conversation
+    // Verify contact belongs to this company
+    const contact = await db.contact.findFirst({
+      where: { id: contactId, companyId: session.companyId },
+    });
+    if (!contact) {
+      return NextResponse.json({ error: "Contact introuvable" }, { status: 404 });
+    }
+
     let conversation = await db.conversation.findFirst({
       where: { companyId: session.companyId, contactId },
     });

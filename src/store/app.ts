@@ -14,6 +14,8 @@ export type Page =
   | "payments"
   | "admin-payments"
   | "telegram"
+  | "drivers"
+  | "deliveries"
   | "reports"
   | "api-docs";
 

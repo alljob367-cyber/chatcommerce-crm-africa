@@ -92,6 +92,11 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, name, description, price, categoryId, sku, stock, isActive, compareAtPrice, image } = body;
 
+    // Validate price
+    if (price !== undefined && (isNaN(parseFloat(price)) || parseFloat(price) < 0)) {
+      return NextResponse.json({ error: "Prix invalide" }, { status: 400 });
+    }
+
     const existing = await db.product.findFirst({
       where: { id, companyId: session.companyId },
     });
@@ -100,8 +105,8 @@ export async function PATCH(request: Request) {
     const product = await db.product.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name }),
-        ...(description !== undefined && { description }),
+        ...(name !== undefined && { name: sanitize(name) }),
+        ...(description !== undefined && { description: sanitize(description) }),
         ...(price !== undefined && { price: parseFloat(price) }),
         ...(compareAtPrice !== undefined && { compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : null }),
         ...(categoryId !== undefined && { categoryId: categoryId || null }),

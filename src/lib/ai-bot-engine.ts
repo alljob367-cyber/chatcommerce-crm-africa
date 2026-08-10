@@ -67,6 +67,86 @@ export function getDefaultSystemPrompt(
 }
 
 /**
+ * Build a structured context block from real business data to inject
+ * into the AI system prompt. This prevents the AI from inventing prices,
+ * products, availability, or business information.
+ */
+export function buildContextFromBusinessData(params: {
+  services: Array<{ name: string; description: string | null; price: number; isActive: boolean }>;
+  products: Array<{ name: string; price: number; stock: number; isActive: boolean; description: string | null }>;
+  companyName: string;
+  businessType: string;
+  address?: string | null;
+  phone?: string | null;
+  openHours?: string | null;
+  currency: string;
+}): string {
+  const { services, products, companyName, businessType, address, phone, openHours, currency } = params;
+
+  let context = `═══ DONNÉES DE L'ENTREPRISE ═══\n`;
+  context += `Entreprise: ${companyName}\n`;
+  context += `Type: ${businessType}\n`;
+  if (address) context += `Adresse: ${address}\n`;
+  if (phone) context += `Téléphone: ${phone}\n`;
+  if (openHours) {
+    try {
+      const parsed = JSON.parse(openHours) as Record<string, string>;
+      const dayLabels: Record<string, string> = {
+        mon: "Lundi", tue: "Mardi", wed: "Mercredi",
+        thu: "Jeudi", fri: "Vendredi", sat: "Samedi", sun: "Dimanche",
+      };
+      const lines = Object.entries(parsed)
+        .map(([day, hours]) => `${dayLabels[day] || day}: ${hours}`)
+        .join("\n  ");
+      context += `Horaires:\n  ${lines}\n`;
+    } catch {
+      // If not valid JSON, use raw string
+      context += `Horaires: ${openHours}\n`;
+    }
+  }
+  context += `\n`;
+
+  if (services.length > 0) {
+    const activeServices = services.filter((s) => s.isActive);
+    if (activeServices.length > 0) {
+      context += `═══ SERVICES / PRESTATIONS ═══\n`;
+      for (const s of activeServices) {
+        const formattedPrice = s.price.toLocaleString("fr-FR");
+        context += `- ${s.name}: ${formattedPrice} ${currency}`;
+        if (s.description) context += ` — ${s.description}`;
+        context += `\n`;
+      }
+      context += `\n`;
+    }
+  }
+
+  if (products.length > 0) {
+    const activeProducts = products.filter((p) => p.isActive);
+    if (activeProducts.length > 0) {
+      context += `═══ PRODUITS ═══\n`;
+      for (const p of activeProducts) {
+        const formattedPrice = p.price.toLocaleString("fr-FR");
+        const stockInfo = p.stock > 0 ? `✅ Disponible (${p.stock} en stock)` : `❌ Rupture de stock`;
+        context += `- ${p.name}: ${formattedPrice} ${currency} [${stockInfo}]`;
+        if (p.description) context += ` — ${p.description}`;
+        context += `\n`;
+      }
+      context += `\n`;
+    }
+  }
+
+  context += `═══ RÈGLES STRICTES ═══\n`;
+  context += `1. NE JAMAIS inventer de prix — utilise UNIQUEMENT les prix ci-dessus\n`;
+  context += `2. NE JAMAIS inventer de produits — propose uniquement ceux listés\n`;
+  context += `3. NE JAMAIS inventer de disponibilité — vérifie le stock\n`;
+  context += `4. Si le client demande quelque chose qui n'existe pas, propose l'alternative la plus proche\n`;
+  context += `5. Les prix sont en ${currency}\n`;
+  context += `6. Si on te demande des informations sur l'entreprise (adresse, horaires, téléphone), utilise UNIQUEMENT les données ci-dessus\n`;
+
+  return context;
+}
+
+/**
  * Call an OpenAI-compatible API to generate a response.
  * Works with OpenAI, Anthropic (via proxy), or any self-hosted LLM
  * that implements the OpenAI chat completions API.
@@ -74,7 +154,8 @@ export function getDefaultSystemPrompt(
 export async function generateAIResponse(
   message: string,
   config: AIBotConfig,
-  conversationHistory: Array<{ role: string; content: string }>
+  conversationHistory: Array<{ role: string; content: string }>,
+  businessContext?: string | null
 ): Promise<string | null> {
   if (!config.enabled || !config.apiKey) {
     return null;
@@ -83,9 +164,16 @@ export async function generateAIResponse(
   try {
     const messages: Array<{ role: string; content: string }> = [];
 
-    // Add system prompt
+    // Build the final system prompt: business data context first, then the configured prompt
+    const systemParts: string[] = [];
+    if (businessContext) {
+      systemParts.push(businessContext);
+    }
     if (config.systemPrompt) {
-      messages.push({ role: "system", content: config.systemPrompt });
+      systemParts.push(config.systemPrompt);
+    }
+    if (systemParts.length > 0) {
+      messages.push({ role: "system", content: systemParts.join("\n\n") });
     }
 
     // Add conversation history (last 10 messages max for context window)

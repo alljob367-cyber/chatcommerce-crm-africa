@@ -131,7 +131,6 @@ export async function POST(request: Request) {
         success: true,
         message: `Invitation envoyee a ${email}`,
         member,
-        tempPassword,
       });
     }
 

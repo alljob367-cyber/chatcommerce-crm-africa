@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes publiques (pas besoin de token)
-const PUBLIC_PATHS = ["/api/auth", "/api/seed"];
+const PUBLIC_PATHS = ["/api/auth", "/api/seed", "/api/cron"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -211,7 +211,7 @@ export default function ProductsPage() {
                           <p className="text-[11px] text-muted-foreground">{p.category.name}</p>
                         )}
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditProduct(p)}><Edit2 className="w-3 h-3" /></Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => handleDeleteProduct(p.id)}><Trash2 className="w-3 h-3" /></Button>
                       </div>

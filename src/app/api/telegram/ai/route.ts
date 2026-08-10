@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import { generateAIResponse, suggestService, buildAIBotConfig } from "@/lib/ai-bot-engine";
+import {
+  generateAIResponse,
+  suggestService,
+  buildAIBotConfig,
+  buildContextFromBusinessData,
+} from "@/lib/ai-bot-engine";
 
 // POST /api/telegram/ai
 // Endpoint called by the mini-service telegram bot service
@@ -28,13 +33,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch the Telegram agent with its company
+    // Fetch the Telegram agent with its company, services, AND company products
     const agent = await db.telegramAgent.findFirst({
       where: { id: agentId, companyId: user.companyId },
       include: {
         services: {
           where: { isActive: true },
-          select: { name: true, description: true, price: true },
+          select: { name: true, description: true, price: true, isActive: true },
+        },
+        company: {
+          select: {
+            name: true,
+            address: true,
+            phone: true,
+            currency: true,
+            products: {
+              where: { isActive: true },
+              select: {
+                name: true,
+                description: true,
+                price: true,
+                stock: true,
+                isActive: true,
+              },
+            },
+          },
         },
       },
     });
@@ -43,9 +66,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Agent non trouvé" }, { status: 404 });
     }
 
-    // Build a services summary string for the prompt
+    // Build a services summary string for the prompt (kept for backward compat)
+    const currency = agent.company?.currency || agent.currency || "XAF";
     const servicesSummary = agent.services
-      .map((s) => `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${agent.currency})${s.description ? `: ${s.description}` : ""}`)
+      .map(
+        (s) =>
+          `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
+      )
       .join("\n");
 
     // Build AI config from agent data
@@ -56,15 +83,44 @@ export async function POST(req: NextRequest) {
       services: servicesSummary,
     });
 
-    let aiResponse: string | null = null;
-    let matchedService: { name: string; description: string | null; price: number; confidence: number } | null = null;
+    // Build structured business context from REAL database data
+    const businessContext = buildContextFromBusinessData({
+      services: agent.services.map((s) => ({
+        name: s.name,
+        description: s.description,
+        price: s.price,
+        isActive: s.isActive,
+      })),
+      products: agent.company?.products.map((p) => ({
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        stock: p.stock,
+        isActive: p.isActive,
+      })) ?? [],
+      companyName: agent.company?.name || agent.name,
+      businessType: agent.businessType,
+      address: agent.address || agent.company?.address,
+      phone: agent.phone || agent.company?.phone,
+      openHours: agent.openHours,
+      currency,
+    });
 
-    // Try AI generation first
+    let aiResponse: string | null = null;
+    let matchedService: {
+      name: string;
+      description: string | null;
+      price: number;
+      confidence: number;
+    } | null = null;
+
+    // Try AI generation first — inject business context
     if (aiConfig.enabled) {
       aiResponse = await generateAIResponse(
         message,
         aiConfig,
-        Array.isArray(conversationHistory) ? conversationHistory : []
+        Array.isArray(conversationHistory) ? conversationHistory : [],
+        businessContext
       );
     }
 
@@ -78,7 +134,7 @@ export async function POST(req: NextRequest) {
           price: suggestion.service.price,
           confidence: suggestion.confidence,
         };
-        aiResponse = `Nous avons le service "${suggestion.service.name}" au prix de ${suggestion.service.price.toLocaleString("fr-FR")} ${agent.currency}. Souhaitez-vous commander ou réserver ?`;
+        aiResponse = `Nous avons le service "${suggestion.service.name}" au prix de ${suggestion.service.price.toLocaleString("fr-FR")} ${currency}. Souhaitez-vous commander ou réserver ?`;
       } else {
         // Generic fallback response
         aiResponse = agent.welcomeMessage || null;
@@ -92,6 +148,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("[API /telegram/ai] Error:", error);
-    return NextResponse.json({ error: "Erreur interne du serveur" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erreur interne du serveur" },
+      { status: 500 }
+    );
   }
 }

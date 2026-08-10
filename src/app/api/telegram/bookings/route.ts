@@ -96,6 +96,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
     }
 
+    // ── Double-booking prevention ──
+    const existingBooking = await db.telegramBooking.findFirst({
+      where: {
+        agentId,
+        bookingDate: sanitize(bookingDate),
+        bookingTime: sanitize(bookingTime),
+        status: { notIn: ["cancelled"] },
+      },
+    });
+
+    if (existingBooking) {
+      return NextResponse.json(
+        { error: "Ce créneau est déjà réservé. Veuillez choisir un autre horaire." },
+        { status: 409 }
+      );
+    }
+
     const booking = await db.telegramBooking.create({
       data: {
         agentId,

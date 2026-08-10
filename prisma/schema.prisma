@@ -47,6 +47,8 @@ model Company {
   payments     Payment[]
   telegramAgents TelegramAgent[]
   telegramBookings TelegramBooking[]
+  drivers     Driver[]
+  deliveries   Delivery[]
 
   @@index([slug])
 }
@@ -234,11 +236,13 @@ model Order {
   items         OrderItem[]
   invoices      Invoice[]
   activityLogs  ActivityLog[]
+  delivery    Delivery?
 
   @@unique([companyId, orderNumber])
   @@index([companyId])
   @@index([contactId])
   @@index([status])
+  @@index([companyId, status, createdAt])
 }
 
 model OrderItem {
@@ -360,6 +364,7 @@ model ActivityLog {
   contactId   String?
   leadId      String?
   orderId     String?
+  deliveryId  String?
   action      String
   details     String?
   createdAt   DateTime @default(now())
@@ -369,6 +374,7 @@ model ActivityLog {
   contact     Contact? @relation(fields: [contactId], references: [id])
   lead        Lead?    @relation(fields: [leadId], references: [id])
   order       Order?   @relation(fields: [orderId], references: [id])
+  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
 
   @@index([companyId])
   @@index([userId])
@@ -434,6 +440,7 @@ model TelegramAgent {
   company       Company         @relation(fields: [companyId], references: [id])
   services      BusinessService[]
   bookings      TelegramBooking[]
+  deliveries   Delivery[]
 
   @@index([companyId])
 }
@@ -480,4 +487,81 @@ model TelegramBooking {
   @@index([companyId])
   @@index([status])
   @@index([bookingDate])
+}
+
+// ═══════════════════════════════════════════
+// DELIVERY ENGINE — Drivers & Deliveries
+// ═══════════════════════════════════════════
+
+model Driver {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  phone       String
+  avatar      String?
+  vehicleType String?  // motorcycle, car, bicycle, foot
+  vehiclePlate String?
+  status      String   @default("available") // available, busy, offline
+  rating      Float    @default(0)
+  totalDeliveries Int  @default(0)
+  totalEarnings Float @default(0)
+  location    Json?    // { lat, lng, address } — last known location
+  telegramId  String?  // Telegram chat ID for bot notifications
+  telegramUsername String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  deliveries Delivery[]
+
+  @@index([companyId, status])
+}
+
+model Delivery {
+  id          String   @id @default(cuid())
+  companyId   String
+  orderId     String?  @unique
+  order       Order?   @relation(fields: [orderId], references: [id])
+  driverId    String?
+  driver      Driver?  @relation(fields: [driverId], references: [id])
+  agentId     String?  // TelegramAgent that originated the order
+  agent       TelegramAgent? @relation(fields: [agentId], references: [id])
+
+  // Addresses
+  pickupAddress   String
+  pickupLat       Float?
+  pickupLng       Float?
+  deliveryAddress String
+  deliveryLat     Float?
+  deliveryLng     Float?
+  customerPhone   String
+  customerName    String
+
+  // Status flow: pending → searching → assigned → picked_up → on_the_way → delivered → cancelled
+  status      String   @default("pending")
+  fee         Float    @default(0) // delivery fee charged to customer
+  driverEarnings Float @default(0) // what driver earns
+  distance    Float?   // in km
+  estimatedTime Int?   // in minutes
+
+  // Tracking
+  pickedUpAt     DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+  notes          String?
+
+  // Telegram integration
+  telegramChatId String? // customer Telegram chat ID
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company          @relation(fields: [companyId], references: [id])
+  activities ActivityLog[]
+
+  @@index([companyId, status])
+  @@index([driverId, status])
+  @@index([companyId, createdAt])
 }

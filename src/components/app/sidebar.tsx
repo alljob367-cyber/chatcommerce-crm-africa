@@ -21,6 +21,8 @@ import {
   ArrowLeftRight,
   BarChart3,
   FileText,
+  Bike,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,15 +35,17 @@ import {
 
 const navItems: { page: Page; label: string; icon: React.ElementType; badge?: string; adminOnly?: boolean }[] = [
   { page: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { page: "inbox", label: "Inbox WhatsApp", icon: MessageSquare, badge: "3" },
+  { page: "inbox", label: "Inbox WhatsApp", icon: MessageSquare },
   { page: "contacts", label: "Contacts", icon: Users },
   { page: "leads", label: "Leads", icon: Target },
   { page: "products", label: "Produits", icon: Package },
   { page: "sync", label: "Synchronisation", icon: ArrowLeftRight },
-  { page: "orders", label: "Commandes", icon: ShoppingCart, badge: "2" },
+  { page: "orders", label: "Commandes", icon: ShoppingCart },
   { page: "automations", label: "Automatisations", icon: Zap },
   { page: "ai", label: "Assistant IA", icon: Bot },
   { page: "telegram", label: "Agents Telegram", icon: Bot },
+  { page: "drivers", label: "Livreurs", icon: Bike },
+  { page: "deliveries", label: "Livraisons", icon: Truck },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },

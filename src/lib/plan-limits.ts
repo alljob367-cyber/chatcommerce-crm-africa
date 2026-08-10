@@ -10,6 +10,7 @@ export const PLAN_LIMITS: Record<string, {
   maxTelegramAgents: number;
   maxBookings: number;
   maxMessages: number;
+  maxDrivers: number;
 }> = {
   starter: {
     maxContacts: 500,
@@ -19,6 +20,7 @@ export const PLAN_LIMITS: Record<string, {
     maxTelegramAgents: 2,
     maxBookings: 100,
     maxMessages: 1000,
+    maxDrivers: 0,
   },
   business: {
     maxContacts: 5000,
@@ -28,6 +30,7 @@ export const PLAN_LIMITS: Record<string, {
     maxTelegramAgents: 12,
     maxBookings: 5000,
     maxMessages: 10000,
+    maxDrivers: 10,
   },
   enterprise: {
     maxContacts: 999999,
@@ -37,6 +40,7 @@ export const PLAN_LIMITS: Record<string, {
     maxTelegramAgents: 999999,
     maxBookings: 999999,
     maxMessages: 999999,
+    maxDrivers: 999999,
   },
 };
 
@@ -63,6 +67,7 @@ export async function checkPlanLimit(
       maxTelegramAgents: "agents Telegram",
       maxBookings: "réservations",
       maxMessages: "messages",
+      maxDrivers: "chauffeurs",
     };
 
     if (max >= 999999) return null; // Unlimited
