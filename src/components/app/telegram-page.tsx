@@ -63,8 +63,11 @@ import {
   ArrowRight,
   Copy,
   RefreshCw,
+  LayoutList,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
+import BookingCalendar from "@/components/app/booking-calendar";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -159,6 +162,7 @@ export default function TelegramPage() {
   const [stats, setStats] = useState<TelegramStats | null>(null);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
+  const [bookingViewMode, setBookingViewMode] = useState<"table" | "calendar">("table");
   const [loading, setLoading] = useState(true);
   const [settingUp, setSettingUp] = useState(false);
 
@@ -886,7 +890,7 @@ export default function TelegramPage() {
 
             {/* ─── Bookings Tab ─── */}
             <TabsContent value="bookings" className="space-y-4 mt-4">
-              {/* Filter Bar */}
+              {/* Filter Bar & View Toggle */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex gap-2 flex-wrap">
                   {["all", "pending", "confirmed", "completed", "cancelled"].map((status) => (
@@ -903,97 +907,126 @@ export default function TelegramPage() {
                       {status === "all" ? "Toutes" : statusConfig[status]?.label || status}
                       {status !== "all" && (
                         <Badge variant="secondary" className="ml-1 text-[10px]">
-                          {status === "all"
-                            ? bookings.length
-                            : bookings.filter((b) => b.status === status).length}
+                          {bookings.filter((b) => b.status === status).length}
                         </Badge>
                       )}
                     </Button>
                   ))}
                 </div>
-                <Button size="sm" variant="outline" onClick={() => { fetchBookings(bookingStatusFilter); fetchStats(); }} className="gap-2 ml-auto">
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Actualiser
-                </Button>
+                <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex border rounded-lg p-0.5">
+                    <Button
+                      size="sm"
+                      variant={bookingViewMode === "table" ? "default" : "ghost"}
+                      onClick={() => setBookingViewMode("table")}
+                      className="gap-1.5 text-xs h-7 px-2.5"
+                    >
+                      <LayoutList className="w-3.5 h-3.5" />
+                      Tableau
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={bookingViewMode === "calendar" ? "default" : "ghost"}
+                      onClick={() => setBookingViewMode("calendar")}
+                      className="gap-1.5 text-xs h-7 px-2.5"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      Calendrier
+                    </Button>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => { fetchBookings(bookingStatusFilter); fetchStats(); }} className="gap-2 h-7">
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
 
-              {/* Bookings Table */}
-              {bookings.length === 0 ? (
-                <Card>
-                  <CardContent className="py-16 text-center">
-                    <CalendarDays className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground">Aucune réservation pour le moment</p>
-                    <p className="text-xs text-muted-foreground mt-1">Les réservations apparaîtront quand vos clients utiliseront vos bots Telegram</p>
-                  </CardContent>
-                </Card>
+              {/* Calendar View */}
+              {bookingViewMode === "calendar" ? (
+                <BookingCalendar
+                  bookings={bookings}
+                  agents={agents.map((a) => ({ id: a.id, name: a.name, businessType: a.businessType }))}
+                  onStatusChange={updateBookingStatus}
+                  onBookingCreated={() => { fetchBookings(bookingStatusFilter); fetchStats(); }}
+                />
               ) : (
-                <Card>
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Service</TableHead>
-                            <TableHead>Agent</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Heure</TableHead>
-                            <TableHead>Téléphone</TableHead>
-                            <TableHead>Statut</TableHead>
-                            <TableHead>Créé le</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {bookings.map((b) => (
-                            <TableRow key={b.id}>
-                              <TableCell>
-                                <p className="font-medium text-sm">{b.customerName}</p>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  {b.agent?.businessType === "restaurant" ? (
-                                    <UtensilsCrossed className="w-3 h-3 text-orange-500" />
-                                  ) : (
-                                    <Scissors className="w-3 h-3 text-purple-500" />
-                                  )}
-                                  <span className="text-sm">{b.serviceName || "—"}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{b.agent?.name || "-"}</TableCell>
-                              <TableCell className="text-sm">{b.bookingDate || "—"}</TableCell>
-                              <TableCell className="text-sm">{b.bookingTime || "—"}</TableCell>
-                              <TableCell className="text-sm">{b.customerPhone || "—"}</TableCell>
-                              <TableCell><StatusBadge status={b.status} /></TableCell>
-                              <TableCell className="text-xs text-muted-foreground">
-                                {new Date(b.createdAt).toLocaleDateString("fr-FR")}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex gap-1 justify-end">
-                                  {b.status === "pending" && (
-                                    <>
-                                      <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "confirmed")} className="h-7 px-2 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50" title="Confirmer">
+                /* Table View */
+                bookings.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-16 text-center">
+                      <CalendarDays className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                      <p className="text-muted-foreground">Aucune réservation pour le moment</p>
+                      <p className="text-xs text-muted-foreground mt-1">Les réservations apparaîtront quand vos clients utiliseront vos bots Telegram</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Service</TableHead>
+                              <TableHead>Agent</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Heure</TableHead>
+                              <TableHead>Téléphone</TableHead>
+                              <TableHead>Statut</TableHead>
+                              <TableHead>Créé le</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {bookings.map((b) => (
+                              <TableRow key={b.id}>
+                                <TableCell>
+                                  <p className="font-medium text-sm">{b.customerName}</p>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    {b.agent?.businessType === "restaurant" ? (
+                                      <UtensilsCrossed className="w-3 h-3 text-orange-500" />
+                                    ) : (
+                                      <Scissors className="w-3 h-3 text-purple-500" />
+                                    )}
+                                    <span className="text-sm">{b.serviceName || "—"}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{b.agent?.name || "-"}</TableCell>
+                                <TableCell className="text-sm">{b.bookingDate || "—"}</TableCell>
+                                <TableCell className="text-sm">{b.bookingTime || "—"}</TableCell>
+                                <TableCell className="text-sm">{b.customerPhone || "—"}</TableCell>
+                                <TableCell><StatusBadge status={b.status} /></TableCell>
+                                <TableCell className="text-xs text-muted-foreground">
+                                  {new Date(b.createdAt).toLocaleDateString("fr-FR")}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex gap-1 justify-end">
+                                    {b.status === "pending" && (
+                                      <>
+                                        <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "confirmed")} className="h-7 px-2 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50" title="Confirmer">
+                                          <CheckCircle className="w-3.5 h-3.5" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "cancelled")} className="h-7 px-2 text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50" title="Annuler">
+                                          <XCircle className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </>
+                                    )}
+                                    {b.status === "confirmed" && (
+                                      <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "completed")} className="h-7 px-2 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50" title="Terminer">
                                         <CheckCircle className="w-3.5 h-3.5" />
                                       </Button>
-                                      <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "cancelled")} className="h-7 px-2 text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50" title="Annuler">
-                                        <XCircle className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </>
-                                  )}
-                                  {b.status === "confirmed" && (
-                                    <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(b.id, "completed")} className="h-7 px-2 text-xs gap-1 text-green-600 hover:text-green-700 hover:bg-green-50" title="Terminer">
-                                      <CheckCircle className="w-3.5 h-3.5" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
               )}
             </TabsContent>
           </Tabs>

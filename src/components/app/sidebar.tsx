@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -34,6 +35,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "contacts", label: "Contacts", icon: Users },
   { page: "leads", label: "Leads", icon: Target },
   { page: "products", label: "Produits", icon: Package },
+  { page: "sync", label: "Synchronisation", icon: ArrowLeftRight },
   { page: "orders", label: "Commandes", icon: ShoppingCart, badge: "2" },
   { page: "automations", label: "Automatisations", icon: Zap },
   { page: "ai", label: "Assistant IA", icon: Bot },

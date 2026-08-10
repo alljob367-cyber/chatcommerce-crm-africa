@@ -8,6 +8,7 @@ export type Page =
   | "orders"
   | "leads"
   | "automations"
+  | "sync"
   | "settings"
   | "ai"
   | "payments"

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import { handleError } from "@/lib/security";
+import { sanitize, handleError } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -61,6 +61,56 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json({ booking });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth(request);
+    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const body = await request.json();
+    const { agentId, customerName, customerPhone, serviceId, serviceName, bookingDate, bookingTime, notes, chatId } = body;
+
+    // Validate required fields
+    if (!agentId || !customerName || !bookingDate || !bookingTime) {
+      return NextResponse.json(
+        { error: "Agent, nom du client, date et heure sont requis" },
+        { status: 400 }
+      );
+    }
+
+    // Verify agent belongs to company
+    const agent = await db.telegramAgent.findFirst({
+      where: { id: agentId, companyId: session.companyId },
+    });
+    if (!agent) {
+      return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
+    }
+
+    const booking = await db.telegramBooking.create({
+      data: {
+        agentId,
+        companyId: session.companyId,
+        chatId: chatId || "manual",
+        customerName: sanitize(customerName),
+        customerPhone: customerPhone ? sanitize(customerPhone) : null,
+        serviceId: serviceId || null,
+        serviceName: serviceName ? sanitize(serviceName) : null,
+        bookingDate: sanitize(bookingDate),
+        bookingTime: sanitize(bookingTime),
+        notes: notes ? sanitize(notes) : null,
+        status: "pending",
+      },
+      include: {
+        agent: { select: { name: true, businessType: true } },
+      },
+    });
+
+    return NextResponse.json({ booking }, { status: 201 });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });

@@ -16,6 +16,7 @@ import SettingsPage from "@/components/app/settings-page";
 import PaymentsPage from "@/components/app/payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
 import TelegramPage from "@/components/app/telegram-page";
+import SyncPage from "@/components/app/sync-page";
 import { ErrorBoundary } from "@/components/app/error-boundary";
 
 function PageRenderer({ page }: { page: string }) {
@@ -32,6 +33,7 @@ function PageRenderer({ page }: { page: string }) {
     case "payments": return <PaymentsPage />;
     case "admin-payments": return <AdminPaymentsPage />;
     case "telegram": return <TelegramPage />;
+    case "sync": return <SyncPage />;
     default: return <DashboardPage />;
   }
 }

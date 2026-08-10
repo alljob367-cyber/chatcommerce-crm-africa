@@ -95,6 +95,7 @@ interface SubscriptionData {
 interface UsageData {
   contactCount: number;
   agentCount: number;
+  telegramAgentCount?: number;
 }
 
 const AFRICAN_COUNTRIES = [
