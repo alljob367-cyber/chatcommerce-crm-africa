@@ -53,7 +53,9 @@ import {
   Phone,
   Globe,
   Mail,
+  DollarSign,
 } from "lucide-react";
+import { CURRENCIES, getCurrencyForCountry } from "@/lib/currencies";
 
 // ─────────────────────────────────────────────────────
 // TYPES
@@ -222,6 +224,7 @@ export default function SettingsPage() {
     user?.company?.country || "Cameroun"
   );
   const [companyWhatsapp, setCompanyWhatsapp] = useState("");
+  const [companyCurrency, setCompanyCurrency] = useState("XAF");
   const [savingCompany, setSavingCompany] = useState(false);
 
   // ── My Account State ──
@@ -273,6 +276,11 @@ export default function SettingsPage() {
           setCompanyName(data.company.name);
           setCompanyCountry(data.company.country);
           setCompanyWhatsapp(data.company.whatsappNumber);
+          if (data.company.currency) {
+            setCompanyCurrency(data.company.currency);
+          } else if (data.company.country) {
+            setCompanyCurrency(getCurrencyForCountry(data.company.country));
+          }
         }
         if (data.subscription) setSubscription(data.subscription);
         if (data.usage) setUsage(data.usage);
@@ -346,6 +354,7 @@ export default function SettingsPage() {
           name: companyName,
           country: companyCountry,
           whatsappNumber: companyWhatsapp,
+          currency: companyCurrency,
         }),
       });
       const data = await res.json();
@@ -687,6 +696,33 @@ export default function SettingsPage() {
                         placeholder="+237 6XX XXX XXX"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="comp-currency" className="text-xs font-medium">
+                      Devise
+                    </Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Select
+                        value={companyCurrency}
+                        onValueChange={setCompanyCurrency}
+                      >
+                        <SelectTrigger className="pl-9">
+                          <SelectValue placeholder="Choisir la devise" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.values(CURRENCIES).map((cur) => (
+                            <SelectItem key={cur.code} value={cur.code}>
+                              {cur.symbol} — {cur.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Devise utilisee pour afficher les prix (produits, commandes)
+                    </p>
                   </div>
                 </div>
 

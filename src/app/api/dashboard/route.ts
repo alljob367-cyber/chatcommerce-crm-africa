@@ -73,6 +73,13 @@ export async function GET(request: Request) {
       totalMessages,
       // Real average response time
       responseTimeData,
+      // Telegram data
+      tgActiveAgents,
+      tgTodayBookings,
+      tgPendingBookings,
+      tgThisMonthBookings,
+      tgRecentBookings,
+      tgDailyBookingsRaw,
     ] = await Promise.all([
       db.contact.count({ where: { companyId } }),
 
@@ -153,6 +160,45 @@ export async function GET(request: Request) {
         orderBy: { createdAt: "asc" },
         select: { id: true, conversationId: true, senderType: true, createdAt: true },
       }),
+
+      // ---- TELEGRAM DATA ----
+      db.telegramAgent.count({ where: { companyId, isActive: true } }),
+
+      db.telegramBooking.count({
+        where: {
+          companyId,
+          bookingDate: new Date().toISOString().split("T")[0],
+          status: { not: "cancelled" },
+        },
+      }),
+
+      db.telegramBooking.count({
+        where: { companyId, status: "pending" },
+      }),
+
+      db.telegramBooking.count({
+        where: {
+          companyId,
+          createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+        },
+      }),
+
+      db.telegramBooking.findMany({
+        where: { companyId },
+        include: { agent: { select: { name: true, businessType: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+
+      // Daily bookings for last 7 days
+      db.$queryRawUnsafe<{ date: string; count: number }[]>(
+        `SELECT DATE("createdAt") as date, COUNT(*) as count 
+         FROM "TelegramBooking" 
+         WHERE "companyId" = $1 AND "createdAt" >= NOW() - INTERVAL '6 days'
+         GROUP BY DATE("createdAt") 
+         ORDER BY date ASC`,
+        companyId
+      ),
     ]);
 
     // Calculate real avg response time (admin reply after user message)
@@ -202,6 +248,19 @@ export async function GET(request: Request) {
       })
     );
 
+    // Build last 7 days for telegram daily bookings (fill missing dates with 0)
+    const telegramDailyBookings: { date: string; count: number }[] = [];
+    const tgDateMap = new Map(tgDailyBookingsRaw.map((d) => [d.date, d.count]));
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      telegramDailyBookings.push({
+        date: dateStr,
+        count: tgDateMap.get(dateStr) || 0,
+      });
+    }
+
     const totalRev = totalRevenue._sum.total || 0;
     const conversionRate =
       totalOrders > 0
@@ -234,6 +293,26 @@ export async function GET(request: Request) {
       recentOrders,
       period,
       dateRange: { start: start.toISOString(), end: end.toISOString() },
+      // Telegram dashboard data
+      telegramStats: {
+        activeAgents: tgActiveAgents,
+        todayBookings: tgTodayBookings,
+        pendingBookings: tgPendingBookings,
+        thisMonthBookings: tgThisMonthBookings,
+      },
+      telegramRecentBookings: tgRecentBookings.map((b) => ({
+        id: b.id,
+        customerName: b.customerName,
+        customerPhone: b.customerPhone,
+        serviceName: b.serviceName,
+        bookingDate: b.bookingDate,
+        bookingTime: b.bookingTime,
+        status: b.status,
+        agentName: b.agent.name,
+        agentType: b.agent.businessType,
+        createdAt: b.createdAt,
+      })),
+      telegramDailyBookings,
     });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);

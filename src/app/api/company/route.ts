@@ -108,7 +108,7 @@ export async function POST(request: Request) {
 
     // ─── UPDATE COMPANY INFO ─────────────────────────
     if (action === "update") {
-      const { name, phone, country, whatsappNumber } = body;
+      const { name, phone, country, whatsappNumber, currency } = body;
 
       if (name) {
         await db.company.update({
@@ -117,6 +117,7 @@ export async function POST(request: Request) {
             name: sanitize(name).slice(0, 200),
             country: country ? sanitize(country).slice(0, 100) : undefined,
             whatsappNumber: whatsappNumber ? sanitize(whatsappNumber).slice(0, 30) : undefined,
+            ...(currency !== undefined && { currency }),
           },
         });
       }

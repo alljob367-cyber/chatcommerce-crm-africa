@@ -23,6 +23,7 @@ model Company {
   whatsappNumber String?
   whatsappToken  String?
   whatsappPhoneId String?
+  currency        String?  @default("XAF")
   notificationSettings String? // JSON: { newOrders, newMessages, paymentConfirmations, dailyReports }
   isActive    Boolean  @default(true)
   maxContacts Int     @default(500)
@@ -426,6 +427,7 @@ model TelegramAgent {
   openHours     String?  // JSON: {"mon":"09:00-22:00","tue":"09:00-22:00",...}
   currency      String   @default("XAF")
   paymentMethod String?  // orange_money, mtn_money, cash, null
+  aiConfig      String?  // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

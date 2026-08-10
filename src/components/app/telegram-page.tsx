@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   Bot,
   Plus,
@@ -68,6 +69,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import BookingCalendar from "@/components/app/booking-calendar";
+import { formatCurrency } from "@/lib/currencies";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -179,6 +181,12 @@ export default function TelegramPage() {
     phone: "",
     currency: "XAF",
     paymentMethod: "none",
+    aiEnabled: false,
+    aiProvider: "openai" as "openai" | "anthropic" | "custom",
+    aiApiKey: "",
+    aiModel: "",
+    aiBaseUrl: "",
+    aiSystemPrompt: "",
   });
   const [agentSaving, setAgentSaving] = useState(false);
 
@@ -327,12 +335,32 @@ export default function TelegramPage() {
       phone: "",
       currency: "XAF",
       paymentMethod: "none",
+      aiEnabled: false,
+      aiProvider: "openai",
+      aiApiKey: "",
+      aiModel: "",
+      aiBaseUrl: "",
+      aiSystemPrompt: "",
     });
     setAgentDialogOpen(true);
   };
 
   const openEditAgent = (agent: TelegramAgent) => {
     setEditingAgent(agent);
+    // Parse AI config from agent metadata
+    let aiOverrides: Record<string, unknown> = {};
+    if (agent.openHours) {
+      try {
+        const parsed = JSON.parse(agent.openHours);
+        // Check if this is the old-style openHours or AI config
+        if (parsed.mon || parsed.tue) {
+          // This is the actual openHours data, keep it
+          aiOverrides = {};
+        } else {
+          aiOverrides = parsed;
+        }
+      } catch { /* ignore */ }
+    }
     setAgentForm({
       name: agent.name,
       token: agent.token,
@@ -343,6 +371,12 @@ export default function TelegramPage() {
       phone: agent.phone || "",
       currency: agent.currency,
       paymentMethod: agent.paymentMethod || "none",
+      aiEnabled: (aiOverrides.enabled as boolean) ?? false,
+      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "custom") ?? "openai",
+      aiApiKey: (aiOverrides.apiKey as string) || "",
+      aiModel: (aiOverrides.model as string) || "",
+      aiBaseUrl: (aiOverrides.baseUrl as string) || "",
+      aiSystemPrompt: (aiOverrides.systemPrompt as string) || "",
     });
     setAgentDialogOpen(true);
   };
@@ -1136,6 +1170,79 @@ export default function TelegramPage() {
                 onChange={(e) => setAgentForm({ ...agentForm, welcomeMessage: e.target.value })}
               />
             </div>
+
+            <Separator />
+
+            {/* ─── AI Configuration ─── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <Label className="text-sm font-semibold">Configuration IA</Label>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <div>
+                  <p className="text-sm font-medium">IA Active</p>
+                  <p className="text-xs text-muted-foreground">Activer les réponses automatiques par IA</p>
+                </div>
+                <Switch
+                  checked={agentForm.aiEnabled}
+                  onCheckedChange={(v) => setAgentForm({ ...agentForm, aiEnabled: v })}
+                />
+              </div>
+              {agentForm.aiEnabled && (
+                <div className="space-y-3 pl-0">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Fournisseur IA</Label>
+                      <Select value={agentForm.aiProvider} onValueChange={(v) => setAgentForm({ ...agentForm, aiProvider: v as "openai" | "anthropic" | "custom" })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="openai">OpenAI</SelectItem>
+                          <SelectItem value="anthropic">Anthropic</SelectItem>
+                          <SelectItem value="custom">Personnalisé</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modele</Label>
+                      <Input
+                        placeholder={agentForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-3.5-turbo"}
+                        value={agentForm.aiModel}
+                        onChange={(e) => setAgentForm({ ...agentForm, aiModel: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Clé API</Label>
+                    <Input
+                      type="password"
+                      placeholder="sk-..."
+                      value={agentForm.aiApiKey}
+                      onChange={(e) => setAgentForm({ ...agentForm, aiApiKey: e.target.value })}
+                    />
+                  </div>
+                  {agentForm.aiProvider === "custom" && (
+                    <div className="space-y-2">
+                      <Label>URL de base (Base URL)</Label>
+                      <Input
+                        placeholder="https://api.example.com/v1"
+                        value={agentForm.aiBaseUrl}
+                        onChange={(e) => setAgentForm({ ...agentForm, aiBaseUrl: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label>Prompt Système (optionnel)</Label>
+                    <Textarea
+                      placeholder="Instructions pour l'IA... Laissez vide pour le prompt par défaut."
+                      rows={3}
+                      value={agentForm.aiSystemPrompt}
+                      onChange={(e) => setAgentForm({ ...agentForm, aiSystemPrompt: e.target.value })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>Annuler</Button>
@@ -1249,7 +1356,7 @@ export default function TelegramPage() {
                     )}
                   </div>
                   <p className="font-semibold text-sm whitespace-nowrap">
-                    {svc.price.toLocaleString()} FCFA
+                    {formatCurrency(svc.price, servicesAgent?.currency || "XAF")}
                   </p>
                   <Button size="sm" variant="ghost" onClick={() => deleteService(svc.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0">
                     <Trash2 className="w-4 h-4" />

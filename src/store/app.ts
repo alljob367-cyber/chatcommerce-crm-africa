@@ -13,7 +13,9 @@ export type Page =
   | "ai"
   | "payments"
   | "admin-payments"
-  | "telegram";
+  | "telegram"
+  | "reports"
+  | "api-docs";
 
 export interface User {
   id: string;

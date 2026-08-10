@@ -19,6 +19,8 @@ import {
   ChevronRight,
   MessageCircle,
   ArrowLeftRight,
+  BarChart3,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -43,6 +45,8 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
+  { page: "reports", label: "Rapports", icon: BarChart3 },
+  { page: "api-docs", label: "Documentation API", icon: FileText },
 ];
 
 export default function Sidebar() {

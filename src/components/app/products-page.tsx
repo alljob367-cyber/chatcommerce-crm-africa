@@ -26,6 +26,7 @@ import {
   PackageCheck,
   Tag,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/currencies";
 
 interface Category { id: string; name: string; _count: { products: number } }
 interface Product {
@@ -128,7 +129,7 @@ export default function ProductsPage() {
     fetchData();
   };
 
-  const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
+  const formatXAF = (n: number) => formatCurrency(n, "XAF");
 
   return (
     <>

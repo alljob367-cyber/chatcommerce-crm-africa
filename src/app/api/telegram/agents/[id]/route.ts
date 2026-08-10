@@ -44,7 +44,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod } = body;
+    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
     const agent = await db.telegramAgent.update({
       where: { id, companyId: session.companyId },
@@ -60,6 +60,16 @@ export async function PUT(
         ...(openHours !== undefined && { openHours }),
         ...(currency !== undefined && { currency }),
         ...(paymentMethod !== undefined && { paymentMethod }),
+        ...(aiEnabled !== undefined || aiProvider || aiApiKey ? {
+          aiConfig: JSON.stringify({
+            enabled: aiEnabled ?? false,
+            provider: aiProvider || "openai",
+            apiKey: aiApiKey || "",
+            model: aiModel || "",
+            baseUrl: aiBaseUrl || "",
+            systemPrompt: aiSystemPrompt || "",
+          }),
+        } : {}),
       },
     });
 

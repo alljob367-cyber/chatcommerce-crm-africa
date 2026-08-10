@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const body = await request.json();
-    const { name, token: botToken, botUsername, businessType, welcomeMessage, address, phone, openHours, currency, paymentMethod } = body;
+    const { name, token: botToken, botUsername, businessType, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
     if (!name || !botToken || !businessType) {
       return NextResponse.json({ error: "Nom, token et type de business requis" }, { status: 400 });
@@ -72,6 +72,16 @@ export async function POST(request: Request) {
         openHours: openHours || null,
         currency: currency || "XAF",
         paymentMethod: paymentMethod || null,
+        ...(aiEnabled !== undefined || aiProvider || aiApiKey ? {
+          aiConfig: JSON.stringify({
+            enabled: aiEnabled ?? false,
+            provider: aiProvider || "openai",
+            apiKey: aiApiKey || "",
+            model: aiModel || "",
+            baseUrl: aiBaseUrl || "",
+            systemPrompt: aiSystemPrompt || "",
+          }),
+        } : {}),
       },
     });
 
