@@ -65,3 +65,26 @@ Stage Summary:
 - Activation en 1 clic: l'utilisateur colle son token @BotFather, le bot valide et active automatiquement
 - Mini-service bot amélioré avec: panier, commandes multiples, /horaire, /aide, /contact, /start, check d'ouverture
 - Build Next.js réussi, toutes les routes incluses
+---
+Task ID: 6
+Agent: main
+Task: Fix connection bug + restrict Telegram Ads to Business + update Starter price to 2000F + Chariow check
+
+Work Log:
+- Diagnosed critical connection bug: auth/route.ts getJWTSecret() used DATABASE_URL as fallback while middleware.ts used 'chatcommerce-dev-only-fallback-key-2024' → tokens signed with different keys → login succeeds but all API calls return 401
+- Fixed auth/route.ts: replaced DATABASE_URL fallback with synchronized 'chatcommerce-dev-only-fallback-key-2024' matching middleware.ts and lib/auth.ts
+- Fixed payments/confirm/route.ts: starter price was 5000 (should be 2000) → payment confirmations were failing for Starter plan
+- Updated plan-limits.ts: maxCampaigns changed from 5 to 0 for Starter (Telegram Ads Business-only)
+- Updated auth-page.tsx: Starter price from "Gratuit" to "2 000 FCFA/mois", Business from 9 900 to 29 900 FCFA
+- Verified sidebar.tsx already has businessOnly filter for campaigns nav item
+- Confirmed Chariow is NOT integrated in code — no API routes, no env vars, no webhook endpoint. Only a guide .md exists.
+- Existing GUIDE_CHARIOW_CONFIGURATION.md already has correct prices (Starter 2000F)
+- TypeScript check: 0 errors
+- Deployed to Vercel production successfully
+
+Stage Summary:
+- 3 bugs fixed (JWT mismatch, Starter price inconsistency, Telegram Ads not restricted)
+- Starter plan now 2000F XAF consistently across all files
+- Telegram Ads restricted to Business/Enterprise plans only
+- Chariow API NOT connected — guide exists at /download/GUIDE_CHARIOW_CONFIGURATION.md
+- Deployed: https://alljob367-cyber-chatcommerce-crm-af.vercel.app

@@ -42,21 +42,26 @@ const HARDCODED_ACCOUNTS: Record<string, {
 };
 
 // Generate JWT without any DB dependency
-function getJWTSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (secret && secret.length > 10) {
-    return new TextEncoder().encode(secret);
-  }
-  const fallback = process.env.DATABASE_URL || "chatcommerce-fallback-secret-key-2024";
-  return new TextEncoder().encode(fallback);
-}
+// JWT secret MUST match middleware.ts and lib/auth.ts exactly.
+// Previous version used DATABASE_URL as fallback → caused token mismatch → 401 on all API calls.
 
+// MUST match the secret used in middleware.ts and lib/auth.ts
 async function createHardcodedToken(userId: string, companyId: string, role: string): Promise<string> {
   return new SignJWT({ userId, companyId, role } as unknown as Record<string, string>)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(process.env.NODE_ENV === "production" ? "24h" : "7d")
-    .sign(getJWTSecret());
+    .sign(getHardcodedJWTSecret());
+}
+
+// Synchronized JWT secret — NEVER falls back to DATABASE_URL (causes token mismatch with middleware)
+function getHardcodedJWTSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.length > 10) {
+    return new TextEncoder().encode(secret);
+  }
+  // MUST match middleware.ts fallback exactly
+  return new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
 }
 
 // Bootstrap DB on first API call

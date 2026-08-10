@@ -22,7 +22,7 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 100,
     maxMessages: 1000,
     maxDrivers: 0,
-    maxCampaigns: 5,
+    maxCampaigns: 0, // Telegram Ads: Business plan only
   },
   business: {
     maxContacts: 5000,

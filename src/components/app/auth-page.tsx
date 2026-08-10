@@ -87,16 +87,16 @@ const TESTIMONIALS = [
 const PRICING = [
   {
     name: "Starter",
-    price: "Gratuit",
-    period: "",
+    price: "2 000",
+    period: "FCFA/mois",
     desc: "Pour démarrer votre activité en ligne",
     features: ["1 bot Telegram", "CRM complet", "Dashboard KPI", "Commandes automatiques", "Communauté WhatsApp"],
-    cta: "Demarrer Gratuitement",
+    cta: "Commencer a 2 000 FCFA",
     popular: false,
   },
   {
     name: "Business",
-    price: "9 900",
+    price: "29 900",
     period: "FCFA/mois",
     desc: "Pour les PME qui veulent grandir",
     features: ["3 bots Telegram", "CRM complet", "Dashboard avancé", "Export rapports PDF", "Support prioritaire", "Paiement Mobile Money", "API intégrée"],
@@ -831,8 +831,8 @@ export default function AuthPage() {
                   <h3 className="text-lg font-bold text-white">{plan.name}</h3>
                   <p className="text-sm text-zinc-500 mt-1">{plan.desc}</p>
                   <div className="mt-5 mb-7">
-                    {plan.price === "Gratuit" ? (
-                      <span className="text-4xl font-black text-[#00E676]">Gratuit</span>
+                    {plan.price === "Sur devis" ? (
+                      <span className="text-4xl font-black text-[#00E676]">Sur devis</span>
                     ) : (
                       <>
                         <span className="text-4xl font-black text-white">{plan.price}</span>
