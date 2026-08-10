@@ -88,3 +88,26 @@ Stage Summary:
 - Telegram Ads restricted to Business/Enterprise plans only
 - Chariow API NOT connected — guide exists at /download/GUIDE_CHARIOW_CONFIGURATION.md
 - Deployed: https://alljob367-cyber-chatcommerce-crm-af.vercel.app
+
+---
+Task ID: 2
+Agent: main
+Task: Vérifier tous les agents Telegram + corriger bugs critiques + prix Enterprise
+
+Work Log:
+- Analysé le screenshot uploadé: page Agents Telegram avec 12 templates affichés
+- Lu et analysé tous les fichiers liés aux agents (telegram-page.tsx, setup/route.ts, agents/route.ts, agents/[id]/route.ts, plan-limits.ts)
+- Découvert que Option B (Pro plan) était déjà partiellement implémenté mais Enterprise encore à 99 900 au lieu de 69 900
+- CORRIGÉ BUG CRITIQUE: VALID_BUSINESS_TYPES dans agents/route.ts avait des valeurs mismatchées (taxi vs taxi_transport, ecole vs ecole_formation, etc.)
+- CORRIGÉ BUG CRITIQUE: /api/telegram/setup route ne vérifiait PAS les limites de plan — un utilisateur Starter pouvait créer les 12 agents
+- CORRIGÉ BUG MOYEN: Dropdown "Type de Business" ne montrait que 2 types (restaurant, salon) sur les 12 disponibles
+- CORRIGÉ BUG MOYEN: Dashboard et Agents tab affichaient les mêmes icônes restaurant/salon pour tous les types d'agents
+- Ajouté BUSINESS_TYPE_CONFIG avec 12 types: icônes, labels, couleurs, labels de services
+- CORRIGÉ: Prix Enterprise 99 900 → 69 900 FCFA dans payments-page, settings-page, payments API, confirm API
+- TypeScript check: 0 erreurs
+- Déployé en production sur Vercel
+
+Stage Summary:
+- 4 bugs critiques/moyens corrigés dans les agents Telegram
+- Prix Enterprise aligné sur Option B (69 900 FCFA)
+- Production déployée: https://alljob367-cyber-chatcommerce-crm-af.vercel.app

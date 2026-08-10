@@ -29,7 +29,7 @@ const PLAN_PRICES: Record<string, number> = {
   starter: 5000,
   pro: 14900,
   business: 29900,
-  enterprise: 99900,
+  enterprise: 69900,
 };
 
 const PLAN_NAMES: Record<string, string> = {
@@ -215,7 +215,7 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
     {
       key: "enterprise",
       name: "Enterprise",
-      price: 99900,
+      price: 69900,
       features: ["Contacts illimites", "Agents illimites", "Produits illimites", "Messages illimites", "Campagnes illimitees", "IA avancee", "API complete", "White-label", "Support 24/7"],
     },
   ];

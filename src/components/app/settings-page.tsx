@@ -205,7 +205,7 @@ const PLANS = [
     key: "enterprise",
     name: "Enterprise",
     icon: Sparkles,
-    price: "99 900",
+    price: "69 900",
     period: "FCFA/mois",
     features: [
       "Contacts illimites",

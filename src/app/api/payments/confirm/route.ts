@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const PLAN_PRICES: Record<string, number> = { starter: 5000, pro: 14900, business: 29900, enterprise: 99900 };
+    const PLAN_PRICES: Record<string, number> = { starter: 5000, pro: 14900, business: 29900, enterprise: 69900 };
     if (payment.amount !== PLAN_PRICES[payment.plan]) {
       return NextResponse.json({ error: "Montant incorrect pour ce plan" }, { status: 400 });
     }

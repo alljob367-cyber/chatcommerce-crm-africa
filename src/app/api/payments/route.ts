@@ -7,7 +7,7 @@ const PLAN_PRICES: Record<string, number> = {
   starter: 5000,
   pro: 14900,
   business: 29900,
-  enterprise: 99900,
+  enterprise: 69900,
 };
 
 function generateRef(): string {

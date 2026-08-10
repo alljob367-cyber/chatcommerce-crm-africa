@@ -35,6 +35,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   Plus,
@@ -66,6 +67,14 @@ import {
   RefreshCw,
   LayoutList,
   Calendar,
+  Pill,
+  Car,
+  Shirt,
+  GraduationCap,
+  Globe,
+  Plane,
+  Wrench,
+  Dumbbell,
 } from "lucide-react";
 import { toast } from "sonner";
 import BookingCalendar from "@/components/app/booking-calendar";
@@ -137,6 +146,26 @@ interface TelegramStats {
   }>;
   recentBookings: TelegramBooking[];
   dailyBookings: Array<{ date: string; count: number }>;
+}
+
+// ─── Business Type Config (icons, labels, colors) ─────────────
+const BUSINESS_TYPE_CONFIG: Record<string, { label: string; icon: LucideIcon; bg: string; bgDark: string; color: string; servicesLabel: string }> = {
+  restaurant:      { label: "Restaurant",       icon: UtensilsCrossed,  bg: "bg-orange-100",  bgDark: "dark:bg-orange-900/30",  color: "text-orange-600",  servicesLabel: "plats de votre menu" },
+  salon_coiffure:  { label: "Salon Coiffure",   icon: Scissors,        bg: "bg-purple-100",  bgDark: "dark:bg-purple-900/30",  color: "text-purple-600",  servicesLabel: "prestations de votre salon" },
+  pharmacie:        { label: "Pharmacie",        icon: Pill,            bg: "bg-green-100",   bgDark: "dark:bg-green-900/30",   color: "text-green-600",   servicesLabel: "services de votre pharmacie" },
+  taxi_transport:   { label: "Taxi Transport",   icon: Car,             bg: "bg-blue-100",    bgDark: "dark:bg-blue-900/30",    color: "text-blue-600",    servicesLabel: "types de courses" },
+  pressing_laverie: { label: "Pressing",         icon: Shirt,           bg: "bg-cyan-100",    bgDark: "dark:bg-cyan-900/30",    color: "text-cyan-600",    servicesLabel: "services de laverie" },
+  ecole_formation:  { label: "Ecole / Formation", icon: GraduationCap, bg: "bg-amber-100",   bgDark: "dark:bg-amber-900/30",   color: "text-amber-600",   servicesLabel: "formations" },
+  supermarche:     { label: "Supermarche",     icon: ShoppingBag,     bg: "bg-lime-100",    bgDark: "dark:bg-lime-900/30",    color: "text-lime-600",    servicesLabel: "produits" },
+  clinique:         { label: "Clinique",         icon: Bot,             bg: "bg-red-100",     bgDark: "dark:bg-red-900/30",     color: "text-red-600",     servicesLabel: "services medical" },
+  agence_voyage:    { label: "Agence Voyage",    icon: Plane,           bg: "bg-violet-100",  bgDark: "dark:bg-violet-900/30",  color: "text-violet-600",  servicesLabel: "services voyage" },
+  boulangerie:      { label: "Boulangerie",      icon: Sparkles,        bg: "bg-yellow-100",  bgDark: "dark:bg-yellow-900/30",  color: "text-yellow-600",  servicesLabel: "produits de boulangerie" },
+  garage_auto:      { label: "Garage Auto",      icon: Wrench,          bg: "bg-zinc-100",    bgDark: "dark:bg-zinc-800/50",    color: "text-zinc-600",    servicesLabel: "services auto" },
+  salle_sport:      { label: "Salle de Sport",   icon: Dumbbell,        bg: "bg-emerald-100", bgDark: "dark:bg-emerald-900/30", color: "text-emerald-600", servicesLabel: "abonnements" },
+};
+
+function getBusinessConfig(type: string) {
+  return BUSINESS_TYPE_CONFIG[type] || BUSINESS_TYPE_CONFIG.restaurant;
 }
 
 // ─── Status Badge Helper ─────────────────────────────────────────
@@ -661,17 +690,15 @@ export default function TelegramPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${agent.businessType === "restaurant" ? "bg-orange-100 dark:bg-orange-900/30" : "bg-purple-100 dark:bg-purple-900/30"}`}>
-                            {agent.businessType === "restaurant" ? (
-                              <UtensilsCrossed className="w-5 h-5 text-orange-600" />
-                            ) : (
-                              <Scissors className="w-5 h-5 text-purple-600" />
-                            )}
-                          </div>
+                          {(() => { const bc = getBusinessConfig(agent.businessType); const Icon = bc.icon; return (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bc.bg} ${bc.bgDark}`}>
+                              <Icon className={`w-5 h-5 ${bc.color}`} />
+                            </div>
+                          ); })()}
                           <div>
                             <CardTitle className="text-base">{agent.name}</CardTitle>
                             <CardDescription className="text-xs">
-                              {agent.businessType === "restaurant" ? "Restaurant" : "Salon de Coiffure"}
+                              {getBusinessConfig(agent.businessType).label}
                               {" · "}
                               {agent._count.services} services
                             </CardDescription>
@@ -776,11 +803,7 @@ export default function TelegramPage() {
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="outline" className="text-xs">
-                                    {b.agent?.businessType === "restaurant" ? (
-                                      <UtensilsCrossed className="w-3 h-3 mr-1" />
-                                    ) : (
-                                      <Scissors className="w-3 h-3 mr-1" />
-                                    )}
+                                    {(() => { const bc = getBusinessConfig(b.agent?.businessType || "restaurant"); const Icon = bc.icon; return <Icon className="w-3 h-3 mr-1" />; })()}
                                     {b.serviceName || "—"}
                                   </Badge>
                                 </div>
@@ -825,13 +848,11 @@ export default function TelegramPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${agent.businessType === "restaurant" ? "bg-orange-100 dark:bg-orange-900/30" : "bg-purple-100 dark:bg-purple-900/30"}`}>
-                            {agent.businessType === "restaurant" ? (
-                              <UtensilsCrossed className="w-5 h-5 text-orange-600" />
-                            ) : (
-                              <Scissors className="w-5 h-5 text-purple-600" />
-                            )}
-                          </div>
+                          {(() => { const bc = getBusinessConfig(agent.businessType); const Icon = bc.icon; return (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bc.bg} ${bc.bgDark}`}>
+                              <Icon className={`w-5 h-5 ${bc.color}`} />
+                            </div>
+                          ); })()}
                           <div>
                             <CardTitle className="text-sm">{agent.name}</CardTitle>
                             <p className="text-xs text-muted-foreground">
@@ -1090,12 +1111,14 @@ export default function TelegramPage() {
               <Select value={agentForm.businessType} onValueChange={(v) => setAgentForm({ ...agentForm, businessType: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="restaurant">
-                    <span className="flex items-center gap-2"><UtensilsCrossed className="w-4 h-4" /> Restaurant</span>
-                  </SelectItem>
-                  <SelectItem value="salon_coiffure">
-                    <span className="flex items-center gap-2"><Scissors className="w-4 h-4" /> Salon de Coiffure</span>
-                  </SelectItem>
+                  {Object.entries(BUSINESS_TYPE_CONFIG).map(([key, cfg]) => {
+                    const Icon = cfg.icon;
+                    return (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2"><Icon className="w-4 h-4" /> {cfg.label}</span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -1269,13 +1292,11 @@ export default function TelegramPage() {
           {activateAgent && (
             <div className="space-y-4">
               <div className="p-3 rounded-lg bg-muted/50 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${activateAgent.businessType === "restaurant" ? "bg-orange-100 dark:bg-orange-900/30" : "bg-purple-100 dark:bg-purple-900/30"}`}>
-                  {activateAgent.businessType === "restaurant" ? (
-                    <UtensilsCrossed className="w-5 h-5 text-orange-600" />
-                  ) : (
-                    <Scissors className="w-5 h-5 text-purple-600" />
-                  )}
-                </div>
+                {(() => { const bc = getBusinessConfig(activateAgent.businessType); const Icon = bc.icon; return (
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bc.bg} ${bc.bgDark}`}>
+                    <Icon className={`w-5 h-5 ${bc.color}`} />
+                  </div>
+                ); })()}
                 <div>
                   <p className="font-medium text-sm">{activateAgent.name}</p>
                   <p className="text-xs text-muted-foreground">
@@ -1325,7 +1346,7 @@ export default function TelegramPage() {
               Services — {servicesAgent?.name}
             </DialogTitle>
             <DialogDescription>
-              Gérez les {servicesAgent?.businessType === "restaurant" ? "plats de votre menu" : "prestations de votre salon"}
+              Gérez les {getBusinessConfig(servicesAgent?.businessType || "restaurant").servicesLabel}
             </DialogDescription>
           </DialogHeader>
 

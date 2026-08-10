@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -342,10 +343,28 @@ export async function POST(request: Request) {
     const existingAgents = await db.telegramAgent.findMany({ where: { companyId } });
     const existingTypes = existingAgents.map((a) => a.businessType);
 
+    // Check plan limit BEFORE creating any agents
+    const company = await db.company.findUnique({ where: { id: companyId }, select: { plan: true } });
+    const currentCount = existingAgents.length;
+    const limitError = checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", currentCount);
+    if (limitError) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
+    }
+
     // Determine which agents to create
-    const templatesToCreate = agentType
+    let templatesToCreate = agentType
       ? AGENT_TEMPLATES.filter((t) => t.businessType === agentType && !existingTypes.includes(agentType))
       : AGENT_TEMPLATES.filter((t) => !existingTypes.includes(t.businessType));
+
+    // Limit creation to the plan's maxTelegramAgents
+    const maxAgents = (company?.plan && PLAN_LIMITS[company.plan]?.maxTelegramAgents) || PLAN_LIMITS.starter.maxTelegramAgents;
+    const remaining = maxAgents - currentCount;
+    if (remaining <= 0) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
+    }
+    if (templatesToCreate.length > remaining) {
+      templatesToCreate = templatesToCreate.slice(0, remaining);
+    }
 
     if (templatesToCreate.length === 0) {
       return NextResponse.json({
