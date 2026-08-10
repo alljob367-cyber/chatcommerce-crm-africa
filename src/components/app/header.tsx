@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/app/notification-bell";
 import AutomationTrigger from "@/components/app/automation-trigger";
+import WhatsAppCommunity from "@/components/app/whatsapp-community";
 
 interface HeaderProps {
   title: string;
@@ -63,6 +64,9 @@ export default function Header({ title, subtitle, children }: HeaderProps) {
 
         {/* Silent automation trigger (replaces Vercel Cron on Hobby plan) */}
         <AutomationTrigger />
+
+        {/* WhatsApp Community */}
+        <WhatsAppCommunity variant="header" />
 
         {user?.company && (
           <span className="hidden sm:inline text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">

@@ -195,20 +195,20 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
       key: "starter",
       name: "Starter",
       price: 2000,
-      features: ["500 contacts", "3 agents", "1 000 messages/mois"],
+      features: ["500 contacts", "3 agents", "2 agents Telegram", "50 produits", "1 000 messages/mois", "Commandes automatiques", "Communaute WhatsApp"],
     },
     {
       key: "business",
       name: "Business",
       price: 29900,
       popular: true,
-      features: ["5 000 contacts", "10 agents", "10 000 messages/mois", "IA Assistant", "API WhatsApp"],
+      features: ["5 000 contacts", "10 agents", "12 agents Telegram", "500 produits", "10 000 messages/mois", "Campagnes Telegram Ads", "Livraisons avec livreurs", "IA Assistant", "Rapports PDF", "Paiement Mobile Money"],
     },
     {
       key: "enterprise",
       name: "Enterprise",
       price: 99900,
-      features: ["Contacts illimites", "Agents illimites", "Messages illimites", "IA avancee", "Support 24/7"],
+      features: ["Contacts illimites", "Agents illimites", "Produits illimites", "Messages illimites", "Campagnes illimitees", "IA avancee", "API complete", "White-label", "Support 24/7"],
     },
   ];
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Header from "./header";
+import WhatsAppCommunity from "./whatsapp-community";
 import {
   Users,
   ShoppingCart,
@@ -436,6 +437,16 @@ export default function DashboardPage() {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* WhatsApp Community Card */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Communaute</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WhatsAppCommunity variant="dashboard" />
+            </CardContent>
+          </Card>
+
           {/* Revenue Area Chart */}
           <Card className="lg:col-span-2 border-0 shadow-sm">
             <CardHeader className="pb-2">
