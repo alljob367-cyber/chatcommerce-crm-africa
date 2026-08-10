@@ -55,8 +55,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
     }
 
-    const booking = await db.telegramBooking.update({
+    const existing = await db.telegramBooking.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Reservation introuvable" }, { status: 404 });
+
+    const booking = await db.telegramBooking.update({
+      where: { id },
       data: { status },
     });
 

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch the Telegram agent with its company
-    const agent = await db.telegramAgent.findUnique({
+    const agent = await db.telegramAgent.findFirst({
       where: { id: agentId, companyId: user.companyId },
       include: {
         services: {

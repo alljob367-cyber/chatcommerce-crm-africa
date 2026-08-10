@@ -144,167 +144,61 @@ export default function NotificationBell() {
     fetchInitialNotifs();
   }, [fetchInitialNotifs]);
 
-  // ── SSE Connection ──
-  const connectSSE = useCallback(() => {
-    if (!token) return;
-
-    // Close existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    const url = "/api/notifications/stream";
-    const es = new EventSource(url, {
-      withCredentials: false,
-    });
-
-    // Attach auth token via header is not possible with EventSource.
-    // We pass it as a query parameter instead.
-    // Actually, EventSource doesn't support custom headers.
-    // We'll use a workaround: fetch-based SSE with token in Authorization header.
-    es.close(); // Close the EventSource
-
-    // ── Fetch-based SSE (supports custom headers) ──
-    let aborted = false;
-    const controller = new AbortController();
-
-    async function connect() {
-      if (aborted) return;
-      try {
-        const response = await fetch("/api/notifications/stream", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "text/event-stream",
-            "Cache-Control": "no-cache",
-          },
-          signal: controller.signal,
-        });
-
-        if (!response.ok || aborted) {
-          setConnected(false);
-          scheduleReconnect();
-          return;
-        }
-
-        setConnected(true);
-        reconnectAttempts.current = 0;
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          setConnected(false);
-          scheduleReconnect();
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let currentEvent = "";
-        let currentData = "";
-        let currentId = "";
-
-        while (true) {
-          if (aborted) break;
-
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Process complete lines
-          const lines = buffer.split("\n");
-          buffer = lines.pop() ?? ""; // Keep incomplete line in buffer
-
-          for (const line of lines) {
-            if (line.startsWith("event:")) {
-              currentEvent = line.slice(6).trim();
-            } else if (line.startsWith("data:")) {
-              currentData = line.slice(5).trimStart();
-            } else if (line.startsWith("id:")) {
-              currentId = line.slice(3).trim();
-            } else if (line === "") {
-              // Empty line = end of event
-              if (currentData) {
-                handleSSEEvent(currentEvent, currentData, currentId);
-              }
-              currentEvent = "";
-              currentData = "";
-              currentId = "";
-            }
-          }
-        }
-      } catch (err: unknown) {
-        if (aborted) return;
-        // AbortError means we closed it intentionally
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setConnected(false);
-        scheduleReconnect();
-      }
-    }
-
-    function handleSSEEvent(event: string, data: string, id: string) {
-      if (!data) return;
-      try {
-        const parsed = JSON.parse(data);
-
-        if (event === "connected" || parsed.type === "heartbeat") {
-          return; // Ignore heartbeat/connected
-        }
-
-        if (event === "notification" || event === "message") {
-          const notif: NotificationItem = {
-            id: parsed.id || `sse-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            title: parsed.title ?? "Notification",
-            body: parsed.body ?? "",
-            type: parsed.type ?? "info",
-            timestamp: parsed.timestamp ?? new Date().toISOString(),
-            read: false,
-          };
-          addNotification(notif);
-          playBeep();
-
-          // Also update page title when tab not focused
-          if (document.hidden) {
-            flashTitle(useNotificationStore.getState().unreadCount);
-          }
-        }
-      } catch {
-        // Ignore malformed data
-      }
-    }
-
-    function scheduleReconnect() {
-      if (aborted) return;
-      reconnectAttempts.current += 1;
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30_000);
-      reconnectTimer.current = setTimeout(() => {
-        if (!aborted) connect();
-      }, delay);
-    }
-
-    // Store cleanup ref
-    (eventSourceRef.current as unknown as { abort: () => void }) = {
-      abort: () => {
-        aborted = true;
-        controller.abort();
-      },
-    };
-
-    connect();
-
-    return () => {
-      aborted = true;
-      controller.abort();
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-    };
-  }, [token, addNotification, setConnected]);
+  // ── Polling for Notifications (Vercel-compatible) ──
+  const lastPollTime = useRef<number>(Date.now());
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const cleanup = connectSSE();
+    if (!token) return;
+
+    async function pollNotifications() {
+      try {
+        const since = lastPollTime.current;
+        const response = await fetch(`/api/notifications/poll?since=${since}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          lastPollTime.current = data.timestamp || Date.now();
+          setConnected(true);
+
+          const newNotifs: NotificationItem[] = (data.notifications || []).map((n: Record<string, string>) => ({
+            id: n.id || `poll-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            title: n.title ?? "Notification",
+            body: n.body ?? "",
+            type: (n.type as NotificationItem["type"]) ?? "info",
+            timestamp: n.timestamp ?? new Date().toISOString(),
+            read: false,
+          }));
+
+          if (newNotifs.length > 0) {
+            for (const notif of newNotifs) {
+              addNotification(notif);
+            }
+            playBeep();
+            if (document.hidden) {
+              flashTitle(useNotificationStore.getState().unreadCount);
+            }
+          }
+        } else {
+          setConnected(false);
+        }
+      } catch {
+        setConnected(false);
+      }
+    }
+
+    // Poll immediately, then every 8 seconds
+    pollNotifications();
+    pollTimerRef.current = setInterval(pollNotifications, 8_000);
+
     return () => {
-      cleanup?.();
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [connectSSE]);
+  }, [token, addNotification, setConnected]);
 
   // ── Mark all as read (API + store) ──
   const handleMarkAllRead = async () => {

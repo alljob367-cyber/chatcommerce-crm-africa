@@ -133,8 +133,13 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, status, paymentStatus, notes } = body;
 
-    const order = await db.order.update({
+    const existing = await db.order.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
+
+    const order = await db.order.update({
+      where: { id },
       data: {
         ...(status && { status }),
         ...(paymentStatus && { paymentStatus }),

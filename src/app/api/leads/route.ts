@@ -84,8 +84,13 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, status, notes, assignedToId } = body;
 
-    const lead = await db.lead.update({
+    const existing = await db.lead.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
+
+    const lead = await db.lead.update({
+      where: { id },
       data: { status, notes, assignedToId },
     });
 

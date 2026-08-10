@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch user with password hash
-    const user = await db.user.findUnique({
+    const user = await db.user.findFirst({
       where: { id: payload.userId, companyId: payload.companyId },
       select: { id: true, passwordHash: true },
     });

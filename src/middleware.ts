@@ -54,8 +54,8 @@ export async function middleware(request: NextRequest) {
       if (secret && secret.length > 10) {
         jwtSecret = new TextEncoder().encode(secret);
       } else {
-        const fallback = process.env.DATABASE_URL || "chatcommerce-fallback-secret-key-2024";
-        jwtSecret = new TextEncoder().encode(fallback);
+        // Development-only fallback — never use DATABASE_URL as JWT secret
+        jwtSecret = new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
       }
 
       const { jwtVerify } = await import("jose");

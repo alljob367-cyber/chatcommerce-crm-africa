@@ -92,8 +92,13 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, name, description, price, categoryId, sku, stock, isActive, compareAtPrice, image } = body;
 
-    const product = await db.product.update({
+    const existing = await db.product.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+
+    const product = await db.product.update({
+      where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
@@ -123,8 +128,13 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
-    await db.product.update({
+    const existing = await db.product.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
+
+    await db.product.update({
+      where: { id },
       data: { isActive: false },
     });
 

@@ -80,8 +80,13 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, name, messageTemplate, isActive, delayMinutes } = body;
 
-    const automation = await db.automation.update({
+    const existing = await db.automation.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Automatisation introuvable" }, { status: 404 });
+
+    const automation = await db.automation.update({
+      where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(messageTemplate !== undefined && { messageTemplate }),
@@ -106,8 +111,13 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
-    await db.automation.delete({
+    const existing = await db.automation.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Automatisation introuvable" }, { status: 404 });
+
+    await db.automation.delete({
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

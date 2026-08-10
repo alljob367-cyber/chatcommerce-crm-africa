@@ -109,8 +109,13 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { id, status, assignedToId } = body;
 
-    const conversation = await db.conversation.update({
+    const existing = await db.conversation.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
+
+    const conversation = await db.conversation.update({
+      where: { id },
       data: { status, assignedToId },
     });
 

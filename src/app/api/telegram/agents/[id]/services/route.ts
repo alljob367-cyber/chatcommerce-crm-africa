@@ -108,8 +108,13 @@ export async function DELETE(
     });
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 
-    await db.businessService.delete({
+    const service = await db.businessService.findFirst({
       where: { id: serviceId, agentId: id },
+    });
+    if (!service) return NextResponse.json({ error: "Service introuvable" }, { status: 404 });
+
+    await db.businessService.delete({
+      where: { id: serviceId },
     });
 
     return NextResponse.json({ success: true });

@@ -223,30 +223,28 @@ export async function GET(request: Request) {
       ? Math.round(allDelays.reduce((a, b) => a + b, 0) / allDelays.length)
       : 0;
 
-    // Revenue by day
-    const revenueByDay = await Promise.all(
-      Array.from({ length: Math.min(totalDays, 90) }, (_, i) => {
-        const date = new Date(start);
-        date.setDate(date.getDate() + i);
-        const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 1);
-        return db.order
-          .aggregate({
-            where: {
-              companyId,
-              createdAt: { gte: date, lt: nextDate },
-              paymentStatus: "paid",
-            },
-            _sum: { total: true },
-            _count: true,
-          })
-          .then((r) => ({
-            date: date.toISOString().split("T")[0],
-            revenue: r._sum.total || 0,
-            orders: r._count,
-          }));
-      })
-    );
+    // Revenue by day — single GROUP BY query (optimized, no N+1)
+    const revenueRaw = await db.$queryRawUnsafe(
+      `SELECT DATE("createdAt") as day, COALESCE(SUM("total"), 0) as revenue, COUNT(*) as orders
+       FROM "Order"
+       WHERE "companyId" = $1 AND "createdAt" >= $2 AND "paymentStatus" = 'paid'
+       GROUP BY DATE("createdAt")
+       ORDER BY day ASC`,
+      companyId, start
+    ) as { day: string; revenue: number; orders: number }[];
+
+    const revenueMap = new Map(revenueRaw.map((r) => [r.day, r]));
+    const revenueByDay = Array.from({ length: Math.min(totalDays, 90) }, (_, i) => {
+      const date = new Date(start);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split("T")[0];
+      const entry = revenueMap.get(dateStr);
+      return {
+        date: dateStr,
+        revenue: entry?.revenue || 0,
+        orders: entry?.orders || 0,
+      };
+    });
 
     // Build last 7 days for telegram daily bookings (fill missing dates with 0)
     const telegramDailyBookings: { date: string; count: number }[] = [];

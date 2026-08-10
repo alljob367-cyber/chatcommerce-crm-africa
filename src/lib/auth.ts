@@ -1,15 +1,17 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import crypto from "crypto";
 
-// Ultra-resilient JWT: never crash in production
+// JWT secret: in production, JWT_SECRET must be set (never use DATABASE_URL)
 function getJWTSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (secret && secret.length > 10) {
     return new TextEncoder().encode(secret);
   }
-  // Fallback: derive a stable secret from any available env var
-  const fallback = process.env.DATABASE_URL || "chatcommerce-fallback-secret-key-2024";
-  return new TextEncoder().encode(fallback);
+  // Development-only fallback — never used in production
+  if (process.env.NODE_ENV === "production") {
+    console.error("[SECURITY] JWT_SECRET is not set. Authentication will be unstable.");
+  }
+  return new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
 }
 
 const JWT_SECRET = getJWTSecret();

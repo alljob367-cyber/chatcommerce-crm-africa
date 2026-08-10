@@ -46,8 +46,13 @@ export async function PUT(
     const body = await request.json();
     const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
-    const agent = await db.telegramAgent.update({
+    const existing = await db.telegramAgent.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
+
+    const agent = await db.telegramAgent.update({
+      where: { id },
       data: {
         ...(name !== undefined && { name: sanitize(name) }),
         ...(botToken !== undefined && { token: botToken }),
@@ -89,8 +94,13 @@ export async function DELETE(
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const { id } = await params;
-    await db.telegramAgent.delete({
+    const existing = await db.telegramAgent.findFirst({
       where: { id, companyId: session.companyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
+
+    await db.telegramAgent.delete({
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
