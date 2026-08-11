@@ -307,6 +307,29 @@ export default function SettingsPage() {
   const [chariowCheckoutUrl, setChariowCheckoutUrl] = useState("");
   const [chariowTargetPlan, setChariowTargetPlan] = useState("");
   const [chariowDiscount, setChariowDiscount] = useState("");
+  const [chariowWidgetLoaded, setChariowWidgetLoaded] = useState(false);
+
+  // ── Load Chariow Widget Script ──
+  useEffect(() => {
+    if (chariowWidgetLoaded) return;
+    // Load CSS
+    if (!document.querySelector('link[href*="chariowcdn"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://js.chariowcdn.com/v1/widget.min.css";
+      document.head.appendChild(link);
+    }
+    // Load JS
+    if (!document.querySelector('script[src*="chariowcdn"]')) {
+      const script = document.createElement("script");
+      script.src = "https://js.chariowcdn.com/v1/widget.min.js";
+      script.async = true;
+      script.onload = () => setChariowWidgetLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setChariowWidgetLoaded(true);
+    }
+  }, [chariowWidgetLoaded]);
 
   // ─────────────────────────────────────────────────────
   // LOAD DATA
@@ -1413,8 +1436,36 @@ export default function SettingsPage() {
                 })}
               </div>
 
+              {/* Chariow Widget - Paiement rapide */}
+              {chariowWidgetLoaded && (
+                <Card className="border-2 border-dashed border-[#ffcc00]/50 bg-[#ffcc00]/5 mt-6">
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-lg bg-[#ffcc00]/20 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-[#ffcc00]" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">Paiement rapide via Chariow</p>
+                        <p className="text-[11px] text-muted-foreground">Payez en toute securite avec Mobile Money & carte bancaire</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-center">
+                      <div id="chariow-widget" data-product-id="prd_9lchjpi5"
+                        data-store-domain="pvgxjrjr.mychariow.shop"
+                        data-style="tap"
+                        data-border-style="rounded"
+                        data-cta-width="sm"
+                        data-background-color="#FFFFFF"
+                        data-cta-animation="shine"
+                        data-locale="fr"
+                        data-primary-color="#ffcc00"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Discount Code + Mobile Money Fallback */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-4">
                 <div className="flex items-center gap-2 flex-1">
                   <Input
                     placeholder="Code promo (optionnel)"
