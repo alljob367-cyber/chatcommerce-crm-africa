@@ -313,8 +313,8 @@ export default function AuthPage() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [form, setForm] = useState({
-    email: "admin@chatcommerce.africa",
-    password: "Admin@2024",
+    email: "",
+    password: "",
   });
   const [registerForm, setRegisterForm] = useState({
     name: "",

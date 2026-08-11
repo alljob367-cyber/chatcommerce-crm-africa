@@ -6,7 +6,8 @@ const getAllowedOrigins = () => {
     return process.env.ALLOWED_ORIGINS.split(",");
   }
   if (process.env.NODE_ENV === "production") {
-    return ["*"];
+    // Production: require explicit ALLOWED_ORIGINS, fallback to Vercel URL
+    return [process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://alljob367-cyber-chatcommerce-crm-af.vercel.app"];
   }
   return ["http://localhost:3000", "http://localhost:81"];
 };

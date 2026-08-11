@@ -97,7 +97,7 @@ function HomeInner() {
       <Sidebar />
       <div
         className="transition-all duration-300"
-        style={{ marginLeft: sidebarOpen ? 256 : 72 }}
+        style={{ marginLeft: typeof window !== "undefined" && window.innerWidth < 768 ? 0 : (sidebarOpen ? 256 : 72) }}
       >
         {isFullHeight ? (
           <PageRenderer page={currentPage} />

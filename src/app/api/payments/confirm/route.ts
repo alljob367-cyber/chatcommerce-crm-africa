@@ -84,68 +84,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, payment: updated });
     }
 
-    // Action: confirm
-    const updated = await db.payment.update({
-      where: { id: paymentId },
-      data: {
-        status: "confirmed",
-        confirmedById: payload.userId,
-        confirmedAt: new Date(),
-      },
-    });
-
-    // Mettre à jour le plan de la compagnie
-    const limits = PLAN_LIMITS[payment.plan];
-    await db.company.update({
-      where: { id: payment.companyId },
-      data: {
-        plan: payment.plan,
-        maxContacts: limits.maxContacts,
-        maxAgents: limits.maxAgents,
-      },
-    });
-
-    // Update maxProducts, maxAutomations, maxTelegramAgents, maxBookings
-    // These are stored in subscription metadata for plan enforcement
-    // We update the subscription record with the full limits
-    const subMeta = JSON.stringify({
-      maxProducts: limits.maxProducts,
-      maxAutomations: limits.maxAutomations,
-      maxTelegramAgents: limits.maxTelegramAgents,
-      maxBookings: limits.maxBookings,
-    });
-
-    // Mettre à jour ou créer la subscription
-    const existingSub = await db.subscription.findFirst({
-      where: {
-        companyId: payment.companyId,
-        status: { in: ["active", "trialing"] },
-      },
-    });
-
-    const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    if (existingSub) {
-      await db.subscription.update({
-        where: { id: existingSub.id },
+    // Action: confirm — wrap entire flow in transaction to prevent double-confirmation
+    const [updated, company] = await db.$transaction(async (tx) => {
+      const up = await tx.payment.update({
+        where: { id: paymentId, status: "pending" },
         data: {
-          plan: payment.plan,
-          status: "active",
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: periodEnd,
+          status: "confirmed",
+          confirmedById: payload.userId,
+          confirmedAt: new Date(),
         },
       });
-    } else {
-      await db.subscription.create({
+
+      const limits = PLAN_LIMITS[payment.plan];
+      const co = await tx.company.update({
+        where: { id: payment.companyId },
         data: {
-          companyId: payment.companyId,
           plan: payment.plan,
-          status: "active",
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: periodEnd,
+          maxContacts: limits.maxContacts,
+          maxAgents: limits.maxAgents,
         },
       });
-    }
+
+      const existingSub = await tx.subscription.findFirst({
+        where: { companyId: payment.companyId, status: { in: ["active", "trialing"] } },
+      });
+      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      if (existingSub) {
+        await tx.subscription.update({
+          where: { id: existingSub.id },
+          data: { plan: payment.plan, status: "active", currentPeriodStart: new Date(), currentPeriodEnd: periodEnd },
+        });
+      } else {
+        await tx.subscription.create({
+          data: { companyId: payment.companyId, plan: payment.plan, status: "active", currentPeriodStart: new Date(), currentPeriodEnd: periodEnd },
+        });
+      }
+
+      return [up, co];
+    }, { isolationLevel: "Serializable" });
 
     return NextResponse.json({ success: true, payment: updated });
   } catch (error: unknown) {

@@ -7,25 +7,19 @@ function getJWTSecret(): Uint8Array {
   if (secret && secret.length > 10) {
     return new TextEncoder().encode(secret);
   }
-  // Development-only fallback — never used in production
+  // Production: REJECT if no JWT_SECRET — never use fallback in prod
   if (process.env.NODE_ENV === "production") {
-    console.error("[SECURITY] JWT_SECRET is not set. Authentication will be unstable.");
+    throw new Error("[SECURITY] JWT_SECRET environment variable is required in production.");
   }
+  // Development-only fallback
   return new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
 }
 
 const JWT_SECRET = getJWTSecret();
 
 export async function hashPassword(password: string): Promise<string> {
-  try {
-    const bcrypt = await import("bcryptjs");
-    return bcrypt.hash(password, 12);
-  } catch {
-    // Fallback: SHA-256 based hash if bcrypt fails
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.createHash("sha256").update(password + salt).digest("hex");
-    return `sha256$${salt}$${hash}`;
-  }
+  const bcrypt = await import("bcryptjs");
+  return bcrypt.hash(password, 12);
 }
 
 export async function verifyPassword(
