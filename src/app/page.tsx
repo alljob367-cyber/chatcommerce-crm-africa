@@ -15,6 +15,7 @@ import AIPage from "@/components/app/ai-page";
 import SettingsPage from "@/components/app/settings-page";
 import PaymentsPage from "@/components/app/payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
+import AdminPage from "@/components/app/admin-page";
 import TelegramPage from "@/components/app/telegram-page";
 import DriversPage from "@/components/app/drivers-page";
 import DeliveriesPage from "@/components/app/deliveries-page";
@@ -38,6 +39,7 @@ function PageRenderer({ page }: { page: string }) {
     case "payments": return <PaymentsPage />;
     case "campaigns": return <CampaignsPage />;
     case "admin-payments": return <AdminPaymentsPage />;
+    case "admin": return <AdminPage />;
     case "telegram": return <TelegramPage />;
     case "drivers": return <DriversPage />;
     case "deliveries": return <DeliveriesPage />;

@@ -18,7 +18,8 @@ export type Page =
   | "deliveries"
   | "campaigns"
   | "reports"
-  | "api-docs";
+  | "api-docs"
+  | "admin";
 
 export interface User {
   id: string;

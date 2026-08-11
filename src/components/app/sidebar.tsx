@@ -24,6 +24,7 @@ import {
   Bike,
   Truck,
   Megaphone,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,6 +52,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "campaigns", label: "Campagnes Telegram Ads", icon: Megaphone, proOnly: true },
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
+  { page: "admin", label: "Administration", icon: Settings2, adminOnly: true },
   { page: "reports", label: "Rapports", icon: BarChart3 },
   { page: "api-docs", label: "Documentation API", icon: FileText },
 ];
