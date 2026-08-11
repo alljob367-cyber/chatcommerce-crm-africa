@@ -140,3 +140,35 @@ Stage Summary:
 - Nouvelle page "Administration" visible uniquement pour super_admin et company_admin
 - Route /api/admin visible dans le build
 - Production deployee: https://alljob367-cyber-chatcommerce-crm-af.vercel.app
+
+---
+Task ID: 4
+Agent: main
+Task: Ajouter l'import de photos/flyers/visuels dans le catalogue produits
+
+Work Log:
+- Explore le codebase catalogue: schema Prisma (Product avec image + images JSON), products-page.tsx (236 lignes), /api/products/route.ts
+- Decouvert que le champ `images` (JSON array) existait dans le schema mais n'etait utilise nulle part
+- Cree l'API /api/products/upload/route.ts avec POST (upload base64) et DELETE (supprimer image)
+  - Max 5 MB par image, 10 images par produit
+  - Support JPG, PNG, GIF, WebP, SVG
+  - Ajout a un produit existant ou retourne images pour le formulaire
+  - Suppression individuelle avec mise a jour de l'image principale
+- Mis a jour /api/products/route.ts: GET/POST/PATCH gerent maintenant le champ `images`
+- Rewrit complet de products-page.tsx (~480 lignes) avec:
+  - Zone d'upload drag & drop + clic dans le formulaire ajout/modification produit
+  - Grille de preview des images uploadees avec badge "PRINCIPALE", boutons supprimer/promouvoir
+  - Upload direct sur produit existant via bouton dans la card
+  - Gallerie viewer avec navigation fleches + thumbnails strip + compteur
+  - Suppression d'image depuis la gallerie
+  - Badge compteur de photos sur chaque card produit
+  - Indicateur dots pour produits multi-images
+- TypeScript check: 0 erreurs
+- Deploy en production sur Vercel
+
+Stage Summary:
+- Import photos/flyers/visuels complet dans le catalogue
+- API upload: /api/products/upload (POST + DELETE)
+- UI: drag & drop, preview grille, gallerie plein ecran, upload direct sur produit
+- Max 10 images par produit, 5 MB chacune
+- Production deployee: https://alljob367-cyber-chatcommerce-crm-af.vercel.app

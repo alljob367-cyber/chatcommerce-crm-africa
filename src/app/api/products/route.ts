@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const body = await request.json();
-    const { name, description, price, categoryId, sku, stock, compareAtPrice, image } = body;
+    const { name, description, price, categoryId, sku, stock, compareAtPrice, image, images } = body;
 
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Nom et prix requis" }, { status: 400 });
@@ -74,6 +74,7 @@ export async function POST(request: Request) {
         sku: sku || `SKU-${Date.now().toString(36).toUpperCase()}`,
         stock: parseInt(stock) || 0,
         image,
+        images: images ? JSON.stringify(images) : null,
       },
     });
 
@@ -90,7 +91,7 @@ export async function PATCH(request: Request) {
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const body = await request.json();
-    const { id, name, description, price, categoryId, sku, stock, isActive, compareAtPrice, image } = body;
+    const { id, name, description, price, categoryId, sku, stock, isActive, compareAtPrice, image, images } = body;
 
     // Validate price
     if (price !== undefined && (isNaN(parseFloat(price)) || parseFloat(price) < 0)) {
@@ -114,6 +115,7 @@ export async function PATCH(request: Request) {
         ...(stock !== undefined && { stock: parseInt(stock) }),
         ...(isActive !== undefined && { isActive }),
         ...(image !== undefined && { image }),
+        ...(images !== undefined && { images: images ? JSON.stringify(images) : null }),
       },
     });
 
