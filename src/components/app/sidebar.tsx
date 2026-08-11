@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useAppStore, type Page } from "@/store/app";
 import { cn } from "@/lib/utils";
 import {
@@ -117,7 +118,7 @@ export default function Sidebar() {
         <div className="h-16 flex items-center px-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl shrink-0 overflow-hidden">
-              <img src="/logo.png" alt="ChatCommerce CRM" className="w-full h-full object-cover" />
+              <Image src="/logo.png" alt="ChatCommerce CRM" width={36} height={36} className="w-full h-full object-cover rounded-xl" />
             </div>
             {sidebarOpen && (
               <div className="animate-fade-in">
