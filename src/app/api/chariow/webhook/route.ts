@@ -63,7 +63,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, warning: "Order not found" });
     }
 
-    // 4. Mettre à jour la commande selon l'événement
+    // 4. Verifier le montant paye correspond au plan commande (anti-underpay)
+    const paidAmount = saleData.amount || saleData.total || saleData.amount_paid;
+    const expectedAmount = existingOrder.amount;
+
+    if (paidAmount !== undefined && paidAmount !== null) {
+      const paid = Number(paidAmount);
+      if (paid < expectedAmount * 0.95) {
+        // Tolérance de 5% pour les frais/arrondis
+        console.warn(
+          `[Chariow Webhook] Montant incorrect: paye=${paid}, attendu=${expectedAmount}, plan=${existingOrder.plan}`
+        );
+        // Marquer la commande en erreur mais ne pas upgrader
+        await db.chariowOrder.update({
+          where: { id: existingOrder.id },
+          data: { status: "failed", updatedAt: new Date() },
+        });
+        return NextResponse.json({
+          received: true,
+          error: "amount_mismatch",
+          paid,
+          expected: expectedAmount,
+        });
+      }
+    }
+
+    // 5. Mettre à jour la commande selon l'événement
     if (saleStatus === "completed" || eventType === "sale.completed" || eventType === "payment.received") {
       // Paiement réussi — mettre à jour la commande ET upgrader le plan
       const [updatedOrder] = await db.$transaction([

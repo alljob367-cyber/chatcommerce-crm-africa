@@ -118,8 +118,10 @@ export async function POST(request: Request) {
       : countryCode;
 
     // 8. Rediriger vers la boutique Chariow (produit pay-what-you-want)
+    //    Le montant est passe explicitement pour afficher le bon prix au client
     const storeDomain = process.env.CHARIOW_STORE_DOMAIN || "pvgxjrjr.mychariow.shop";
-    const checkoutUrl = `https://${storeDomain}?email=${encodeURIComponent(user.email)}&plan=${plan}&company_id=${payload.companyId}&user_id=${payload.userId}`;
+    const amount = PLAN_PRICES[plan];
+    const checkoutUrl = `https://${storeDomain}?email=${encodeURIComponent(user.email)}&plan=${plan}&amount=${amount}&company_id=${payload.companyId}&user_id=${payload.userId}`;
 
     console.log(`[Chariow] Redirection vers boutique pour plan=${plan}, user=${user.email}`);
 
@@ -142,15 +144,17 @@ export async function POST(request: Request) {
       },
     });
 
-    // 10. Retourner l'URL de redirection
+    // 10. Retourner l'URL de redirection avec rappel du montant
     return NextResponse.json({
       success: true,
       status: "awaiting_payment",
       checkoutUrl,
       orderId: chariowOrder.id,
       amount: chariowOrder.amount,
+      expectedAmount: amount,
       currency: chariowOrder.currency,
       plan,
+      message: `Paiement de ${amount.toLocaleString("fr-FR")} FCFA pour le plan ${plan.toUpperCase()}`,
     });
 
   } catch (error: unknown) {

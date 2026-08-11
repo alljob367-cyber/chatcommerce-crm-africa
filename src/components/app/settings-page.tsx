@@ -1759,6 +1759,12 @@ export default function SettingsPage() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Montant</span>
+                <span className="text-lg font-bold text-[#25D366]">
+                  {PLANS.find(p => p.key === chariowTargetPlan)?.price || "..."} FCFA
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Statut</span>
                 <span className="text-sm font-medium text-amber-500 flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
