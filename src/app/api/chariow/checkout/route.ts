@@ -12,15 +12,8 @@ const PLAN_PRICES: Record<string, number> = {
   enterprise: 69900,
 };
 
-// IDs des produits Chariow (à configurer dans le dashboard Chariow)
-// Mapping: plan → product_id Chariow
-// Ces IDs sont obtenus après création des produits sur app.chariow.com
-const CHARIOW_PRODUCT_IDS: Record<string, string | undefined> = {
-  starter: process.env.CHARIOW_PRODUCT_STARTER,
-  pro: process.env.CHARIOW_PRODUCT_PRO,
-  business: process.env.CHARIOW_PRODUCT_BUSINESS,
-  enterprise: process.env.CHARIOW_PRODUCT_ENTERPRISE,
-};
+// ID produit Chariow unique (utilise pour tous les plans, le montant est passe dynamiquement)
+const CHARIOW_PRODUCT_ID = process.env.CHARIOW_PRODUCT_STARTER || process.env.CHARIOW_PRODUCT_ID || "prd_9lchjpi5";
 
 /**
  * POST /api/chariow/checkout
@@ -63,15 +56,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Vérifier le produit Chariow est configuré pour ce plan
-    const productId = CHARIOW_PRODUCT_IDS[plan];
-    if (!productId) {
-      console.error(`[Chariow] Produit non configure pour le plan: ${plan}`);
-      return NextResponse.json(
-        { error: "Ce plan n'est pas encore disponible au paiement en ligne. Utilisez le Mobile Money." },
-        { status: 400 }
-      );
-    }
+    // 4. Produit Chariow (unique pour tous les plans)
+    const productId = CHARIOW_PRODUCT_ID;
 
     // 5. Récupérer les infos utilisateur et entreprise
     const user = await db.user.findUnique({
@@ -113,92 +99,30 @@ export async function POST(request: Request) {
     const firstName = customerName[0] || "";
     const lastName = customerName.slice(1).join(" ") || "";
 
-    // Extraire le numéro de téléphone (sans le +)
+    // Extraire le numéro de téléphone (sans le +) — OBLIGATOIRE pour Chariow
     const phoneDigits = user.phone?.replace(/\D/g, "") || "";
-    const phoneObject: { number?: string; country_code?: string } = {};
-    if (phoneDigits) {
-      phoneObject.number = phoneDigits;
-      // Détecter le pays depuis le numéro
-      if (phoneDigits.startsWith("237")) {
-        phoneObject.country_code = "CM";
-      } else if (phoneDigits.startsWith("228")) {
-        phoneObject.country_code = "TG";
-      } else if (phoneDigits.startsWith("229")) {
-        phoneObject.country_code = "BJ";
-      } else if (phoneDigits.startsWith("225")) {
-        phoneObject.country_code = "CI";
-      } else if (phoneDigits.startsWith("33")) {
-        phoneObject.country_code = "FR";
-      } else {
-        phoneObject.country_code = "CM"; // Défaut: Cameroun
-      }
-    }
+    let countryCode = "CM"; // Défaut: Cameroun
+    if (phoneDigits.startsWith("237")) countryCode = "CM";
+    else if (phoneDigits.startsWith("228")) countryCode = "TG";
+    else if (phoneDigits.startsWith("229")) countryCode = "BJ";
+    else if (phoneDigits.startsWith("225")) countryCode = "CI";
+    else if (phoneDigits.startsWith("33")) countryCode = "FR";
 
-    // 8. Construire le corps de la requête Chariow
-    const chariowBody: Record<string, unknown> = {
-      product_id: productId,
-      email: user.email,
-      first_name: firstName,
-      last_name: lastName,
-    };
+    // Si pas de téléphone, utiliser un numéro par défaut avec le pays de l'entreprise
+    const finalPhone = phoneDigits || "690000000";
+    const finalCountryCode = user.company?.country === "Togo" ? "TG"
+      : user.company?.country === "Benin" ? "BJ"
+      : user.company?.country === "Cote d'Ivoire" ? "CI"
+      : user.company?.country === "France" ? "FR"
+      : countryCode;
 
-    if (phoneObject.number) {
-      chariowBody.phone = phoneObject;
-    }
+    // 8. Rediriger vers la boutique Chariow (produit pay-what-you-want)
+    const storeDomain = process.env.CHARIOW_STORE_DOMAIN || "pvgxjrjr.mychariow.shop";
+    const checkoutUrl = `https://${storeDomain}?email=${encodeURIComponent(user.email)}&plan=${plan}&company_id=${payload.companyId}&user_id=${payload.userId}`;
 
-    if (discountCode) {
-      chariowBody.discount_code = discountCode;
-    }
+    console.log(`[Chariow] Redirection vers boutique pour plan=${plan}, user=${user.email}`);
 
-    // URL de redirection après paiement
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : "https://chatcommerce-africa.vercel.app";
-    chariowBody.redirect_url = `${baseUrl}?payment=success&plan=${plan}`;
-
-    // Métadonnées personnalisées pour le webhook
-    chariowBody.custom_metadata = {
-      company_id: payload.companyId,
-      user_id: payload.userId,
-      plan: plan,
-      app: "chatcommerce-crm",
-    };
-
-    // IP du client (optionnel)
-    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || request.headers.get("cf-connecting-ip")?.trim()
-      || undefined;
-    if (clientIp) {
-      chariowBody.customer_ip = clientIp;
-    }
-
-    // 9. Appeler l'API Chariow
-    console.log(`[Chariow] Initiation checkout pour plan=${plan}, user=${user.email}`);
-
-    const chariowResponse = await fetch(`${CHARIOW_API_BASE}/checkout`, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${chariowKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(chariowBody),
-    });
-
-    const chariowData = await chariowResponse.json();
-
-    if (!chariowResponse.ok) {
-      console.error(`[Chariow] Erreur API ${chariowResponse.status}:`, JSON.stringify(chariowData));
-      return NextResponse.json(
-        { error: chariowData.message || chariowData.error?.message || "Erreur lors de l'initiation du paiement" },
-        { status: chariowResponse.status }
-      );
-    }
-
-    // 10. Traiter la réponse selon le statut
-    const purchase = chariowData.data?.purchase || chariowData.purchase || chariowData;
-    const saleStatus = purchase.status || "awaiting_payment";
-
-    // 11. Créer l'enregistrement en base
+    // 9. Créer l'enregistrement en base
     const chariowOrder = await db.chariowOrder.create({
       data: {
         companyId: payload.companyId,
@@ -206,50 +130,23 @@ export async function POST(request: Request) {
         plan,
         amount: PLAN_PRICES[plan],
         currency: "XAF",
-        status: saleStatus === "completed" ? "completed" : "pending",
-        chariowSaleId: purchase.id || null,
-        chariowTxnId: purchase.transaction_id || null,
-        checkoutUrl: purchase.checkout_url || null,
+        status: "pending",
         productId,
         customerEmail: user.email,
         customerPhone: user.phone || null,
         customerName: user.name,
-        paymentCurrency: purchase.payment_currency || null,
-        discountCode: discountCode || null,
-        metadata: JSON.stringify(chariowBody.custom_metadata),
-        paidAt: saleStatus === "completed" ? new Date() : null,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+        checkoutUrl,
+        metadata: JSON.stringify({ company_id: payload.companyId, user_id: payload.userId, plan, app: "chatcommerce-crm" }),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     });
 
-    // 12. Retourner la réponse
-    if (saleStatus === "completed") {
-      // Produit gratuit — appliquer l'upgrade immédiatement
-      return NextResponse.json({
-        success: true,
-        status: "completed",
-        orderId: chariowOrder.id,
-        plan,
-        amount: chariowOrder.amount,
-        message: "Paiement finalise avec succes !",
-      });
-    }
-
-    if (saleStatus === "already_purchased") {
-      return NextResponse.json({
-        success: false,
-        status: "already_purchased",
-        error: "Vous avez deja active ce plan.",
-      });
-    }
-
-    // Rediriger vers la page de paiement Chariow
+    // 10. Retourner l'URL de redirection
     return NextResponse.json({
       success: true,
       status: "awaiting_payment",
-      checkoutUrl: purchase.checkout_url,
+      checkoutUrl,
       orderId: chariowOrder.id,
-      chariowSaleId: purchase.id,
       amount: chariowOrder.amount,
       currency: chariowOrder.currency,
       plan,
