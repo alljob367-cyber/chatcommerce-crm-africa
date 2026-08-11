@@ -55,7 +55,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "settings", label: "Parametres", icon: Settings },
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
   { page: "admin", label: "Administration", icon: Settings2, adminOnly: true },
-  { page: "reports", label: "Rapports", icon: BarChart3 },
+  { page: "reports", label: "Rapports", icon: BarChart3, adminOnly: true },
   { page: "api-docs", label: "Documentation API", icon: FileText, adminOnly: true },
 ];
 
@@ -133,7 +133,7 @@ export default function Sidebar() {
         <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto custom-scroll" role="navigation" aria-label="Navigation principale">
           {navItems
             .filter((item) => {
-              if (item.adminOnly && user?.role !== "super_admin" && user?.role !== "company_admin") return false;
+              if (item.adminOnly && user?.role !== "super_admin") return false;
               if (item.proOnly && user?.company?.plan !== "pro" && user?.company?.plan !== "business" && user?.company?.plan !== "enterprise") return false;
               return true;
             })
