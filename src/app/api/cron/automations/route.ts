@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { executeAutomations, type ExecutionReport } from "@/lib/automation-engine";
+import crypto from "crypto";
 
 /**
  * Vérifie l'authentification du cron.
@@ -30,7 +31,15 @@ function isAuthorized(request: Request): boolean {
   if (!authHeader) return false;
 
   const expectedAuth = `Bearer ${cronSecret}`;
-  return authHeader === expectedAuth;
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    const expected = Buffer.from(expectedAuth, "utf-8");
+    const actual = Buffer.from(authHeader, "utf-8");
+    if (expected.length !== actual.length) return false;
+    return crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(request: Request) {

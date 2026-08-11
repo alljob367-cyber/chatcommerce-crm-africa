@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { handleError } from "@/lib/security";
 
 const CHARIOW_API_BASE = "https://api.chariow.com/v1";
 
@@ -154,8 +155,8 @@ export async function POST(request: Request) {
 
   } catch (error: unknown) {
     console.error("[Chariow] Erreur checkout:", error);
-    const message = error instanceof Error ? error.message : "Erreur interne du serveur";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import { handleError } from "@/lib/security";
+import { handleError, sanitize } from "@/lib/security";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: "Nom requis" }, { status: 400 });
 
     const category = await db.category.create({
-      data: { companyId: session.companyId, name, description, image, sortOrder: sortOrder || 0 },
+      data: { companyId: session.companyId, name: sanitize(name), description: sanitize(description || ""), image, sortOrder: sortOrder || 0 },
     });
 
     return NextResponse.json({ category }, { status: 201 });

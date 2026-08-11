@@ -14,6 +14,7 @@
 
 import { NextResponse } from "next/server";
 import { executeAutomations, type ExecutionReport } from "@/lib/automation-engine";
+import crypto from "crypto";
 
 /**
  * Verify the cron secret from query parameter.
@@ -31,7 +32,15 @@ function isAuthorized(request: Request): boolean {
   const providedSecret = searchParams.get("secret");
 
   if (!providedSecret) return false;
-  return providedSecret === cronSecret;
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    const expected = Buffer.from(cronSecret, "utf-8");
+    const actual = Buffer.from(providedSecret, "utf-8");
+    if (expected.length !== actual.length) return false;
+    return crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(request: Request) {

@@ -24,6 +24,27 @@ export async function POST(request: Request) {
       );
     }
 
+    // Guard for hardcoded demo/admin accounts (not in DB)
+    const HARDCODED_IDS = ["admin-hardcoded-001", "demo-hardcoded-001"];
+    if (HARDCODED_IDS.includes(payload.userId)) {
+      const HARDCODED_PASSWORDS: Record<string, string> = {
+        "admin-hardcoded-001": "Admin@2024",
+        "demo-hardcoded-001": "Demo@2024",
+      };
+      const storedPassword = HARDCODED_PASSWORDS[payload.userId];
+      if (currentPassword !== storedPassword) {
+        return NextResponse.json({ error: "Mot de passe actuel incorrect" }, { status: 401 });
+      }
+      if (!isValidPassword(newPassword)) {
+        return NextResponse.json(
+          { error: "Le mot de passe doit contenir au moins 8 caracteres avec des majuscules, minuscules et chiffres" },
+          { status: 400 }
+        );
+      }
+      // Hardcoded accounts can't persist password changes
+      return NextResponse.json({ message: "Mot de passe des comptes demo ne peut pas etre modifie" });
+    }
+
     // Fetch user with password hash
     const user = await db.user.findFirst({
       where: { id: payload.userId, companyId: payload.companyId },

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, ensureBootstrapped } from "@/lib/db";
 import { hashPassword, createToken, verifyToken } from "@/lib/auth";
-import { seedDatabase } from "@/lib/seed";
 import { isValidEmail, isValidPassword, rateLimit, handleError, secureRandom, sanitize } from "@/lib/security";
 import { SignJWT } from "jose";
 

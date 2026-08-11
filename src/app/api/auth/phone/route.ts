@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        otp, // Remove in production — send via SMS instead
+        ...(process.env.NODE_ENV !== "production" ? { otp } : {}),
         message: "Code de verification envoye par SMS",
         expiresIn: 300, // 5 minutes
       });

@@ -61,8 +61,8 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         secret,
-        verifyCode, // In production, this would be shown via TOTP app. For now, return it for testing.
-        backupCodes,
+        ...(process.env.NODE_ENV !== "production" ? { verifyCode } : {}),
+        ...(process.env.NODE_ENV !== "production" ? { backupCodes } : {}),
         message: "Scannez ce code avec votre app d'authentification (Google Authenticator, Authy)",
       });
     }
@@ -75,10 +75,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "2FA non configure. Activez d'abord la 2FA." }, { status: 400 });
       }
 
-      // For now, accept the verification code that was returned during setup
-      // In production, this would validate a TOTP code
-      const verifyCode = crypto.randomInt(100000, 999999).toString();
-      const isCodeValid = code.length === 6 && /^\d{6}$/.test(code);
+      // Generate TOTP code from stored secret and compare with user input
+      // Simple time-based derivation: secret provides entropy, time provides rotation
+      const timeStep = Math.floor(Date.now() / 30000); // 30-second windows
+      const hmac = crypto.createHmac('sha1', user.twoFactorSecret);
+      hmac.update(timeStep.toString());
+      const expectedCode = hmac.digest('hex').slice(0, 6);
+      // Accept code if it matches current or previous window (for clock drift)
+      const prevHmac = crypto.createHmac('sha1', user.twoFactorSecret);
+      prevHmac.update((timeStep - 1).toString());
+      const prevCode = prevHmac.digest('hex').slice(0, 6);
+
+      const isCodeValid = code === expectedCode || code === prevCode;
 
       if (!isCodeValid) {
         return NextResponse.json({ error: "Code invalide" }, { status: 400 });
@@ -99,8 +107,17 @@ export async function POST(request: Request) {
     if (action === "disable") {
       if (!code) return NextResponse.json({ error: "Code de verification requis" }, { status: 400 });
 
-      // Verify with current OTP code before disabling
-      if (code.length !== 6) {
+      if (!user.twoFactorSecret) {
+        return NextResponse.json({ error: "2FA non configuree" }, { status: 400 });
+      }
+
+      // Verify with current TOTP code before disabling (same derivation as verify)
+      const timeStep = Math.floor(Date.now() / 30000);
+      const hmac = crypto.createHmac('sha1', user.twoFactorSecret);
+      hmac.update(timeStep.toString());
+      const expectedCode = hmac.digest('hex').slice(0, 6);
+
+      if (code !== expectedCode) {
         return NextResponse.json({ error: "Code invalide" }, { status: 400 });
       }
 
@@ -129,7 +146,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        otp, // In production, send via SMS/Telegram/email. For testing, return it.
+        ...(process.env.NODE_ENV !== "production" ? { otp } : {}),
         message: "Code de verification genere",
       });
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
+import { handleError } from "@/lib/security";
 import {
   generateAIResponse,
   suggestService,
@@ -146,11 +147,9 @@ export async function POST(req: NextRequest) {
       matchedService,
       aiEnabled: aiConfig.enabled,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[API /telegram/ai] Error:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
-    );
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
   }
 }

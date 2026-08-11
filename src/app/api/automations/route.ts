@@ -88,8 +88,8 @@ export async function PATCH(request: Request) {
     const automation = await db.automation.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name }),
-        ...(messageTemplate !== undefined && { messageTemplate }),
+        ...(name !== undefined && { name: sanitize(name) }),
+        ...(messageTemplate !== undefined && { messageTemplate: sanitize(messageTemplate) }),
         ...(isActive !== undefined && { isActive }),
         ...(delayMinutes !== undefined && { delayMinutes }),
       },
