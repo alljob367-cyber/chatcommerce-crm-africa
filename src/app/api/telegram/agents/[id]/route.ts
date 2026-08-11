@@ -20,7 +20,19 @@ export async function GET(
     const { id } = await params;
     const agent = await db.telegramAgent.findFirst({
       where: { id, companyId: session.companyId },
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        businessType: true,
+        name: true,
+        botUsername: true,
+        token: false,  // NEVER expose bot token to client
+        isActive: true,
+        welcomeMessage: true,
+        aiConfig: true,
+        agentNumber: true,
+        createdAt: true,
+        updatedAt: true,
         services: { orderBy: { sortOrder: "asc" } },
         _count: { select: { bookings: true } },
       },
@@ -78,7 +90,8 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ agent });
+    const { token: _botToken, ...safeAgent } = agent;
+    return NextResponse.json({ agent: safeAgent });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });

@@ -56,15 +56,18 @@ export async function POST(request: Request) {
       const otp = crypto.randomInt(100000, 999999).toString();
       const otpExp = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-      // Store OTP in user record
+      // Store hashed OTP in user record
+      const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
       await db.user.update({
         where: { id: user.id },
-        data: { phoneOtpCode: otp, phoneOtpExp: otpExp },
+        data: { phoneOtpCode: otpHash, phoneOtpExp: otpExp },
       });
 
       // In production, send OTP via SMS (Twilio/Infobip/Africa's Talking)
       // For now, return the OTP in the response for testing
-      console.log(`[PHONE-AUTH] OTP for ${cleanPhone}: ${otp}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[PHONE-AUTH] OTP for ${cleanPhone}: ${otp}`);
+      }
 
       return NextResponse.json({
         success: true,
@@ -107,7 +110,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Code expire. Demandez un nouveau code." }, { status: 400 });
       }
 
-      if (user.phoneOtpCode !== code) {
+      // Timing-safe comparison to prevent timing attacks
+      const providedHash = crypto.createHash('sha256').update(code).digest('hex');
+      const storedHash = user.phoneOtpCode || '';
+      const hashBuffer = Buffer.from(providedHash, 'utf-8');
+      const storedBuffer = Buffer.from(storedHash, 'utf-8');
+      const isValid = hashBuffer.length === storedBuffer.length && crypto.timingSafeEqual(hashBuffer, storedBuffer);
+
+      if (!isValid) {
         return NextResponse.json({ error: "Code invalide" }, { status: 401 });
       }
 

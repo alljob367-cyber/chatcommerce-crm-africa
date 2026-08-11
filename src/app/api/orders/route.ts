@@ -85,12 +85,12 @@ export async function POST(request: Request) {
     const tax = subtotal * 0.19;
     const total = subtotal + tax;
 
-    // Generate order number
-    const orderCount = await db.order.count({ where: { companyId: session.companyId } });
-    const orderNumber = `CMD-${String(orderCount + 1001).padStart(4, "0")}`;
-
-    // ── Transaction: create order + items + decrement stock ──
+    // ── Transaction: count + create order + items + decrement stock ──
     const order = await db.$transaction(async (tx) => {
+      // Generate order number INSIDE transaction to prevent race conditions
+      const orderCount = await tx.order.count({ where: { companyId: session.companyId } });
+      const orderNumber = `CMD-${String(orderCount + 1001).padStart(4, "0")}`;
+
       // 1. Create the order
       const newOrder = await tx.order.create({
         data: {

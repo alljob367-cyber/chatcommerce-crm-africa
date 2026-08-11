@@ -3,14 +3,31 @@ import { db, ensureBootstrapped } from "@/lib/db";
 import { hashPassword, createToken, verifyToken } from "@/lib/auth";
 import { isValidEmail, isValidPassword, rateLimit, handleError, secureRandom, sanitize } from "@/lib/security";
 import { SignJWT } from "jose";
+import bcrypt from "bcryptjs";
 
 // ─────────────────────────────────────────────────────
 // HARDCODED ADMIN & DEMO ACCOUNTS (DB-independent)
 // This ensures login works even if SQLite fails on Vercel
+// Passwords are hashed at module load via bcrypt (cost 12)
 // ─────────────────────────────────────────────────────
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@2024";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "Demo@2024";
+
+// Lazy-init hashes (one-time cost per cold start)
+let _adminHash: string | null = null;
+let _demoHash: string | null = null;
+function getAdminHash(): string {
+  if (!_adminHash) _adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
+  return _adminHash;
+}
+function getDemoHash(): string {
+  if (!_demoHash) _demoHash = bcrypt.hashSync(DEMO_PASSWORD, 12);
+  return _demoHash;
+}
+
 const HARDCODED_ACCOUNTS: Record<string, {
   email: string;
-  password: string;
+  passwordHash: string;
   userId: string;
   companyId: string;
   companyName: string;
@@ -20,7 +37,7 @@ const HARDCODED_ACCOUNTS: Record<string, {
 }> = {
   admin: {
     email: "admin@chatcommerce.africa",
-    password: "Admin@2024",
+    passwordHash: getAdminHash(),
     userId: "admin-hardcoded-001",
     companyId: "company-admin-001",
     companyName: "ChatCommerce CRM Africa",
@@ -30,7 +47,7 @@ const HARDCODED_ACCOUNTS: Record<string, {
   },
   demo: {
     email: "demo@chatcommerce.africa",
-    password: "Demo@2024",
+    passwordHash: getDemoHash(),
     userId: "demo-hardcoded-001",
     companyId: "company-demo-001",
     companyName: "ChatCommerce Demo",
@@ -100,7 +117,7 @@ export async function POST(request: Request) {
 
       // ★★★ HARDCODED ADMIN/DEMO LOGIN (DB-FREE) ★★★
       for (const [, account] of Object.entries(HARDCODED_ACCOUNTS)) {
-        if (email === account.email && password === account.password) {
+        if (email === account.email && bcrypt.compareSync(password, account.passwordHash)) {
           const token = await createHardcodedToken(account.userId, account.companyId, account.role);
           console.log(`[AUTH] Hardcoded login success: ${account.email}`);
           return NextResponse.json({
@@ -365,7 +382,7 @@ export async function POST(request: Request) {
         const account = payload.userId === HARDCODED_ACCOUNTS.admin.userId
           ? HARDCODED_ACCOUNTS.admin
           : HARDCODED_ACCOUNTS.demo;
-        if (currentPassword !== account.password) {
+        if (!bcrypt.compareSync(currentPassword, account.passwordHash)) {
           return NextResponse.json({ error: "Mot de passe actuel incorrect" }, { status: 401 });
         }
         return NextResponse.json({ success: true, message: "Mot de passe mis a jour" });

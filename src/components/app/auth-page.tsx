@@ -478,22 +478,21 @@ export default function AuthPage() {
     setLoading(true);
     setError("");
     try {
-      // Verify 2FA code via API
-      const res = await fetch("/api/auth/2fa", {
+      // First, verify the 2FA code via API
+      const verifyRes = await fetch("/api/auth/2fa", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${pendingAuth.token}` },
-        body: JSON.stringify({ action: "generate-otp" }),
+        body: JSON.stringify({ action: "verify", code: twoFaCode }),
       });
-      const data = await res.json();
-      // In production, compare TOTP. For now, accept any 6-digit code.
-      if (twoFaCode.length === 6) {
-        setAuth(pendingAuth.token, pendingAuth.user as unknown as Parameters<typeof setAuth>[1]);
-        setPendingAuth(null);
-        setTwoFaDialog(false);
-        setTwoFaCode("");
-      } else {
-        setError("Code 2FA invalide");
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok) {
+        setError(verifyData.error || "Code 2FA invalide");
+        return;
       }
+      setAuth(pendingAuth.token, pendingAuth.user as unknown as Parameters<typeof setAuth>[1]);
+      setPendingAuth(null);
+      setTwoFaDialog(false);
+      setTwoFaCode("");
     } catch {
       setError("Erreur 2FA");
     } finally {
@@ -566,16 +565,58 @@ export default function AuthPage() {
   };
 
   // ── Step 3: Confirm payment and enter app ──
-  const handleRegConfirmPayment = () => {
-    const token = localStorage.getItem("cc_token");
-    const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
-    if (token && userData) {
-      setAuth(token, { ...userData, company: { ...userData.company, plan: selectedPlan } });
+  const handleRegConfirmPayment = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("cc_token");
+      if (!token) return;
+
+      // Check payment status server-side — this fetches the REAL order status from DB
+      const res = await fetch("/api/chariow/checkout", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      // Look for a completed order matching the selected plan
+      const completedOrder = data.orders?.find(
+        (o: { plan: string; status: string }) => o.plan === selectedPlan && o.status === "completed"
+      );
+
+      const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
+
+      if (completedOrder) {
+        // Payment confirmed by server — safe to enter with the paid plan
+        setAuth(token, { ...userData, company: { ...userData.company, plan: selectedPlan } });
+        toast.success("Paiement confirme ! Bienvenue sur ChatCommerce !");
+      } else {
+        // No confirmed payment — enter with default starter plan
+        const pendingOrder = data.orders?.find(
+          (o: { plan: string; status: string }) => o.status === "pending"
+        );
+        if (pendingOrder) {
+          setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
+          toast.info("Paiement en attente. Vous commencez avec le plan Starter. Votre plan sera mis a jour automatiquement apres confirmation.");
+        } else {
+          setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
+          toast.info("Aucun paiement detecte. Vous commencez avec le plan Starter gratuit.");
+        }
+      }
+    } catch {
+      // On error, default to starter — never trust client-side plan
+      const token = localStorage.getItem("cc_token");
+      const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
+      if (token) {
+        setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
+      }
+      toast.info("Impossible de verifier le paiement. Vous commencez avec le plan Starter.");
+    } finally {
+      setRegStep(1);
+      setRegCheckoutUrl("");
+      setShowRegister(false);
+      setLoading(false);
     }
-    setRegStep(1);
-    setRegCheckoutUrl("");
-    setShowRegister(false);
-    toast.success("Bienvenue sur ChatCommerce !");
   };
 
   // ── Cancel registration ──

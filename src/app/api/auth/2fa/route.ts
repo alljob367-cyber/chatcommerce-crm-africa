@@ -4,6 +4,24 @@ import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 import crypto from "crypto";
 
+// Proper RFC 6238 TOTP code generation
+function generateTOTP(secret: string, timeStep: number): string {
+  const hmac = crypto.createHmac('sha1', secret);
+  // RFC 6238: 8-byte big-endian counter
+  const counter = Buffer.alloc(8);
+  counter.writeUInt32BE(Math.floor(timeStep / 0x100000000), 0);
+  counter.writeUInt32BE(timeStep & 0xffffffff, 4);
+  hmac.update(counter);
+  const digest = hmac.digest();
+  // Dynamic truncation (RFC 4226)
+  const offset = digest[digest.length - 1] & 0x0f;
+  const code = ((digest[offset] & 0x7f) << 24) |
+    ((digest[offset + 1] & 0xff) << 16) |
+    ((digest[offset + 2] & 0xff) << 8) |
+    (digest[offset + 3] & 0xff);
+  return (code % 1000000).toString().padStart(6, '0');
+}
+
 let bootstrapped = false;
 async function bootstrap() {
   if (!bootstrapped) {
@@ -75,17 +93,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "2FA non configure. Activez d'abord la 2FA." }, { status: 400 });
       }
 
-      // Generate TOTP code from stored secret and compare with user input
-      // Simple time-based derivation: secret provides entropy, time provides rotation
-      const timeStep = Math.floor(Date.now() / 30000); // 30-second windows
-      const hmac = crypto.createHmac('sha1', user.twoFactorSecret);
-      hmac.update(timeStep.toString());
-      const expectedCode = hmac.digest('hex').slice(0, 6);
-      // Accept code if it matches current or previous window (for clock drift)
-      const prevHmac = crypto.createHmac('sha1', user.twoFactorSecret);
-      prevHmac.update((timeStep - 1).toString());
-      const prevCode = prevHmac.digest('hex').slice(0, 6);
-
+      const timeStep = Math.floor(Date.now() / 30000);
+      const expectedCode = generateTOTP(user.twoFactorSecret, timeStep);
+      const prevCode = generateTOTP(user.twoFactorSecret, timeStep - 1);
       const isCodeValid = code === expectedCode || code === prevCode;
 
       if (!isCodeValid) {
@@ -111,13 +121,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "2FA non configuree" }, { status: 400 });
       }
 
-      // Verify with current TOTP code before disabling (same derivation as verify)
+      // Verify with current TOTP code before disabling
       const timeStep = Math.floor(Date.now() / 30000);
-      const hmac = crypto.createHmac('sha1', user.twoFactorSecret);
-      hmac.update(timeStep.toString());
-      const expectedCode = hmac.digest('hex').slice(0, 6);
+      const expectedCode = generateTOTP(user.twoFactorSecret, timeStep);
+      const prevCode = generateTOTP(user.twoFactorSecret, timeStep - 1);
 
-      if (code !== expectedCode) {
+      if (code !== expectedCode && code !== prevCode) {
         return NextResponse.json({ error: "Code invalide" }, { status: 400 });
       }
 

@@ -17,7 +17,19 @@ export async function GET(request: Request) {
 
     const agents = await db.telegramAgent.findMany({
       where: { companyId: session.companyId },
-      include: {
+      select: {
+        id: true,
+        companyId: true,
+        businessType: true,
+        name: true,
+        botUsername: true,
+        token: false,  // NEVER expose bot token to client
+        isActive: true,
+        welcomeMessage: true,
+        aiConfig: true,
+        agentNumber: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: { services: true, bookings: true },
         },
@@ -85,7 +97,8 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ agent }, { status: 201 });
+    const { token: _botToken, ...safeAgent } = agent;
+    return NextResponse.json({ agent: safeAgent }, { status: 201 });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });

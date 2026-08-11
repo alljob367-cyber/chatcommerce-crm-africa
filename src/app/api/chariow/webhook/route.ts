@@ -54,9 +54,38 @@ export async function POST(request: Request) {
     }
 
     // 3. Trouver la commande correspondante dans notre base
-    const existingOrder = await db.chariowOrder.findUnique({
+    let existingOrder = await db.chariowOrder.findUnique({
       where: { chariowSaleId: saleId },
     });
+
+    // Fallback: match by metadata (companyId + userId + plan + pending) if chariowSaleId not set
+    if (!existingOrder) {
+      const metadata = payload.metadata || payload.data?.metadata || {};
+      const companyId = metadata.company_id || metadata.companyId;
+      const userId = metadata.user_id || metadata.userId;
+      const plan = metadata.plan;
+
+      if (companyId && userId && plan) {
+        existingOrder = await db.chariowOrder.findFirst({
+          where: {
+            companyId,
+            userId,
+            plan,
+            status: "pending",
+            expiresAt: { gt: new Date() },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        // Update the order with the chariowSaleId for future lookups
+        if (existingOrder) {
+          await db.chariowOrder.update({
+            where: { id: existingOrder.id },
+            data: { chariowSaleId: saleId },
+          });
+        }
+      }
+    }
 
     if (!existingOrder) {
       console.warn(`[Chariow Webhook] Commande non trouvee pour sale_id=${saleId}`);
@@ -90,6 +119,30 @@ export async function POST(request: Request) {
 
     // 5. Mettre à jour la commande selon l'événement
     if (saleStatus === "completed" || eventType === "sale.completed" || eventType === "payment.received") {
+      // IDEMPOTENCY: Skip if already completed (replay protection)
+      if (existingOrder.status === "completed") {
+        console.log(`[Chariow Webhook] Ordre deja complete: ${existingOrder.id}`);
+        return NextResponse.json({ received: true, status: "already_completed" });
+      }
+
+      // Prevent plan downgrades via payment
+      const currentCompany = await db.company.findUnique({
+        where: { id: existingOrder.companyId },
+      });
+      if (currentCompany) {
+        const { PLAN_ORDER } = await import("@/lib/plan-limits");
+        const currentIdx = PLAN_ORDER.indexOf(currentCompany.plan as any);
+        const targetIdx = PLAN_ORDER.indexOf(existingOrder.plan as any);
+        if (targetIdx < currentIdx) {
+          console.warn(`[Chariow Webhook] Downgrade bloque: ${currentCompany.plan} -> ${existingOrder.plan}`);
+          await db.chariowOrder.update({
+            where: { id: existingOrder.id },
+            data: { status: "failed", updatedAt: new Date() },
+          });
+          return NextResponse.json({ received: true, error: "downgrade_blocked" });
+        }
+      }
+
       // Paiement réussi — mettre à jour la commande ET upgrader le plan
       const [updatedOrder] = await db.$transaction([
         // Mettre à jour la commande Chariow
@@ -103,13 +156,13 @@ export async function POST(request: Request) {
         }),
       ]);
 
-      // Upgrader le plan de l'entreprise
-      const currentCompany = await db.company.findUnique({
+      // Upgrader le plan de l'entreprise (currentCompany already fetched above)
+      const companyWithSubs = await db.company.findUnique({
         where: { id: existingOrder.companyId },
         include: { subscriptions: true },
       });
 
-      if (currentCompany) {
+      if (companyWithSubs) {
         // Mise à jour du plan de l'entreprise
         await db.company.update({
           where: { id: existingOrder.companyId },
@@ -120,7 +173,7 @@ export async function POST(request: Request) {
         });
 
         // Mettre à jour ou créer la subscription
-        const activeSub = currentCompany.subscriptions.find(
+        const activeSub = companyWithSubs.subscriptions.find(
           (s) => s.status === "active" || s.status === "trialing"
         );
 

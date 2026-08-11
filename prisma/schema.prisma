@@ -186,8 +186,8 @@ model Product {
   categoryId  String?
   name        String
   description String?
-  price       Float
-  compareAtPrice Float?
+  price       Float  // TODO: Migrate to Decimal for financial accuracy
+  compareAtPrice Float?  // TODO: Migrate to Decimal
   sku         String?
   barcode     String?
   image       String?
@@ -636,4 +636,14 @@ model ChariowOrder {
   @@index([userId])
   @@index([status])
   @@index([chariowSaleId])
+}
+
+// Rate limiting log (serverless-durable rate limiter)
+model RateLimitLog {
+  id        String   @id @default(cuid())
+  key       String   // Rate limit key (e.g., "login:user@x.com")
+  expiresAt DateTime // When this entry can be cleaned up
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
 }

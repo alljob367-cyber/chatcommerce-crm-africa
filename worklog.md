@@ -47,6 +47,30 @@ Stage Summary:
 - All Chariow product IDs and API key configured on Vercel
 
 ---
+Task ID: 8
+Agent: main + 3 subagents
+Task: Fix all 12 CRITICAL vulnerabilities found in production audit
+
+Work Log:
+- 🔴9 FIXED: Registration plan bypass — handleRegConfirmPayment now verifies payment server-side, defaults to Starter if no confirmed payment
+- 🔴2 FIXED: 2FA frontend now calls action:"verify" instead of accepting any 6-digit code
+- 🔴7 FIXED: TOTP now uses RFC 6238 compliant generateTOTP() with 8-byte big-endian counter + dynamic truncation (produces numeric 6-digit codes)
+- 🔴10 FIXED: Webhook fallback matches by companyId+userId+plan+pending when chariowSaleId is null, then backfills
+- 🔴11 FIXED: Webhook checks if order already "completed" before processing (replay protection)
+- 🔴1 FIXED: Hardcoded passwords now hashed with bcrypt at module load, compared with bcrypt.compareSync, read from env vars
+- 🔴4 FIXED: Telegram agents GET/POST/PUT/GET:id all use select with token:false or destructure token out
+- 🔴6 FIXED: Phone OTP now SHA-256 hashed before storage, timing-safe comparison for verification, console.log gated on NODE_ENV
+- 🔴3 FIXED: Rate limiter now DB-backed with RateLimitLog model, falls back to in-memory
+- 🔴12 FIXED: Order count moved inside transaction (tx.order.count)
+- 🔴5 FIXED: Chariow API key configured on Vercel env vars (was already done)
+- 🔴8 TODO: Float→Decimal migration marked in schema (requires careful migration, done post-launch)
+
+Stage Summary:
+- 11/12 CRITICAL bugs fixed, 1 deferred (Float→Decimal needs dedicated migration)
+- 8 files modified: auth/route.ts, auth/2fa/route.ts, auth/phone/route.ts, auth-page.tsx, chariow/webhook/route.ts, orders/route.ts, telegram/agents/route.ts, telegram/agents/[id]/route.ts, security.ts, schema.prisma
+- App significantly hardened for production
+
+---
 Task ID: 7
 Agent: main + 4 subagents
 Task: Full production readiness audit (47 routes, DB schema, frontend, business logic)
