@@ -45,6 +45,9 @@ import {
   Lock,
   Mail,
   Loader2,
+  Crown,
+  CreditCard,
+  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -340,6 +343,32 @@ export default function AuthPage() {
     phone: "",
     businessType: "",
   });
+  // ── Multi-step Registration ──
+  const [regStep, setRegStep] = useState<1 | 2 | 3>(1);
+  const [selectedPlan, setSelectedPlan] = useState("starter");
+  const [chariowWidgetRegLoaded, setChariowWidgetRegLoaded] = useState(false);
+  const [regCheckoutUrl, setRegCheckoutUrl] = useState("");
+  const [regCheckoutLoading, setRegCheckoutLoading] = useState(false);
+
+  // Load Chariow widget script for registration
+  useEffect(() => {
+    if (regStep !== 2 || chariowWidgetRegLoaded) return;
+    if (!document.querySelector('link[href*="chariowcdn"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://js.chariowcdn.com/v1/widget.min.css";
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('script[src*="chariowcdn"]')) {
+      const script = document.createElement("script");
+      script.src = "https://js.chariowcdn.com/v1/widget.min.js";
+      script.async = true;
+      script.onload = () => setChariowWidgetRegLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setChariowWidgetRegLoaded(true);
+    }
+  }, [regStep, chariowWidgetRegLoaded]);
 
   // Auto-rotate testimonials
   useEffect(() => {
@@ -472,7 +501,8 @@ export default function AuthPage() {
     }
   };
 
-  const handleRegister = async () => {
+  // ── Step 1: Create account ──
+  const handleRegisterStep1 = async () => {
     setLoading(true);
     setError("");
     try {
@@ -483,7 +513,10 @@ export default function AuthPage() {
       });
       const data = await res.json();
       if (data.token && data.user) {
-        setAuth(data.token, { ...data.user, company: data.company });
+        // Store token/user temporarily but don't enter app yet
+        localStorage.setItem("cc_token", data.token);
+        localStorage.setItem("cc_user", JSON.stringify({ ...data.user, company: data.company }));
+        setRegStep(2); // Move to plan selection
       } else {
         setError(data.error || "Erreur d'inscription");
       }
@@ -492,6 +525,69 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Step 2: Select plan and pay ──
+  const handleRegPayPlan = async (planKey: string) => {
+    setSelectedPlan(planKey);
+    setRegCheckoutLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("cc_token");
+      const res = await fetch("/api/chariow/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Erreur de paiement");
+        return;
+      }
+      if (data.status === "completed") {
+        // Already paid — go to dashboard
+        toast.success("Paiement deja effectue !");
+        const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
+        setAuth(token!, { ...userData, company: { ...userData.company, plan: planKey } });
+        setRegStep(1);
+        setShowRegister(false);
+        return;
+      }
+      if (data.checkoutUrl) {
+        setRegCheckoutUrl(data.checkoutUrl);
+        setRegStep(3);
+        window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch {
+      setError("Erreur de connexion au service de paiement");
+    } finally {
+      setRegCheckoutLoading(false);
+    }
+  };
+
+  // ── Step 3: Confirm payment and enter app ──
+  const handleRegConfirmPayment = () => {
+    const token = localStorage.getItem("cc_token");
+    const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
+    if (token && userData) {
+      setAuth(token, { ...userData, company: { ...userData.company, plan: selectedPlan } });
+    }
+    setRegStep(1);
+    setRegCheckoutUrl("");
+    setShowRegister(false);
+    toast.success("Bienvenue sur ChatCommerce !");
+  };
+
+  // ── Cancel registration ──
+  const handleRegCancel = () => {
+    setRegStep(1);
+    setSelectedPlan("starter");
+    setRegCheckoutUrl("");
+    setError("");
+    localStorage.removeItem("cc_token");
+    localStorage.removeItem("cc_user");
+    setRegisterForm((prev) => ({ ...prev, businessType: "" }));
+    setShowRegister(false);
   };
 
   const stat1 = useCounter(12, 1500);
@@ -1171,58 +1267,186 @@ export default function AuthPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── REGISTER DIALOG ─── */}
-      <Dialog open={showRegister} onOpenChange={(open) => { setShowRegister(open); if (!open) setRegisterForm((prev) => ({ ...prev, businessType: "" })); }}>
-        <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold text-white">Créer votre compte</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
-            {registerForm.businessType && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-[#00E676]/10 border border-[#00E676]/20 mb-1">
-                <Bot className="w-4 h-4 text-[#00E676]" />
-                <span className="text-sm font-medium text-[#00E676]">
-                  Agent sélectionné : <strong>{AGENT_TYPES.find((a) => a.type === registerForm.businessType)?.label || registerForm.businessType}</strong>
-                </span>
+      {/* ─── REGISTER DIALOG (Multi-step) ─── */}
+      <Dialog open={showRegister} onOpenChange={(open) => { if (!open) handleRegCancel(); }}>
+        <DialogContent className={regStep === 2 ? "sm:max-w-2xl bg-zinc-900 border-zinc-800" : "sm:max-w-md bg-zinc-900 border-zinc-800"}>
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className="flex items-center gap-1">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${regStep >= s ? "bg-[#00E676] text-black" : "bg-zinc-700 text-zinc-400"}`}>
+                  {regStep > s ? <Check className="w-4 h-4" /> : s}
+                </div>
+                {s < 3 && <div className={`w-10 h-0.5 ${regStep > s ? "bg-[#00E676]" : "bg-zinc-700"}`} />}
               </div>
-            )}
-            <div>
-              <Label className="text-sm text-zinc-400">Nom complet</Label>
-              <Input value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Votre nom" />
-            </div>
-            <div>
-              <Label className="text-sm text-zinc-400">Email</Label>
-              <Input type="email" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="votre@email.com" />
-            </div>
-            <div>
-              <Label className="text-sm text-zinc-400">Mot de passe</Label>
-              <Input type="password" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Min. 8 chars, majuscule + chiffre" />
-            </div>
-            <div>
-              <Label className="text-sm text-zinc-400">Nom de l&apos;entreprise</Label>
-              <Input value={registerForm.companyName} onChange={(e) => setRegisterForm({ ...registerForm, companyName: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Mon Entreprise" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm text-zinc-400">Pays</Label>
-                <Input value={registerForm.country} onChange={(e) => setRegisterForm({ ...registerForm, country: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Cameroun" />
-              </div>
-              <div>
-                <Label className="text-sm text-zinc-400">Téléphone</Label>
-                <Input value={registerForm.phone} onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="+237 6XX XXX XXX" />
-              </div>
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleRegister} disabled={loading}>
-              {loading ? "Création..." : "Créer mon compte"}
-            </Button>
-            <p className="text-center text-sm text-zinc-500">
-              Déjà un compte ?{" "}
-              <button onClick={() => { setShowRegister(false); setShowLogin(true); }} className="text-[#00E676] font-medium hover:underline">
-                Se connecter
-              </button>
-            </p>
+            ))}
           </div>
+
+          {/* ═══ STEP 1: Account Info ═══ */}
+          {regStep === 1 && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl font-bold text-white">Créer votre compte</DialogTitle>
+                <p className="text-center text-sm text-zinc-400">Étape 1 : Informations de base</p>
+              </DialogHeader>
+              <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
+                {registerForm.businessType && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[#00E676]/10 border border-[#00E676]/20 mb-1">
+                    <Bot className="w-4 h-4 text-[#00E676]" />
+                    <span className="text-sm font-medium text-[#00E676]">
+                      Agent sélectionné : <strong>{AGENT_TYPES.find((a) => a.type === registerForm.businessType)?.label || registerForm.businessType}</strong>
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm text-zinc-400">Nom complet</Label>
+                  <Input value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Votre nom" />
+                </div>
+                <div>
+                  <Label className="text-sm text-zinc-400">Email</Label>
+                  <Input type="email" value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="votre@email.com" />
+                </div>
+                <div>
+                  <Label className="text-sm text-zinc-400">Mot de passe</Label>
+                  <Input type="password" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Min. 8 chars, majuscule + chiffre" />
+                </div>
+                <div>
+                  <Label className="text-sm text-zinc-400">Nom de l&apos;entreprise</Label>
+                  <Input value={registerForm.companyName} onChange={(e) => setRegisterForm({ ...registerForm, companyName: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Mon Entreprise" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-sm text-zinc-400">Pays</Label>
+                    <Input value={registerForm.country} onChange={(e) => setRegisterForm({ ...registerForm, country: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Cameroun" />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-zinc-400">Téléphone</Label>
+                    <Input value={registerForm.phone} onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="+237 6XX XXX XXX" />
+                  </div>
+                </div>
+                {error && <p className="text-sm text-red-400">{error}</p>}
+                <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleRegisterStep1} disabled={loading}>
+                  {loading ? "Création..." : "Continuer vers les plans"}
+                </Button>
+                <p className="text-center text-sm text-zinc-500">
+                  Déjà un compte ?{" "}
+                  <button onClick={() => { handleRegCancel(); setShowLogin(true); }} className="text-[#00E676] font-medium hover:underline">
+                    Se connecter
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* ═══ STEP 2: Plan Selection + Payment ═══ */}
+          {regStep === 2 && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl font-bold text-white">Choisissez votre plan</DialogTitle>
+                <p className="text-center text-sm text-zinc-400">Étape 2 : Sélectionnez un pack et payez pour démarrer</p>
+              </DialogHeader>
+              <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
+                {/* Plan Cards - 2x2 grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { key: "starter", name: "Starter", icon: Rocket, price: "5 000", features: ["500 contacts", "3 agents", "50 produits", "1 000 messages"], color: "border-border" },
+                    { key: "pro", name: "Pro", icon: Zap, price: "14 900", features: ["2 000 contacts", "5 agents", "IA Assistant", "Campagnes Ads"], color: "border-[#25D366]", popular: true },
+                    { key: "business", name: "Business", icon: Crown, price: "29 900", features: ["5 000 contacts", "10 agents", "Mobile Money", "Rapports PDF"], color: "border-blue-400" },
+                    { key: "enterprise", name: "Enterprise", icon: Sparkles, price: "69 900", features: ["Illimité", "API + White-label", "Support 24/7", "Sur mesure"], color: "border-purple-300" },
+                  ].map((p) => (
+                    <Card key={p.key} className={`border-2 ${p.color} relative cursor-pointer transition-all hover:shadow-lg ${selectedPlan === p.key ? "ring-2 ring-[#00E676] ring-offset-2 ring-offset-zinc-900" : ""}`} onClick={() => setSelectedPlan(p.key)}>
+                      {p.popular && (
+                        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                          <Badge className="bg-[#25D366] text-white text-[9px] px-1.5">Populaire</Badge>
+                        </div>
+                      )}
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                            <p.icon className="w-4 h-4 text-[#00E676]" />
+                          </div>
+                          <p className="font-semibold text-white text-sm">{p.name}</p>
+                        </div>
+                        <p className="text-lg font-bold text-white mb-2">{p.price} <span className="text-xs text-zinc-400 font-normal">FCFA/mois</span></p>
+                        <ul className="space-y-1">
+                          {p.features.map((f) => (
+                            <li key={f} className="flex items-center gap-1.5 text-[11px] text-zinc-300">
+                              <Check className="w-3 h-3 text-[#00E676] shrink-0" />{f}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Chariow Widget in registration */}
+                {chariowWidgetRegLoaded && (
+                  <div className="flex justify-center py-2">
+                    <div id="chariow-widget-reg" data-product-id="prd_9lchjpi5"
+                      data-store-domain="pvgxjrjr.mychariow.shop"
+                      data-style="tap"
+                      data-border-style="rounded"
+                      data-cta-width="sm"
+                      data-background-color="#FFFFFF"
+                      data-cta-animation="shine"
+                      data-locale="fr"
+                      data-primary-color="#ffcc00"></div>
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-red-400">{error}</p>}
+
+                {/* Action buttons */}
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1 border-zinc-700 text-zinc-300 hover:text-white" onClick={() => setRegStep(1)}>
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Retour
+                  </Button>
+                  <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => handleRegPayPlan(selectedPlan)} disabled={regCheckoutLoading}>
+                    {regCheckoutLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Paiement...</> : <><CreditCard className="w-4 h-4 mr-2" />Payer {selectedPlan === "starter" ? "5 000" : selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA</>}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ═══ STEP 3: Payment Confirmation ═══ */}
+          {regStep === 3 && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl font-bold text-white">Paiement en cours</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="flex flex-col items-center justify-center py-6">
+                  <div className="w-16 h-16 rounded-full bg-[#ffcc00]/20 flex items-center justify-center mb-4">
+                    <CreditCard className="w-8 h-8 text-[#ffcc00]" />
+                  </div>
+                  <p className="text-white font-semibold text-lg mb-1">Finalisez votre paiement</p>
+                  <p className="text-zinc-400 text-sm text-center">La page de paiement Chariow s&apos;est ouverte dans un nouvel onglet. Completez le paiement puis revenez ici.</p>
+                </div>
+                <div className="p-3 rounded-xl bg-zinc-800 border border-zinc-700">
+                  <p className="text-sm text-zinc-300 mb-2">Plan sélectionné : <span className="text-white font-bold">{selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}</span></p>
+                  <p className="text-sm text-zinc-300">Montant : <span className="text-[#00E676] font-bold">{selectedPlan === "starter" ? "5 000" : selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA/mois</span></p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#00E676]/10 border border-[#00E676]/20">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#00E676]" />
+                    <p className="text-xs text-[#00E676]">Paiement securise via Chariow (Mobile Money, carte bancaire)</p>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full border-zinc-700 text-zinc-300" onClick={() => { if (regCheckoutUrl) window.open(regCheckoutUrl, "_blank", "noopener,noreferrer"); }}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Reouvrir la page de paiement
+                </Button>
+                <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleRegConfirmPayment}>
+                  <Check className="w-4 h-4 mr-2" />
+                  J&apos;ai payé — Accéder à mon espace
+                </Button>
+                <p className="text-center text-xs text-zinc-500">Le webhook Chariow mettra à jour votre plan automatiquement après confirmation.</p>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
