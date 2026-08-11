@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, email, role } = body;
 
-    const rl = rateLimit(`members:invite:${auth.payload.userId}`, 5, 60000);
+    const rl = await rateLimit(`members:invite:${auth.payload.userId}`, 5, 60000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Trop de requetes. Patientez." }, { status: 429 });
     }

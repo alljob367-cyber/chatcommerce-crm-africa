@@ -27,7 +27,6 @@ export async function GET(request: Request) {
         isActive: true,
         welcomeMessage: true,
         aiConfig: true,
-        agentNumber: true,
         createdAt: true,
         updatedAt: true,
         _count: {

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       }
 
       // Rate limit: max 5 OTP sends per phone per hour
-      const rl = rateLimit(`phone-otp:${cleanPhone}`, 5, 3600000);
+      const rl = await rateLimit(`phone-otp:${cleanPhone}`, 5, 3600000);
       if (!rl.allowed) {
         return NextResponse.json({ error: "Trop de codes envoyes. Reessayez dans une heure." }, { status: 429 });
       }
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       const cleanPhone = phone.replace(/\s/g, "");
 
       // Rate limit: max 10 attempts per phone per 15 minutes
-      const rl = rateLimit(`phone-verify:${cleanPhone}`, 10, 900000);
+      const rl = await rateLimit(`phone-verify:${cleanPhone}`, 10, 900000);
       if (!rl.allowed) {
         return NextResponse.json({ error: "Trop de tentatives. Reessayez plus tard." }, { status: 429 });
       }

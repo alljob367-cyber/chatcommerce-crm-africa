@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       const { email, password } = body;
 
       // H1 FIX: Rate limit login attempts
-      const rlLogin = rateLimit(`login:${email || request.headers.get("x-forwarded-for") || "unknown"}`, 5, 60000);
+      const rlLogin = await rateLimit(`login:${email || request.headers.get("x-forwarded-for") || "unknown"}`, 5, 60000);
       if (!rlLogin.allowed) {
         return NextResponse.json(
           { error: "Trop de tentatives. Veuillez patienter." },
@@ -254,7 +254,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const rlReg = rateLimit(`register:${request.headers.get("x-forwarded-for") || "unknown"}`, 10, 3600000);
+      const rlReg = await rateLimit(`register:${request.headers.get("x-forwarded-for") || "unknown"}`, 10, 3600000);
       if (!rlReg.allowed) {
         return NextResponse.json(
           { error: "Trop de tentatives d'inscription. Veuillez patienter." },

@@ -30,7 +30,6 @@ export async function GET(
         isActive: true,
         welcomeMessage: true,
         aiConfig: true,
-        agentNumber: true,
         createdAt: true,
         updatedAt: true,
         services: { orderBy: { sortOrder: "asc" } },

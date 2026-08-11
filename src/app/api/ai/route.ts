@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     // Rate limit: 20 requests per minute per user
-    const rl = rateLimit(`ai:${payload.userId}`, 20, 60 * 1000);
+    const rl = await rateLimit(`ai:${payload.userId}`, 20, 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Trop de requetes. Veuillez patienter." },

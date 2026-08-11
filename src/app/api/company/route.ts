@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     const { action } = body;
 
     // Rate limit
-    const rl = rateLimit(`company:update:${auth.payload.userId}`, 10, 60000);
+    const rl = await rateLimit(`company:update:${auth.payload.userId}`, 10, 60000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Trop de requetes. Patientez." }, { status: 429 });
     }
