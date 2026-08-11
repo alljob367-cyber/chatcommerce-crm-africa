@@ -49,6 +49,7 @@ model Company {
   telegramBookings TelegramBooking[]
   drivers     Driver[]
   deliveries   Delivery[]
+  chariowOrders ChariowOrder[]
 
   @@index([slug])
 }
@@ -600,4 +601,39 @@ model Delivery {
   @@index([companyId, status])
   @@index([driverId, status])
   @@index([companyId, createdAt])
+}
+
+// ============================================
+// CHARIOW PAYMENT INTEGRATION
+// ============================================
+
+model ChariowOrder {
+  id              String   @id @default(cuid())
+  companyId       String
+  userId          String
+  plan            String   // starter, pro, business, enterprise
+  amount          Float
+  currency        String   @default("XAF")
+  status          String   @default("pending") // pending, completed, failed, refunded
+  chariowSaleId   String?  @unique // ID de vente Chariow (sal_xxx)
+  chariowTxnId     String?  // ID de transaction Chariow
+  checkoutUrl     String?  // URL de paiement Chariow
+  productId       String?  // ID du produit Chariow (prd_xxx)
+  customerEmail   String
+  customerPhone   String?
+  customerName    String?
+  paymentCurrency String?  // Devise réelle du paiement
+  discountCode    String?  // Code promo utilisé
+  metadata        String?  // JSON metadata
+  paidAt          DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company         Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([status])
+  @@index([chariowSaleId])
 }

@@ -55,6 +55,7 @@ import {
   Globe,
   Mail,
   DollarSign,
+  ExternalLink,
 } from "lucide-react";
 import { CURRENCIES, getCurrencyForCountry } from "@/lib/currencies";
 
@@ -299,6 +300,13 @@ export default function SettingsPage() {
     daily_reports: false,
   });
   const [savingNotifs, setSavingNotifs] = useState(false);
+
+  // ── Chariow Payment State ──
+  const [chariowLoading, setChariowLoading] = useState(false);
+  const [chariowDialogOpen, setChariowDialogOpen] = useState(false);
+  const [chariowCheckoutUrl, setChariowCheckoutUrl] = useState("");
+  const [chariowTargetPlan, setChariowTargetPlan] = useState("");
+  const [chariowDiscount, setChariowDiscount] = useState("");
 
   // ─────────────────────────────────────────────────────
   // LOAD DATA
@@ -653,13 +661,63 @@ export default function SettingsPage() {
 
   const trialDays = getTrialInfo();
 
-  // Plan upgrade handler
-  const handleUpgrade = (targetPlan: string) => {
-    const currentIdx = PLAN_ORDER.indexOf(plan);
+  // Plan upgrade handler — Chariow checkout
+  const handleUpgrade = async (targetPlan: string) => {
+    const plan2 = companyData?.plan || plan;
+    const currentIdx = PLAN_ORDER.indexOf(plan2);
     const targetIdx = PLAN_ORDER.indexOf(targetPlan);
-    if (targetIdx > currentIdx) {
-      setPage("payments");
+    if (targetIdx <= currentIdx) return;
+
+    setChariowLoading(true);
+    setChariowTargetPlan(targetPlan);
+    try {
+      const body: Record<string, string> = { plan: targetPlan };
+      if (chariowDiscount.trim()) body.discountCode = chariowDiscount.trim();
+
+      const res = await fetch("/api/chariow/checkout", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Erreur lors de l'initiation du paiement");
+        return;
+      }
+
+      if (data.status === "already_purchased") {
+        toast.info(data.error || "Vous avez deja active ce plan");
+        return;
+      }
+
+      if (data.status === "completed") {
+        toast.success("Paiement finalise ! Votre plan a ete mis a jour.");
+        // Recharger les données
+        fetchCompany();
+        return;
+      }
+
+      if (data.checkoutUrl) {
+        // Ouvrir la page de paiement Chariow dans un nouvel onglet
+        setChariowCheckoutUrl(data.checkoutUrl);
+        setChariowDialogOpen(true);
+        window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error("URL de paiement non disponible");
+      }
+    } catch {
+      toast.error("Erreur de connexion. Veuillez reessayer.");
+    } finally {
+      setChariowLoading(false);
     }
+  };
+
+  const handleChariowDialogClose = () => {
+    setChariowDialogOpen(false);
+    setChariowCheckoutUrl("");
+    fetchCompany(); // Recharger au cas où le webhook a mis à jour le plan
   };
 
   // ─────────────────────────────────────────────────────
@@ -1337,19 +1395,43 @@ export default function SettingsPage() {
                         </ul>
                         <Button
                           className={`w-full ${isCurrent ? "bg-muted text-muted-foreground cursor-default" : isUpgrade ? "bg-[#25D366] hover:bg-[#25D366]/90 text-white" : "bg-muted text-muted-foreground"}`}
-                          disabled={isCurrent}
+                          disabled={isCurrent || (isUpgrade && chariowLoading)}
                           onClick={() => handleUpgrade(p.key)}
                         >
+                          {chariowLoading && chariowTargetPlan === p.key ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : null}
                           {isCurrent
                             ? "Plan actuel"
                             : isUpgrade
-                              ? "Passer a ce plan"
-                              : "Payer via Mobile Money"}
+                              ? "Payer en ligne"
+                              : "Downgrade"}
                         </Button>
                       </CardContent>
                     </Card>
                   );
                 })}
+              </div>
+
+              {/* Discount Code + Mobile Money Fallback */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2 flex-1">
+                  <Input
+                    placeholder="Code promo (optionnel)"
+                    value={chariowDiscount}
+                    onChange={(e) => setChariowDiscount(e.target.value)}
+                    className="max-w-xs"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage("payments")}
+                  className="text-xs"
+                >
+                  <DollarSign className="w-3.5 h-3.5 mr-1" />
+                  Ou payer via Mobile Money
+                </Button>
               </div>
             </div>
           </TabsContent>
@@ -1600,6 +1682,67 @@ export default function SettingsPage() {
                 <UserPlus className="w-4 h-4 mr-2" />
               )}
               Inviter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chariow Payment Dialog */}
+      <Dialog open={chariowDialogOpen} onOpenChange={(open) => !open && handleChariowDialogClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#25D366]" />
+              Paiement en cours
+            </DialogTitle>
+            <DialogDescription>
+              Vous avez ete redirige vers la page de paiement securisee Chariow.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Plan</span>
+                <Badge className="bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20">
+                  {chariowTargetPlan.charAt(0).toUpperCase() + chariowTargetPlan.slice(1)}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Statut</span>
+                <span className="text-sm font-medium text-amber-500 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  En attente de paiement
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Si la page de paiement ne s'est pas ouverte, cliquez sur le bouton ci-dessous :
+              </p>
+              <Button
+                className="w-full bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+                onClick={() => {
+                  if (chariowCheckoutUrl) {
+                    window.open(chariowCheckoutUrl, "_blank", "noopener,noreferrer");
+                  }
+                }}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Ouvrir la page de paiement
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
+              <Shield className="w-4 h-4 text-blue-500 shrink-0" />
+              <p className="text-xs text-blue-600">
+                Paiement securise par Chariow. Votre plan sera active automatiquement apres confirmation.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleChariowDialogClose}>
+              Fermer et verifier
             </Button>
           </DialogFooter>
         </DialogContent>

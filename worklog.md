@@ -197,3 +197,23 @@ Stage Summary:
 - L'app est FONCTIONNELLEMENT prete pour 100 utilisateurs avec les corrections en place
 - Points restants a traiter avant scale: rate limiting serverless, encryption tokens DB, plan limits bookings, empty states, form validations
 - Production deployee: https://alljob367-cyber-chatcommerce-crm-af.vercel.app
+---
+Task ID: 1
+Agent: Main Agent
+Task: Intégration Chariow - Paiement en ligne
+
+Work Log:
+- Lu la documentation Chariow (checkout guide + auth guide)
+- Ajouté le modèle ChariowOrder au schéma Prisma (relation Company)
+- Créé /api/chariow/checkout (POST: initier paiement, GET: lister commandes)
+- Créé /api/chariow/webhook (POST: recevoir Pulse Chariow, upgrade auto plan)
+- Modifié settings-page.tsx: handleUpgrade → Chariow checkout, dialog paiement, code promo
+- Généré Prisma client, DB sync sur Neon
+- Déployé sur Vercel (build OK)
+
+Stage Summary:
+- Intégration Chariow complète côté backend + frontend
+- Variables requises: CHARIOW_API_KEY, CHARIOW_PRODUCT_STARTER/PRO/BUSINESS/ENTERPRISE
+- Webhook URL: https://alljob367-cyber-chatcommerce-crm-af.vercel.app/api/chariow/webhook
+- Le bouton "Payer en ligne" ouvre la checkout page Chariow, le webhook met à jour le plan automatiquement
+
