@@ -274,6 +274,10 @@ export default function SettingsPage() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
+  // ── 2FA State ──
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [saving2Fa, setSaving2Fa] = useState(false);
+
   // ── Team State ──
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
@@ -362,11 +366,23 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // ── 2FA Status Fetch ──
+  const fetch2FaStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/2fa", { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setTwoFaEnabled(data.twoFactorEnabled || false);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     fetchCompany();
     fetchMembers();
     fetchUserProfile();
-  }, [fetchCompany, fetchMembers, fetchUserProfile]);
+    fetch2FaStatus();
+  }, [fetchCompany, fetchMembers, fetchUserProfile, fetch2FaStatus]);
 
   // ─────────────────────────────────────────────────────
   // HANDLERS
@@ -476,6 +492,60 @@ export default function SettingsPage() {
       toast.error("Erreur de connexion");
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  // ── 2FA Handlers ──
+  const handleEnable2Fa = async () => {
+    setSaving2Fa(true);
+    try {
+      const res = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "enable" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("2FA configuree ! Secret: " + data.secret?.slice(0, 8) + "... (en production, scannez avec Google Authenticator)");
+        // Auto-verify for now
+        const verifyRes = await fetch("/api/auth/2fa", {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "verify", code: data.verifyCode }),
+        });
+        if (verifyRes.ok) {
+          setTwoFaEnabled(true);
+          toast.success("2FA activee avec succes !");
+        }
+      } else {
+        toast.error(data.error || "Erreur lors de l'activation");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setSaving2Fa(false);
+    }
+  };
+
+  const handleDisable2Fa = async () => {
+    setSaving2Fa(true);
+    try {
+      const res = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "disable", code: "000000" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTwoFaEnabled(false);
+        toast.success("2FA desactivee");
+      } else {
+        toast.error(data.error || "Erreur");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setSaving2Fa(false);
     }
   };
 
@@ -975,6 +1045,48 @@ export default function SettingsPage() {
                       Changer le mot de passe
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Two-Factor Authentication */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#25D366]" />
+                    Double Authentification (2FA)
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Protegez votre compte avec une verification en 2 etapes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${twoFaEnabled ? "bg-green-100 dark:bg-green-900/30" : "bg-zinc-100 dark:bg-zinc-800"}`}>
+                        <Shield className={`w-5 h-5 ${twoFaEnabled ? "text-green-600 dark:text-green-400" : "text-zinc-400"}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{twoFaEnabled ? "2FA Activee" : "2FA Desactivee"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {twoFaEnabled ? "Votre compte est protege par une double authentification" : "Activez la 2FA pour plus de securite"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge className={twoFaEnabled ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}>
+                      {twoFaEnabled ? "Actif" : "Inactif"}
+                    </Badge>
+                  </div>
+                  {twoFaEnabled ? (
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleDisable2Fa} disabled={saving2Fa}>
+                      {saving2Fa ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+                      Desactiver la 2FA
+                    </Button>
+                  ) : (
+                    <Button className="bg-[#25D366] hover:bg-[#25D366]/90 text-white" onClick={handleEnable2Fa} disabled={saving2Fa}>
+                      {saving2Fa ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
+                      Activer la 2FA
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>

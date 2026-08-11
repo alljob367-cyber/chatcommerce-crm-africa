@@ -54,21 +54,27 @@ model Company {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String
-  passwordHash  String
-  name          String
-  avatar        String?
-  phone         String?
-  role          String   @default("agent") // super_admin, company_admin, manager, agent
-  isActive      Boolean  @default(true)
-  emailVerified Boolean  @default(false)
-  resetToken    String?
-  resetTokenExp DateTime?
-  verifyToken   String?
-  companyId     String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String    @id @default(cuid())
+  email             String
+  passwordHash      String
+  name              String
+  avatar            String?
+  phone             String?
+  role              String    @default("agent") // super_admin, company_admin, manager, agent
+  isActive          Boolean   @default(true)
+  emailVerified     Boolean   @default(false)
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?   // TOTP secret (base32 encoded)
+  twoFactorBackupCodes String? // JSON array of backup codes
+  phoneOtpCode      String?   // Current phone OTP code
+  phoneOtpExp       DateTime? // OTP expiration timestamp
+  phoneVerified     Boolean   @default(false)
+  resetToken        String?
+  resetTokenExp     DateTime?
+  verifyToken       String?
+  companyId         String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   company       Company  @relation(fields: [companyId], references: [id])
   assignedConversations Conversation[] @relation("AssignedAgent")
@@ -79,6 +85,7 @@ model User {
 
   @@unique([email, companyId])
   @@index([companyId])
+  @@index([phone])
 }
 
 model Contact {

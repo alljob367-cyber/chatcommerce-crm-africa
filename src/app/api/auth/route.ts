@@ -60,7 +60,11 @@ function getHardcodedJWTSecret(): Uint8Array {
   if (secret && secret.length > 10) {
     return new TextEncoder().encode(secret);
   }
-  // MUST match middleware.ts fallback exactly
+  // Production: REJECT if no JWT_SECRET
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("[SECURITY] JWT_SECRET environment variable is required in production.");
+  }
+  // Development-only fallback — MUST match middleware.ts exactly
   return new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
 }
 

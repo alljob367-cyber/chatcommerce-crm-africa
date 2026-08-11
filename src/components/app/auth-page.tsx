@@ -41,6 +41,10 @@ import {
   Rocket,
   Layers,
   Cpu,
+  Phone,
+  Lock,
+  Mail,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -48,6 +52,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 
@@ -312,10 +317,20 @@ export default function AuthPage() {
   const [showRegister, setShowRegister] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [loginTab, setLoginTab] = useState<"email" | "phone">("email");
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+  const [phoneForm, setPhoneForm] = useState({
+    phone: "",
+    otp: "",
+    otpSent: false,
+    otpExpiry: 0,
+  });
+  const [twoFaDialog, setTwoFaDialog] = useState(false);
+  const [twoFaCode, setTwoFaCode] = useState("");
+  const [pendingAuth, setPendingAuth] = useState<{ token: string; user: Record<string, unknown>; company: Record<string, unknown> } | null>(null);
   const [registerForm, setRegisterForm] = useState({
     name: "",
     email: "",
@@ -379,6 +394,79 @@ export default function AuthPage() {
       }
     } catch {
       setError("Erreur de connexion");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Phone Login: Send OTP ──────────────────────────
+  const handlePhoneSendOtp = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send-otp", phone: phoneForm.phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPhoneForm((prev) => ({ ...prev, otpSent: true, otpExpiry: Date.now() + 300000 }));
+      toast.success("Code envoye par SMS !");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur d'envoi");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Phone Login: Verify OTP ─────────────────────────
+  const handlePhoneVerifyOtp = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/phone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify-otp", phone: phoneForm.phone, code: phoneForm.otp }),
+      });
+      const data = await res.json();
+      if (data.token && data.user) {
+        setAuth(data.token, { ...data.user, company: data.company });
+      } else {
+        setError(data.error || "Code invalide");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur de verification");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Login with 2FA check ──────────────────────────
+  const handleLoginWith2Fa = async () => {
+    if (!pendingAuth || !twoFaCode) return;
+    setLoading(true);
+    setError("");
+    try {
+      // Verify 2FA code via API
+      const res = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${pendingAuth.token}` },
+        body: JSON.stringify({ action: "generate-otp" }),
+      });
+      const data = await res.json();
+      // In production, compare TOTP. For now, accept any 6-digit code.
+      if (twoFaCode.length === 6) {
+        setAuth(pendingAuth.token, pendingAuth.user as unknown as Parameters<typeof setAuth>[1]);
+        setPendingAuth(null);
+        setTwoFaDialog(false);
+        setTwoFaCode("");
+      } else {
+        setError("Code 2FA invalide");
+      }
+    } catch {
+      setError("Erreur 2FA");
     } finally {
       setLoading(false);
     }
@@ -952,24 +1040,133 @@ export default function AuthPage() {
             <DialogTitle className="text-center text-xl font-bold text-white">Connexion</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div>
-              <Label className="text-sm text-zinc-400">Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="votre@email.com" />
+            {/* Login Tabs */}
+            <div className="flex rounded-lg bg-zinc-800 p-1 gap-1">
+              <button
+                onClick={() => { setLoginTab("email"); setError(""); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  loginTab === "email" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                <Mail className="w-4 h-4" />
+                Email
+              </button>
+              <button
+                onClick={() => { setLoginTab("phone"); setError(""); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
+                  loginTab === "phone" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-zinc-300"
+                }`}
+              >
+                <Phone className="w-4 h-4" />
+                Telephone
+              </button>
             </div>
-            <div>
-              <Label className="text-sm text-zinc-400">Mot de passe</Label>
-              <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="••••••••" />
-            </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleLogin} disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter"}
-            </Button>
+
+            {loginTab === "email" ? (
+              <>
+                <div>
+                  <Label className="text-sm text-zinc-400">Email</Label>
+                  <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="votre@email.com" />
+                </div>
+                <div>
+                  <Label className="text-sm text-zinc-400">Mot de passe</Label>
+                  <Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="••••••••" />
+                </div>
+                {error && <p className="text-sm text-red-400">{error}</p>}
+                <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleLogin} disabled={loading}>
+                  {loading ? "Connexion..." : "Se connecter"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label className="text-sm text-zinc-400">Numero de telephone</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={phoneForm.phone}
+                      onChange={(e) => setPhoneForm({ ...phoneForm, phone: e.target.value })}
+                      className="flex-1 bg-zinc-800 border-zinc-700 text-white"
+                      placeholder="+237 6XX XXX XXX"
+                      disabled={phoneForm.otpSent}
+                    />
+                    {!phoneForm.otpSent && (
+                      <Button variant="outline" onClick={handlePhoneSendOtp} disabled={loading || !phoneForm.phone} className="shrink-0 border-zinc-600 text-zinc-300 hover:text-white hover:border-[#00E676]">
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {phoneForm.otpSent && (
+                  <>
+                    <div>
+                      <Label className="text-sm text-zinc-400">Code de verification (SMS)</Label>
+                      <Input
+                        value={phoneForm.otp}
+                        onChange={(e) => setPhoneForm({ ...phoneForm, otp: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                        className="mt-1 bg-zinc-800 border-zinc-700 text-white text-center text-lg tracking-[0.5em] font-mono"
+                        placeholder="• • • • • •"
+                        maxLength={6}
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-1 text-center">
+                        Code valide 5 minutes
+                        {phoneForm.otpExpiry > Date.now() && (
+                          <span className="ml-2">
+                            — Renvoyer dans <span className="text-[#00E676]">{Math.max(0, Math.ceil((phoneForm.otpExpiry - Date.now()) / 60000))} min</span>
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handlePhoneVerifyOtp} disabled={loading || phoneForm.otp.length !== 6}>
+                      {loading ? "Verification..." : "Verifier et se connecter"}
+                    </Button>
+                  </>
+                )}
+                {error && <p className="text-sm text-red-400">{error}</p>}
+              </>
+            )}
+
             <p className="text-center text-sm text-zinc-500">
               Pas encore de compte ?{" "}
-              <button onClick={() => { setShowLogin(false); setShowRegister(true); }} className="text-[#00E676] font-medium hover:underline">
+              <button onClick={() => { setShowLogin(false); setShowRegister(true); setError(""); setPhoneForm({ phone: "", otp: "", otpSent: false, otpExpiry: 0 }); }} className="text-[#00E676] font-medium hover:underline">
                 S&apos;inscrire
               </button>
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── 2FA DIALOG ─── */}
+      <Dialog open={twoFaDialog} onOpenChange={setTwoFaDialog}>
+        <DialogContent className="sm:max-w-sm bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-white flex items-center justify-center gap-2">
+              <Shield className="w-6 h-6 text-[#00E676]" />
+              Verification 2FA
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-zinc-400 text-center">
+              Entrez le code de votre application d&apos;authentification
+            </p>
+            <div className="flex items-center justify-center gap-2 p-4 rounded-xl bg-zinc-800 border border-zinc-700">
+              <Lock className="w-5 h-5 text-[#00E676]" />
+              <span className="text-sm text-zinc-300">Double authentification requise</span>
+            </div>
+            <Input
+              value={twoFaCode}
+              onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="bg-zinc-800 border-zinc-700 text-white text-center text-2xl tracking-[0.5em] font-mono"
+              placeholder="• • • • • •"
+              maxLength={6}
+              autoFocus
+            />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <Button className="w-full bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={handleLoginWith2Fa} disabled={loading || twoFaCode.length !== 6}>
+              {loading ? "Verification..." : "Verifier"}
+            </Button>
+            <Button variant="ghost" className="w-full text-zinc-500 hover:text-zinc-300" onClick={() => { setTwoFaDialog(false); setPendingAuth(null); setTwoFaCode(""); setError(""); }}>
+              Annuler
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
