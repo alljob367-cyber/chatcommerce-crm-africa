@@ -196,6 +196,7 @@ export default function TelegramPage() {
   const [bookingViewMode, setBookingViewMode] = useState<"table" | "calendar">("table");
   const [loading, setLoading] = useState(true);
   const [settingUp, setSettingUp] = useState(false);
+  const [settingUpType, setSettingUpType] = useState<string | null>(null);
 
   // Agent form dialog
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
@@ -289,21 +290,24 @@ export default function TelegramPage() {
 
   // ─── One-Click Setup ───────────────────────────────────────────
 
-  const handleOneClickSetup = async () => {
+  const handleOneClickSetup = async (agentType?: string) => {
     setSettingUp(true);
+    setSettingUpType(agentType || null);
     try {
       const res = await fetch("/api/telegram/setup", {
         method: "POST",
-        headers,
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(agentType ? { agentType } : {}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast.success(data.message || "Agents créés avec succès !");
+      toast.success(data.message || "Agent créé avec succès !");
       await Promise.all([fetchAgents(), fetchStats()]);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la création");
     } finally {
       setSettingUp(false);
+      setSettingUpType(null);
     }
   };
 
@@ -579,9 +583,9 @@ export default function TelegramPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleOneClickSetup} disabled={settingUp} variant="outline" className="gap-2">
+          <Button onClick={() => handleOneClickSetup()} disabled={settingUp} variant="outline" className="gap-2">
             {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {hasAgents ? "Ajouter Agents Manquants" : "Creer les 12 Agents"}
+            {settingUp ? "Création..." : "Créer l'Agent"}
           </Button>
           <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
             <Plus className="w-4 h-4" />
@@ -606,33 +610,37 @@ export default function TelegramPage() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-w-3xl">
               {[
-                { icon: UtensilsCrossed, label: "Restaurant", desc: "12 plats camerounais", bg: "bg-orange-100 dark:bg-orange-900/30", color: "text-orange-600" },
-                { icon: Scissors, label: "Salon Coiffure", desc: "14 prestations", bg: "bg-purple-100 dark:bg-purple-900/30", color: "text-purple-600" },
-                { icon: Bot, label: "Pharmacie", desc: "10 services sante", bg: "bg-green-100 dark:bg-green-900/30", color: "text-green-600" },
-                { icon: MapPin, label: "Taxi Transport", desc: "9 types de courses", bg: "bg-blue-100 dark:bg-blue-900/30", color: "text-blue-600" },
-                { icon: ShoppingBag, label: "Pressing", desc: "11 services laverie", bg: "bg-cyan-100 dark:bg-cyan-900/30", color: "text-cyan-600" },
-                { icon: Users, label: "Ecole / Formation", desc: "11 formations", bg: "bg-amber-100 dark:bg-amber-900/30", color: "text-amber-600" },
-                { icon: ShoppingBag, label: "Supermarche", desc: "12 produits courses", bg: "bg-lime-100 dark:bg-lime-900/30", color: "text-lime-600" },
-                { icon: Bot, label: "Clinique", desc: "10 services medical", bg: "bg-red-100 dark:bg-red-900/30", color: "text-red-600" },
-                { icon: MessageCircle, label: "Agence Voyage", desc: "10 services voyage", bg: "bg-violet-100 dark:bg-violet-900/30", color: "text-violet-600" },
-                { icon: Sparkles, label: "Boulangerie", desc: "11 produits boulange", bg: "bg-yellow-100 dark:bg-yellow-900/30", color: "text-yellow-600" },
-                { icon: Zap, label: "Garage Auto", desc: "10 services auto", bg: "bg-zinc-100 dark:bg-zinc-800/50", color: "text-zinc-600" },
-                { icon: Users, label: "Salle de Sport", desc: "10 abonnements", bg: "bg-emerald-100 dark:bg-emerald-900/30", color: "text-emerald-600" },
+                { icon: UtensilsCrossed, label: "Restaurant", type: "restaurant", desc: "12 plats camerounais", bg: "bg-orange-100 dark:bg-orange-900/30", color: "text-orange-600" },
+                { icon: Scissors, label: "Salon Coiffure", type: "salon_coiffure", desc: "14 prestations", bg: "bg-purple-100 dark:bg-purple-900/30", color: "text-purple-600" },
+                { icon: Bot, label: "Pharmacie", type: "pharmacie", desc: "10 services sante", bg: "bg-green-100 dark:bg-green-900/30", color: "text-green-600" },
+                { icon: MapPin, label: "Taxi Transport", type: "taxi_transport", desc: "9 types de courses", bg: "bg-blue-100 dark:bg-blue-900/30", color: "text-blue-600" },
+                { icon: ShoppingBag, label: "Pressing", type: "pressing_laverie", desc: "11 services laverie", bg: "bg-cyan-100 dark:bg-cyan-900/30", color: "text-cyan-600" },
+                { icon: Users, label: "Ecole / Formation", type: "ecole_formation", desc: "11 formations", bg: "bg-amber-100 dark:bg-amber-900/30", color: "text-amber-600" },
+                { icon: ShoppingBag, label: "Supermarche", type: "supermarche", desc: "12 produits courses", bg: "bg-lime-100 dark:bg-lime-900/30", color: "text-lime-600" },
+                { icon: Bot, label: "Clinique", type: "clinique", desc: "10 services medical", bg: "bg-red-100 dark:bg-red-900/30", color: "text-red-600" },
+                { icon: MessageCircle, label: "Agence Voyage", type: "agence_voyage", desc: "10 services voyage", bg: "bg-violet-100 dark:bg-violet-900/30", color: "text-violet-600" },
+                { icon: Sparkles, label: "Boulangerie", type: "boulangerie", desc: "11 produits boulange", bg: "bg-yellow-100 dark:bg-yellow-900/30", color: "text-yellow-600" },
+                { icon: Zap, label: "Garage Auto", type: "garage_auto", desc: "10 services auto", bg: "bg-zinc-100 dark:bg-zinc-800/50", color: "text-zinc-600" },
+                { icon: Users, label: "Salle de Sport", type: "salle_sport", desc: "10 abonnements", bg: "bg-emerald-100 dark:bg-emerald-900/30", color: "text-emerald-600" },
               ].map((a) => (
-                <Card key={a.label} className="border hover:shadow-md transition-shadow cursor-pointer" onClick={handleOneClickSetup}>
+                <Card key={a.type} className={`border hover:shadow-md transition-shadow cursor-pointer ${settingUpType === a.type ? "ring-2 ring-[#0088cc]" : ""}`} onClick={() => handleOneClickSetup(a.type)}>
                   <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <div className={`w-10 h-10 rounded-xl ${a.bg} flex items-center justify-center`}>
-                      <a.icon className={`w-5 h-5 ${a.color}`} />
-                    </div>
+                    {settingUpType === a.type ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-[#0088cc]" />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-xl ${a.bg} flex items-center justify-center`}>
+                        <a.icon className={`w-5 h-5 ${a.color}`} />
+                      </div>
+                    )}
                     <h3 className="font-semibold text-xs">{a.label}</h3>
                     <p className="text-[10px] text-muted-foreground text-center">{a.desc}</p>
                   </CardContent>
                 </Card>
               ))}
             </div>
-            <Button size="lg" onClick={handleOneClickSetup} disabled={settingUp} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
+            <Button size="lg" onClick={() => handleOneClickSetup()} disabled={settingUp} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
               {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-              {settingUp ? "Création en cours..." : "Creer Mes 12 Agents Maintenant"}
+              {settingUp ? "Création..." : "Créer Tous les Agents"}
             </Button>
           </CardContent>
         </Card>
