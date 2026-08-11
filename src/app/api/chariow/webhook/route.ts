@@ -1,37 +1,40 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 /**
  * POST /api/chariow/webhook
  * Webhook Chariow (Pulse) — reçoit les notifications de paiement
- * 
- * Chariow envoie des POST avec des payloads JSON quand:
- * - Vente finalisée (sale.completed)
- * - Paiement reçu
- * - Remboursement traité
- * 
- * Sécurité: Vérification via le header Authorization ou signature HMAC
  */
 export async function POST(request: Request) {
   try {
     // 1. Vérifier l'authentification du webhook
-    // Chariow envoie la clé API dans le header ou une signature
     const authHeader = request.headers.get("authorization");
+    const signature = request.headers.get("x-chariow-signature");
+    const apiKey = process.env.CHARIOW_API_KEY;
     const webhookSecret = process.env.CHARIOW_WEBHOOK_SECRET;
 
-    // Si un secret est configuré, le vérifier
-    if (webhookSecret) {
-      const signature = request.headers.get("x-chariow-signature");
-      if (!signature || signature !== webhookSecret) {
-        console.warn("[Chariow Webhook] Signature invalide");
-        return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
+    // Verification avec timing-safe comparison
+    let isAuthenticated = false;
+
+    if (webhookSecret && signature) {
+      // Compare avec timing-safe pour eviter les timing attacks
+      const expected = Buffer.from(webhookSecret, "utf-8");
+      const actual = Buffer.from(signature, "utf-8");
+      if (expected.length === actual.length) {
+        isAuthenticated = crypto.timingSafeEqual(expected, actual);
       }
-    } else {
-      // Sinon vérifier avec la clé API (moins sécurisé mais fonctionnel)
-      if (!authHeader || !authHeader.includes(process.env.CHARIOW_API_KEY || "")) {
-        console.warn("[Chariow Webhook] Authentification invalide");
-        return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    } else if (apiKey && authHeader) {
+      // Fallback: verifier que le header Authorization contient la cle API
+      const expected = Buffer.from(apiKey, "utf-8");
+      const actual = Buffer.from(authHeader.replace("Bearer ", ""), "utf-8");
+      if (expected.length === actual.length) {
+        isAuthenticated = crypto.timingSafeEqual(expected, actual);
       }
+    }
+
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
 
     // 2. Parser le payload

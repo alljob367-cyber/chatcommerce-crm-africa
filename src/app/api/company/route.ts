@@ -3,12 +3,29 @@ import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError, rateLimit } from "@/lib/security";
 
+// Hardcoded accounts (DB-independent fallback)
+const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; companyName: string; country: string; plan: string; role: string }> = {
+  "admin-hardcoded-001": { userId: "admin-hardcoded-001", companyId: "company-admin-001", companyName: "ChatCommerce CRM Africa", country: "Cameroun", plan: "enterprise", role: "company_admin" },
+  "demo-hardcoded-001": { userId: "demo-hardcoded-001", companyId: "company-demo-001", companyName: "ChatCommerce Demo", country: "Cameroun", plan: "business", role: "company_admin" },
+};
+
 // Helper: authenticate and get user + company from token
 async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload) return null;
+
+  // Hardcoded accounts fallback (works even without DB)
+  const hardcoded = HARDCODED_ACCOUNTS[payload.userId];
+  if (hardcoded) {
+    return {
+      user: { id: hardcoded.userId, name: hardcoded.role === "company_admin" ? "Administrateur" : "Demo User", email: "", role: hardcoded.role },
+      company: { id: hardcoded.companyId, name: hardcoded.companyName, country: hardcoded.country, plan: hardcoded.plan, maxContacts: 99999, maxAgents: 999, whatsappNumber: null, notificationSettings: null },
+      payload,
+    };
+  }
+
   try {
     await ensureBootstrapped();
     const user = await db.user.findUnique({

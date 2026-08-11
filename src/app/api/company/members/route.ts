@@ -3,12 +3,28 @@ import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken, hashPassword } from "@/lib/auth";
 import { sanitize, isValidEmail, handleError, rateLimit, secureRandom } from "@/lib/security";
 
+// Hardcoded accounts fallback
+const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; role: string }> = {
+  "admin-hardcoded-001": { userId: "admin-hardcoded-001", companyId: "company-admin-001", role: "company_admin" },
+  "demo-hardcoded-001": { userId: "demo-hardcoded-001", companyId: "company-demo-001", role: "company_admin" },
+};
+
 // Helper: authenticate
 async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload) return null;
+
+  const hardcoded = HARDCODED_ACCOUNTS[payload.userId];
+  if (hardcoded) {
+    return {
+      user: { id: hardcoded.userId, name: "Admin", email: "", role: hardcoded.role },
+      company: { id: hardcoded.companyId, maxAgents: 999 },
+      payload,
+    };
+  }
+
   try {
     await ensureBootstrapped();
     const user = await db.user.findUnique({

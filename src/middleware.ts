@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes publiques (pas besoin de token)
-const PUBLIC_PATHS = ["/api/auth", "/api/seed", "/api/cron"];
+const PUBLIC_PATHS = ["/api/auth", "/api/seed", "/api/cron", "/api/chariow/webhook"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -53,6 +53,8 @@ export async function middleware(request: NextRequest) {
       let jwtSecret: Uint8Array;
       if (secret && secret.length > 10) {
         jwtSecret = new TextEncoder().encode(secret);
+      } else if (process.env.NODE_ENV === "production") {
+        return NextResponse.json({ error: "Configuration serveur" }, { status: 500 });
       } else {
         // Development-only fallback — never use DATABASE_URL as JWT secret
         jwtSecret = new TextEncoder().encode("chatcommerce-dev-only-fallback-key-2024");
