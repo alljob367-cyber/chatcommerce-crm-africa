@@ -55,7 +55,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "admin-payments", label: "Gestion Paiements", icon: Shield, adminOnly: true },
   { page: "admin", label: "Administration", icon: Settings2, adminOnly: true },
   { page: "reports", label: "Rapports", icon: BarChart3 },
-  { page: "api-docs", label: "Documentation API", icon: FileText },
+  { page: "api-docs", label: "Documentation API", icon: FileText, adminOnly: true },
 ];
 
 export default function Sidebar() {

@@ -274,6 +274,48 @@ export async function GET(request: Request) {
       });
     }
 
+    // ─── Users List ───
+    if (section === "users") {
+      const page = parseInt(url.searchParams.get("page") || "1");
+      const limit = parseInt(url.searchParams.get("limit") || "20");
+      const search = url.searchParams.get("search") || "";
+      const role = url.searchParams.get("role") || "";
+
+      const where: Record<string, unknown> = {};
+      if (search) where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phone: { contains: search, mode: "insensitive" } },
+      ];
+      if (role) where.role = role;
+
+      const [users, total] = await Promise.all([
+        db.user.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+            isActive: true,
+            emailVerified: true,
+            createdAt: true,
+            company: { select: { id: true, name: true, plan: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+        db.user.count({ where }),
+      ]);
+
+      return NextResponse.json({
+        users,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      });
+    }
+
     // ─── Single Company Detail ───
     if (section === "company-detail") {
       const companyId = url.searchParams.get("companyId");

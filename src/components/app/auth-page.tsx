@@ -54,18 +54,18 @@ import Image from "next/image";
 /* ─── DATA ─────────────────────────────────────────── */
 
 const AGENT_TYPES = [
-  { icon: Store, label: "Restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire" },
-  { icon: Scissors, label: "Salon Coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "" },
-  { icon: Pill, label: "Pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "" },
-  { icon: Car, label: "Taxi / Transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "" },
-  { icon: Shirt, label: "Pressing / Laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "" },
-  { icon: GraduationCap, label: "Ecole / Formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "" },
-  { icon: ShoppingBag, label: "Supermarché", desc: "Courses en ligne, livraison domicile, pack famille", color: "from-lime-500 to-green-500", badge: "Nouveau" },
-  { icon: Bot, label: "Clinique", desc: "RDV médecin, analyses, vaccination, suivi", color: "from-red-500 to-pink-500", badge: "Nouveau" },
-  { icon: Globe, label: "Agence de Voyage", desc: "Billets avion, hôtels, excursions, visa", color: "from-violet-500 to-purple-500", badge: "Nouveau" },
-  { icon: Sparkles, label: "Boulangerie", desc: "Commande pain, pâtisseries, gâteaux anniversaire", color: "from-yellow-500 to-amber-500", badge: "Nouveau" },
-  { icon: Zap, label: "Garage Auto", desc: "Vidange, révision, pneus, diagnostic, dépannage", color: "from-zinc-500 to-gray-600", badge: "Nouveau" },
-  { icon: Users, label: "Salle de Sport", desc: "Abonnements, coaching, yoga, zumba, boxe", color: "from-emerald-500 to-teal-500", badge: "Nouveau" },
+  { icon: Store, label: "Restaurant", type: "restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire" },
+  { icon: Scissors, label: "Salon Coiffure", type: "salon_coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "" },
+  { icon: Pill, label: "Pharmacie", type: "pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "" },
+  { icon: Car, label: "Taxi / Transport", type: "taxi_transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "" },
+  { icon: Shirt, label: "Pressing / Laverie", type: "pressing_laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "" },
+  { icon: GraduationCap, label: "Ecole / Formation", type: "ecole_formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "" },
+  { icon: ShoppingBag, label: "Supermarché", type: "supermarche", desc: "Courses en ligne, livraison domicile, pack famille", color: "from-lime-500 to-green-500", badge: "Nouveau" },
+  { icon: Bot, label: "Clinique", type: "clinique", desc: "RDV médecin, analyses, vaccination, suivi", color: "from-red-500 to-pink-500", badge: "Nouveau" },
+  { icon: Globe, label: "Agence de Voyage", type: "agence_voyage", desc: "Billets avion, hôtels, excursions, visa", color: "from-violet-500 to-purple-500", badge: "Nouveau" },
+  { icon: Sparkles, label: "Boulangerie", type: "boulangerie", desc: "Commande pain, pâtisseries, gâteaux anniversaire", color: "from-yellow-500 to-amber-500", badge: "Nouveau" },
+  { icon: Zap, label: "Garage Auto", type: "garage_auto", desc: "Vidange, révision, pneus, diagnostic, dépannage", color: "from-zinc-500 to-gray-600", badge: "Nouveau" },
+  { icon: Users, label: "Salle de Sport", type: "salle_sport", desc: "Abonnements, coaching, yoga, zumba, boxe", color: "from-emerald-500 to-teal-500", badge: "Nouveau" },
 ];
 
 const FEATURES = [
@@ -323,6 +323,7 @@ export default function AuthPage() {
     companyName: "",
     country: "Cameroun",
     phone: "",
+    businessType: "",
   });
 
   // Auto-rotate testimonials
@@ -332,6 +333,12 @@ export default function AuthPage() {
     }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleAgentClick = (agentType: string, agentLabel: string) => {
+    setRegisterForm((prev) => ({ ...prev, companyName: prev.companyName || `Mon ${agentLabel}`, businessType: agentType }));
+    setShowRegister(true);
+    // Scroll to register dialog (it's a modal so just open it)
+  };
 
   const handleDemo = async () => {
     setLoading(true);
@@ -661,7 +668,8 @@ export default function AuthPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {AGENT_TYPES.map((agent, i) => (
               <Card key={agent.label}
-                className="group border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm hover:border-[#00E676]/30 hover:shadow-xl hover:shadow-[#00E676]/5 transition-all duration-500 hover:-translate-y-1.5 overflow-hidden">
+                className="group border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm hover:border-[#00E676]/30 hover:shadow-xl hover:shadow-[#00E676]/5 transition-all duration-500 hover:-translate-y-1.5 overflow-hidden cursor-pointer"
+                onClick={() => handleAgentClick(agent.type, agent.label)}>
                 <CardContent className="p-6">
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${agent.color} flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}>
                     <agent.icon className="w-7 h-7 text-white" />
@@ -677,7 +685,7 @@ export default function AuthPage() {
                   <p className="text-sm text-zinc-400 leading-relaxed">{agent.desc}</p>
                   <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#00E676] group-hover:gap-3 transition-all">
                     <Send className="w-4 h-4" />
-                    <span>Disponible sur Telegram</span>
+                    <span>S'inscrire maintenant</span>
                   </div>
                 </CardContent>
               </Card>
@@ -967,12 +975,20 @@ export default function AuthPage() {
       </Dialog>
 
       {/* ─── REGISTER DIALOG ─── */}
-      <Dialog open={showRegister} onOpenChange={setShowRegister}>
+      <Dialog open={showRegister} onOpenChange={(open) => { setShowRegister(open); if (!open) setRegisterForm((prev) => ({ ...prev, businessType: "" })); }}>
         <DialogContent className="sm:max-w-md bg-zinc-900 border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-bold text-white">Créer votre compte</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2 max-h-[60vh] overflow-y-auto">
+            {registerForm.businessType && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-[#00E676]/10 border border-[#00E676]/20 mb-1">
+                <Bot className="w-4 h-4 text-[#00E676]" />
+                <span className="text-sm font-medium text-[#00E676]">
+                  Agent sélectionné : <strong>{AGENT_TYPES.find((a) => a.type === registerForm.businessType)?.label || registerForm.businessType}</strong>
+                </span>
+              </div>
+            )}
             <div>
               <Label className="text-sm text-zinc-400">Nom complet</Label>
               <Input value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} className="mt-1 bg-zinc-800 border-zinc-700 text-white" placeholder="Votre nom" />

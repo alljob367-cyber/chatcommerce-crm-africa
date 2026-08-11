@@ -6,6 +6,7 @@ import Header from "./header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -221,7 +222,50 @@ export default function AdminPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminCompany | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Users list state
+  const [users, setUsers] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    role: string;
+    isActive: boolean;
+    emailVerified: boolean;
+    createdAt: string;
+    company: { id: string; name: string; plan: string } | null;
+  }>>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersSearch, setUsersSearch] = useState("");
+  const [usersRoleFilter, setUsersRoleFilter] = useState("all");
+
   const headers = { Authorization: `Bearer ${token}` };
+
+  // ─── Fetch Users ──────────────────────────────────────────────
+
+  const fetchUsers = useCallback(async (page: number = 1) => {
+    if (!token) return;
+    setUsersLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("limit", "20");
+      if (usersRoleFilter !== "all") params.set("role", usersRoleFilter);
+      if (usersSearch) params.set("search", usersSearch);
+
+      const res = await fetch(`/api/admin?section=users&${params}`, { headers });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setUsers(data.users || []);
+      setUsersTotal(data.pagination?.total || 0);
+      setUsersPage(page);
+    } catch {
+      toast.error("Erreur lors du chargement des utilisateurs");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [token, usersRoleFilter, usersSearch]);
 
   // ─── Fetch Metrics ─────────────────────────────────────────────────
 
@@ -360,6 +404,12 @@ export default function AdminPage() {
     }
   }, [activeTab, companiesPlanFilter, companiesStatusFilter, fetchCompanies]);
 
+  useEffect(() => {
+    if (activeTab === "users") {
+      fetchUsers(1);
+    }
+  }, [activeTab, usersRoleFilter, usersSearch, fetchUsers]);
+
   // Helper aliases for JSX
   const handleDeleteClick = (company: AdminCompany) => {
     setDeleteTarget(company);
@@ -413,7 +463,7 @@ export default function AdminPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="w-4 h-4" />
             Vue d&apos;ensemble
@@ -421,6 +471,10 @@ export default function AdminPage() {
           <TabsTrigger value="companies" className="gap-2">
             <Building2 className="w-4 h-4" />
             Compagnies
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="w-4 h-4" />
+            Utilisateurs
           </TabsTrigger>
           <TabsTrigger value="config" className="gap-2">
             <Settings2 className="w-4 h-4" />
@@ -842,6 +896,155 @@ export default function AdminPage() {
               </Button>
             </div>
           )}
+        </TabsContent>
+
+        {/* ─── USERS TAB ─── */}
+        <TabsContent value="users" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Utilisateurs inscrits ({usersTotal})
+              </CardTitle>
+              <CardDescription>Nom, numero de telephone et adresse email de chaque utilisateur</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par nom, email ou telephone..."
+                    value={usersSearch}
+                    onChange={(e) => setUsersSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={usersRoleFilter} onValueChange={setUsersRoleFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filtrer par role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les roles</SelectItem>
+                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                    <SelectItem value="company_admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Users Table */}
+              {usersLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p>Aucun utilisateur trouve</p>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-lg border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="font-semibold">Nom</TableHead>
+                          <TableHead className="font-semibold">Email</TableHead>
+                          <TableHead className="font-semibold">Telephone</TableHead>
+                          <TableHead className="font-semibold">Role</TableHead>
+                          <TableHead className="font-semibold">Entreprise</TableHead>
+                          <TableHead className="font-semibold">Inscription</TableHead>
+                          <TableHead className="font-semibold text-center">Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((u) => (
+                          <TableRow key={u.id} className="hover:bg-muted/30">
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="w-7 h-7">
+                                  <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-semibold">
+                                    {u.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-sm">{u.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{u.email}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm flex items-center gap-1">
+                                <Phone className="w-3 h-3 text-muted-foreground" />
+                                {u.phone || <span className="text-muted-foreground">Non renseigne</span>}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={
+                                u.role === "super_admin" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
+                                u.role === "company_admin" ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" :
+                                u.role === "manager" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
+                                "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                              }>
+                                {u.role === "super_admin" ? "Super Admin" : u.role === "company_admin" ? "Admin" : u.role === "manager" ? "Manager" : "Agent"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {u.company ? (
+                                <div>
+                                  <p className="text-sm font-medium">{u.company.name}</p>
+                                  <Badge variant="outline" className={`text-[9px] ${PLAN_COLORS[u.company.plan] || ""}`}>
+                                    {PLAN_LABELS[u.company.plan] || u.company.plan}
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">{formatDate(u.createdAt)}</span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge className={u.isActive ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"}>
+                                {u.isActive ? "Actif" : "Inactif"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Pagination */}
+                  {usersTotal > 20 && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {usersTotal} utilisateur(s) — Page {usersPage}/{Math.ceil(usersTotal / 20)}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline" size="sm"
+                          disabled={usersPage <= 1}
+                          onClick={() => fetchUsers(usersPage - 1)}
+                        >
+                          Precedent
+                        </Button>
+                        <Button
+                          variant="outline" size="sm"
+                          disabled={usersPage >= Math.ceil(usersTotal / 20)}
+                          onClick={() => fetchUsers(usersPage + 1)}
+                        >
+                          Suivant
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ─── CONFIG TAB ─── */}
