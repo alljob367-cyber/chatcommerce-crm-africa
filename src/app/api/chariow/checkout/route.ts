@@ -13,8 +13,15 @@ const PLAN_PRICES: Record<string, number> = {
   enterprise: 69900,
 };
 
-// ID produit Chariow unique (utilise pour tous les plans, le montant est passe dynamiquement)
-const CHARIOW_PRODUCT_ID = process.env.CHARIOW_PRODUCT_STARTER || process.env.CHARIOW_PRODUCT_ID || "prd_9lchjpi5";
+// Produits Chariow — UN produit par plan avec le bon prix configure sur le dashboard Chariow
+// Chaque produit doit etre cree sur https://merchant.chariow.com avec le prix correspondant.
+// Si un produit specifique n'est pas configure, fallback sur le produit general.
+const CHARIOW_PRODUCT_IDS: Record<string, string> = {
+  starter: process.env.CHARIOW_PRODUCT_STARTER || "prd_9lchjpi5",
+  pro: process.env.CHARIOW_PRODUCT_PRO || "prd_9lchjpi5",
+  business: process.env.CHARIOW_PRODUCT_BUSINESS || "prd_9lchjpi5",
+  enterprise: process.env.CHARIOW_PRODUCT_ENTERPRISE || "prd_9lchjpi5",
+};
 
 /**
  * POST /api/chariow/checkout
@@ -57,8 +64,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Produit Chariow (unique pour tous les plans)
-    const productId = CHARIOW_PRODUCT_ID;
+    // 4. Produit Chariow specifique au plan
+    const productId = CHARIOW_PRODUCT_IDS[plan] || CHARIOW_PRODUCT_IDS.starter;
+    console.log(`[Chariow] Plan=${plan}, ProductId=${productId}, Prix=${PLAN_PRICES[plan]} FCFA`);
+
+    // Verifier que le produit n'est pas le meme fallback pour tous les plans
+    const allProductIds = Object.values(CHARIOW_PRODUCT_IDS);
+    const allSame = allProductIds.every((id) => id === allProductIds[0]);
+    if (allSame && plan !== "starter") {
+      console.warn(
+        `[Chariow] ATTENTION: Tous les plans utilisent le meme produit Chariow (${productId}). `
+        + `Le client verra le prix du produit Starter au lieu de ${PLAN_PRICES[plan]} FCFA. `
+        + `Configurez CHARIOW_PRODUCT_${plan.toUpperCase()} dans .env avec l'ID du produit Chariow correspondant.`
+      );
+    }
 
     // 5. Récupérer les infos utilisateur et entreprise
     const user = await db.user.findUnique({
@@ -117,11 +136,12 @@ export async function POST(request: Request) {
       : user.company?.country === "France" ? "FR"
       : countryCode;
 
-    // 8. Rediriger vers la boutique Chariow (produit pay-what-you-want)
-    //    Le montant est passe explicitement pour afficher le bon prix au client
+    // 8. Rediriger vers la boutique Chariow (produit specifique au plan)
+    //    Le produit Chariow doit avoir le bon prix configure sur le dashboard Chariow.
+    //    On passe egalement le montant en query param comme verification croisee.
     const storeDomain = process.env.CHARIOW_STORE_DOMAIN || "pvgxjrjr.mychariow.shop";
     const amount = PLAN_PRICES[plan];
-    const checkoutUrl = `https://${storeDomain}?email=${encodeURIComponent(user.email)}&plan=${plan}&amount=${amount}&company_id=${payload.companyId}&user_id=${payload.userId}`;
+    const checkoutUrl = `https://${storeDomain}?email=${encodeURIComponent(user.email)}&plan=${plan}&amount=${amount}&company_id=${payload.companyId}&user_id=${payload.userId}&product_id=${productId}`;
 
     console.log(`[Chariow] Redirection vers boutique pour plan=${plan}, user=${user.email}`);
 

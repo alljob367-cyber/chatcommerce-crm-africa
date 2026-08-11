@@ -1450,6 +1450,9 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div className="flex justify-center">
+                      {/* Widget Chariow — le produit ID ici est celui du plan Starter par defaut.
+                          Le bouton "Payer en ligne" ci-dessus utilise /api/chariow/checkout qui
+                          redirige vers le produit Chariow correspondant au plan selectionne. */}
                       <div id="chariow-widget" data-product-id="prd_9lchjpi5"
                         data-store-domain="pvgxjrjr.mychariow.shop"
                         data-style="tap"

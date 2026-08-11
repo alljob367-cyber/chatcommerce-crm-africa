@@ -269,3 +269,23 @@ Stage Summary:
 - Remaining M5 (chat_id téléphone vs Telegram ID): Design issue, pas un bug critique pour le lancement
 - Remaining M12 (TVA 19% vs 19.25%): Cosmétique, à configurer plus tard
 - App prête pour lancement des pubs (tous les bugs critiques de sécurité corrigés)
+
+---
+Task ID: 5
+Agent: main
+Task: Fix critical pricing bug — Chariow checkout always shows Starter price regardless of selected plan
+
+Work Log:
+- Analyzed complete payment flow: frontend (settings-page.tsx, auth-page.tsx) → /api/chariow/checkout → Chariow store
+- Found root cause: SINGLE Chariow product ID (`prd_9lchjpi5`) used for ALL plans, but Chariow displays the price configured on the product (Starter price), ignoring query params
+- Frontend sends correct plan key (`{ plan: "business" }`), backend calculates correct price (PLAN_PRICES), but Chariow store ignores the amount param and shows its own product price
+- Fixed /api/chariow/checkout/route.ts: Added per-plan product ID mapping (CHARIOW_PRODUCT_IDS) with env vars
+- Added server-side warning when all plans use the same product ID (misconfiguration alert)
+- Added product_id to checkout URL query params
+- Updated .env.example with full Chariow configuration including per-plan product IDs
+- Added comments in frontend widgets explaining the flow
+
+Stage Summary:
+- Bug fix implemented in checkout backend: now supports CHARIOW_PRODUCT_STARTER, CHARIOW_PRODUCT_PRO, CHARIOW_PRODUCT_BUSINESS, CHARIOW_PRODUCT_ENTERPRISE env vars
+- ACTION REQUIRED: User must create 4 separate products on Chariow dashboard (merchant.chariow.com) with correct prices and update .env with product IDs
+- Webhook already has anti-underpay protection (5% tolerance) at line 72 — double safety
