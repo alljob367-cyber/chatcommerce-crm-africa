@@ -213,7 +213,7 @@ export default function TelegramPage() {
     currency: "XAF",
     paymentMethod: "none",
     aiEnabled: false,
-    aiProvider: "openai" as "openai" | "anthropic" | "custom",
+    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "custom",
     aiApiKey: "",
     aiModel: "",
     aiBaseUrl: "",
@@ -406,7 +406,7 @@ export default function TelegramPage() {
       currency: agent.currency,
       paymentMethod: agent.paymentMethod || "none",
       aiEnabled: (aiOverrides.enabled as boolean) ?? false,
-      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "custom") ?? "openai",
+      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "custom") ?? "openrouter",
       aiApiKey: (aiOverrides.apiKey as string) || "",
       aiModel: (aiOverrides.model as string) || "",
       aiBaseUrl: (aiOverrides.baseUrl as string) || "",
@@ -1234,7 +1234,8 @@ export default function TelegramPage() {
 
             <Separator />
 
-            {/* ─── AI Configuration ─── */}
+            {/* ─── AI Configuration (ADMIN ONLY) ─── */}
+            {isAdmin && (
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-500" />
@@ -1255,9 +1256,10 @@ export default function TelegramPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>Fournisseur IA</Label>
-                      <Select value={agentForm.aiProvider} onValueChange={(v) => setAgentForm({ ...agentForm, aiProvider: v as "openai" | "anthropic" | "custom" })}>
+                      <Select value={agentForm.aiProvider} onValueChange={(v) => setAgentForm({ ...agentForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "custom" })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="openrouter">OpenRouter (Multi-modal)</SelectItem>
                           <SelectItem value="openai">OpenAI</SelectItem>
                           <SelectItem value="anthropic">Anthropic</SelectItem>
                           <SelectItem value="custom">Personnalisé</SelectItem>
@@ -1267,7 +1269,7 @@ export default function TelegramPage() {
                     <div className="space-y-2">
                       <Label>Modele</Label>
                       <Input
-                        placeholder={agentForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-3.5-turbo"}
+                        placeholder={agentForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : agentForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-4o-mini"}
                         value={agentForm.aiModel}
                         onChange={(e) => setAgentForm({ ...agentForm, aiModel: e.target.value })}
                       />
@@ -1277,11 +1279,18 @@ export default function TelegramPage() {
                     <Label>Clé API</Label>
                     <Input
                       type="password"
-                      placeholder="sk-..."
+                      placeholder={agentForm.aiProvider === "openrouter" ? "sk-or-..." : "sk-..."}
                       value={agentForm.aiApiKey}
                       onChange={(e) => setAgentForm({ ...agentForm, aiApiKey: e.target.value })}
                     />
                   </div>
+                  {agentForm.aiProvider === "openrouter" && (
+                    <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
+                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                        <strong>OpenRouter</strong> supporte +100 modeles multi-modaux (Gemini, GPT-4o, Claude, Llama Vision, etc.). Obtenez votre clé sur <span className="underline">openrouter.ai/keys</span>
+                      </p>
+                    </div>
+                  )}
                   {agentForm.aiProvider === "custom" && (
                     <div className="space-y-2">
                       <Label>URL de base (Base URL)</Label>
@@ -1304,6 +1313,7 @@ export default function TelegramPage() {
                 </div>
               )}
             </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAgentDialogOpen(false)}>Annuler</Button>

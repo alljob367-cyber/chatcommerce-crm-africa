@@ -5,7 +5,7 @@
 
 export interface AIBotConfig {
   enabled: boolean;
-  provider: "openai" | "anthropic" | "custom";
+  provider: "openai" | "anthropic" | "openrouter" | "custom";
   apiKey: string;
   model: string;
   systemPrompt: string;
@@ -187,27 +187,54 @@ export async function generateAIResponse(
     // Add current message
     messages.push({ role: "user", content: message });
 
-    // Determine API endpoint
-    const baseUrl =
-      config.baseUrl?.replace(/\/+$/, "") ||
-      (config.provider === "anthropic"
-        ? "https://api.anthropic.com/v1"
-        : "https://api.openai.com/v1");
+    // Determine API endpoint based on provider
+    let baseUrl = config.baseUrl?.replace(/\/+$/, "");
+
+    if (!baseUrl) {
+      switch (config.provider) {
+        case "openrouter":
+          baseUrl = "https://openrouter.ai/api/v1";
+          break;
+        case "anthropic":
+          baseUrl = "https://api.anthropic.com/v1";
+          break;
+        default:
+          baseUrl = "https://api.openai.com/v1";
+      }
+    }
 
     const endpoint = `${baseUrl}/chat/completions`;
+
+    // Build headers per provider
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    };
+
+    // OpenRouter: add optional HTTP-Referer and X-Title for better analytics
+    if (config.provider === "openrouter") {
+      headers["HTTP-Referer"] = "https://chatcommerce.africa";
+      headers["X-Title"] = "ChatCommerce CRM Africa";
+    }
+
+    // Anthropic: requires anthropic-version header
+    if (config.provider === "anthropic") {
+      headers["anthropic-version"] = "2023-06-01";
+    }
+
+    // Default model per provider
+    const defaultModel = config.provider === "openrouter"
+      ? "google/gemini-2.0-flash-001"
+      : config.provider === "anthropic"
+        ? "claude-3-haiku-20240307"
+        : "gpt-4o-mini";
 
     // Build request
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-        ...(config.provider === "anthropic"
-          ? { "anthropic-version": "2023-06-01" }
-          : {}),
-      },
+      headers,
       body: JSON.stringify({
-        model: config.model || "gpt-3.5-turbo",
+        model: config.model || defaultModel,
         messages,
         temperature: config.temperature ?? 0.7,
         max_tokens: config.maxTokens ?? 500,
@@ -338,9 +365,9 @@ export function buildAIBotConfig(agentData: {
 
   return {
     enabled: overrides.enabled ?? false,
-    provider: overrides.provider ?? "openai",
+    provider: overrides.provider ?? "openrouter",
     apiKey: overrides.apiKey || "",
-    model: overrides.model || "gpt-3.5-turbo",
+    model: overrides.model || "google/gemini-2.0-flash-001",
     systemPrompt,
     temperature: overrides.temperature ?? 0.7,
     maxTokens: overrides.maxTokens ?? 500,
