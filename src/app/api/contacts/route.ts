@@ -53,6 +53,10 @@ export async function POST(request: Request) {
     const session = await authenticate(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Admin-only: create contacts
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+
     // Check plan limit for contacts
     const { checkPlanLimit } = await import("@/lib/plan-limits");
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });

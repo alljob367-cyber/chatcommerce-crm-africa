@@ -95,6 +95,8 @@ interface TelegramAgent {
   openHours: string | null;
   currency: string;
   paymentMethod: string | null;
+  aiConfig?: string | null;
+  aiEnabled?: boolean;
   _count: { services: number; bookings: number };
 }
 
@@ -381,18 +383,11 @@ export default function TelegramPage() {
 
   const openEditAgent = (agent: TelegramAgent) => {
     setEditingAgent(agent);
-    // Parse AI config from agent metadata
+    // Parse AI config from the dedicated aiConfig field (admin only)
     let aiOverrides: Record<string, unknown> = {};
-    if (agent.openHours) {
+    if (isAdmin && agent.aiConfig) {
       try {
-        const parsed = JSON.parse(agent.openHours);
-        // Check if this is the old-style openHours or AI config
-        if (parsed.mon || parsed.tue) {
-          // This is the actual openHours data, keep it
-          aiOverrides = {};
-        } else {
-          aiOverrides = parsed;
-        }
+        aiOverrides = JSON.parse(agent.aiConfig);
       } catch { /* ignore */ }
     }
     setAgentForm({

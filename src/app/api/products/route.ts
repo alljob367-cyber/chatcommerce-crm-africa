@@ -47,6 +47,10 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Admin-only: create products
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+
     const body = await request.json();
     const { name, description, price, categoryId, sku, stock, compareAtPrice, image, images } = body;
 
@@ -90,6 +94,10 @@ export async function PATCH(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Admin-only: edit products
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+
     const body = await request.json();
     const { id, name, description, price, categoryId, sku, stock, isActive, compareAtPrice, image, images } = body;
 
@@ -130,6 +138,10 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // Admin-only: delete products
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

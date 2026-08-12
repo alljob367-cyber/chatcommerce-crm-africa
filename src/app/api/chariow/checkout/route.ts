@@ -89,6 +89,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Utilisateur non trouve" }, { status: 404 });
     }
 
+    // 5b. Validate plan upgrade (not downgrade or same plan)
+    if (user.company.plan) {
+      const { PLAN_ORDER } = await import("@/lib/plan-limits");
+      const currentIdx = PLAN_ORDER.indexOf(user.company.plan as any);
+      const targetIdx = PLAN_ORDER.indexOf(plan as any);
+      if (targetIdx <= currentIdx) {
+        return NextResponse.json(
+          { error: `Vous etes deja au plan ${user.company.plan} ou a un plan superieur. Choisissez un plan superieur.` },
+          { status: 400 }
+        );
+      }
+    }
+
     // 6. Vérifier qu'il n'y a pas une commande Chariow en cours pour ce plan
     const existingOrder = await db.chariowOrder.findFirst({
       where: {

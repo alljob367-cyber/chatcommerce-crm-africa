@@ -190,15 +190,16 @@ export async function GET(request: Request) {
         take: 5,
       }),
 
-      // Daily bookings for last 7 days
-      db.$queryRawUnsafe<{ date: string; count: number }[]>(
+      // Daily bookings for last 7 days — compatible PostgreSQL and SQLite
+      const sevenDaysAgo = new Date(Date.now() - 6 * 86400000);
+      tgDailyBookingsRaw = await db.$queryRawUnsafe<{ date: string; count: number }[]>(
         `SELECT DATE("createdAt") as date, COUNT(*) as count 
          FROM "TelegramBooking" 
-         WHERE "companyId" = $1 AND "createdAt" >= NOW() - INTERVAL '6 days'
+         WHERE "companyId" = $1 AND "createdAt" >= $2
          GROUP BY DATE("createdAt") 
          ORDER BY date ASC`,
-        companyId
-      ),
+        companyId, sevenDaysAgo.toISOString()
+      );
     ]);
 
     // Calculate real avg response time (admin reply after user message)
