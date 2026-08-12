@@ -49,7 +49,35 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const body = await request.json();
+
+    if (!isAdmin) {
+      // ── Agent / Viewer : ne peut fournir que le token pour activer un agent existant ──
+      const { agentId, token: botToken } = body;
+      if (!agentId || !botToken) {
+        return NextResponse.json({ error: "Agent ID et token requis" }, { status: 400 });
+      }
+
+      // Vérifier que l'agent existe et appartient à la company
+      const existing = await db.telegramAgent.findFirst({
+        where: { id: agentId, companyId: session.companyId },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
+      }
+
+      // Mettre à jour uniquement le token
+      const agent = await db.telegramAgent.update({
+        where: { id: agentId },
+        data: { token: botToken },
+      });
+
+      const { token: _botToken, ...safeAgent } = agent;
+      return NextResponse.json({ agent: safeAgent, message: "Token mis a jour. L'agent est pret." });
+    }
+
+    // ── Admin : configuration complète ──
     const { name, token: botToken, botUsername, businessType, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
     if (!name || !botToken || !businessType) {

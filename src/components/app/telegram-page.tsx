@@ -185,7 +185,8 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Main Component ──────────────────────────────────────────────
 
 export default function TelegramPage() {
-  const { token } = useAppStore();
+  const { token, user } = useAppStore();
+  const isAdmin = user?.role === "company_admin" || user?.role === "super_admin";
 
   // Data states
   const [agents, setAgents] = useState<TelegramAgent[]>([]);
@@ -583,19 +584,25 @@ export default function TelegramPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => handleOneClickSetup()} disabled={settingUp} variant="outline" className="gap-2">
-            {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {settingUp ? "Création..." : "Créer l'Agent"}
-          </Button>
-          <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
-            <Plus className="w-4 h-4" />
-            Agent Personnalisé
-          </Button>
+          {isAdmin ? (
+            <>
+              <Button onClick={() => handleOneClickSetup()} disabled={settingUp} variant="outline" className="gap-2">
+                {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                {settingUp ? "Création..." : "Créer l'Agent"}
+              </Button>
+              <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
+                <Plus className="w-4 h-4" />
+                Agent Personnalisé
+              </Button>
+            </>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Contactez votre administrateur pour creer de nouveaux agents</p>
+          )}
         </div>
       </div>
 
       {/* ─── Empty State ─── */}
-      {!hasAgents && (
+      {!hasAgents && isAdmin && (
         <Card className="border-dashed">
           <CardContent className="py-16 flex flex-col items-center text-center gap-6">
             <div className="w-20 h-20 rounded-full bg-[#0088cc]/10 flex items-center justify-center">
@@ -642,6 +649,21 @@ export default function TelegramPage() {
               {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
               {settingUp ? "Création..." : "Créer Tous les Agents"}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─── Empty State (non-admin) ─── */}
+      {!hasAgents && !isAdmin && (
+        <Card className="border-dashed">
+          <CardContent className="py-16 flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Bot className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Aucun agent Telegram</h2>
+              <p className="text-sm text-muted-foreground">Votre administrateur doit d'abord creer les agents depuis le panneau de configuration.</p>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -763,12 +785,16 @@ export default function TelegramPage() {
                               <ShoppingBag className="w-4 h-4" />
                               Services ({agent._count.services})
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => toggleAgentActive(agent)} className="gap-2">
-                              {agent.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-                            </Button>
+                            {isAdmin && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => toggleAgentActive(agent)} className="gap-2">
+                                  {agent.isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -871,7 +897,7 @@ export default function TelegramPage() {
                         <Switch
                           checked={agent.isActive}
                           onCheckedChange={() => toggleAgentActive(agent)}
-                          disabled={isPlaceholder(agent.token)}
+                          disabled={isPlaceholder(agent.token) || !isAdmin}
                         />
                       </div>
                     </CardHeader>
@@ -938,12 +964,16 @@ export default function TelegramPage() {
                             Services
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => deleteAgent(agent.id)} className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => deleteAgent(agent.id)} className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

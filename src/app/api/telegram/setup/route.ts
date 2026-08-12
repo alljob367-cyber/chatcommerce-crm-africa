@@ -335,6 +335,12 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Setup réservé à l'admin
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut creer des agents." }, { status: 403 });
+    }
+
     const companyId = session.companyId;
     const body = await request.json();
     const agentType = body.agentType; // optional: create specific type

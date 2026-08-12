@@ -53,14 +53,31 @@ export async function PUT(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const { id } = await params;
     const body = await request.json();
-    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
     const existing = await db.telegramAgent.findFirst({
       where: { id, companyId: session.companyId },
     });
     if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
+
+    if (!isAdmin) {
+      // ── Agent / Viewer : ne peut modifier que le token ──
+      const { token: botToken } = body;
+      if (!botToken) {
+        return NextResponse.json({ error: "Token requis" }, { status: 400 });
+      }
+      const agent = await db.telegramAgent.update({
+        where: { id },
+        data: { token: botToken },
+      });
+      const { token: _botToken, ...safeAgent } = agent;
+      return NextResponse.json({ agent: safeAgent });
+    }
+
+    // ── Admin : modification complète ──
+    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
 
     const agent = await db.telegramAgent.update({
       where: { id },
@@ -104,6 +121,12 @@ export async function DELETE(
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // Suppression réservée à l'admin
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut supprimer un agent." }, { status: 403 });
+    }
 
     const { id } = await params;
     const existing = await db.telegramAgent.findFirst({
