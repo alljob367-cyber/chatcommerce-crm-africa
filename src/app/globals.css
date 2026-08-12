@@ -129,22 +129,34 @@
 }
 
 /* ─── Typography Design System ─── */
+@font-face {
+  font-family: 'Space Grotesk Fallback';
+  src: local('Space Grotesk');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Inter');
+  font-display: swap;
+}
+
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-space-grotesk), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-space-grotesk, 'Space Grotesk Fallback'), 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 .font-heading {
-  font-family: var(--font-space-grotesk), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-space-grotesk, 'Space Grotesk Fallback'), 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 .hero-heading {
-  font-family: var(--font-space-grotesk), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-space-grotesk, 'Space Grotesk Fallback'), 'Inter', system-ui, -apple-system, sans-serif !important;
   letter-spacing: -0.04em;
   line-height: 1.05;
 }
 
 .section-heading {
-  font-family: var(--font-space-grotesk), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-space-grotesk, 'Space Grotesk Fallback'), 'Inter', system-ui, -apple-system, sans-serif !important;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
@@ -152,7 +164,7 @@ h1, h2, h3, h4, h5, h6 {
 .subheading-accent {
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-family: var(--font-space-grotesk), var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-space-grotesk, 'Space Grotesk Fallback'), 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 .gradient-text {
