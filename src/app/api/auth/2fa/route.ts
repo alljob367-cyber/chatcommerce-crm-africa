@@ -50,20 +50,32 @@ export async function POST(request: Request) {
 
     // ─── ENABLE 2FA: Generate TOTP secret + backup codes ───
     if (action === "enable") {
-      // Generate base32-like secret for TOTP
+      // Generate proper RFC 4648 Base32 secret for TOTP
       const bytes = crypto.randomBytes(20);
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+      const BASE32_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
       let secret = "";
-      for (const b of bytes) secret += chars[b % chars.length];
+      let bits = 0;
+      let buffer = 0;
+      for (const b of bytes) {
+        buffer = (buffer << 8) | b;
+        bits += 8;
+        while (bits >= 5) {
+          bits -= 5;
+          secret += BASE32_CHARS[(buffer >> bits) & 0x1f];
+        }
+      }
+      if (bits > 0) {
+        secret += BASE32_CHARS[(buffer << (5 - bits)) & 0x1f];
+      }
+
+      // Generate otpauth:// URI for authenticator apps
+      const otpauthUri = `otpauth://totp/ChatCommerce:${user.email || user.id}?secret=${secret}&issuer=ChatCommerce&algorithm=SHA1&digits=6&period=30`;
 
       // Generate 8 backup codes
       const backupCodes: string[] = [];
       for (let i = 0; i < 8; i++) {
         backupCodes.push(crypto.randomBytes(4).toString("hex").toUpperCase().slice(0, 8));
       }
-
-      // Generate a simple 6-digit code for initial verification
-      const verifyCode = crypto.randomInt(100000, 999999).toString();
 
       // Store the secret and backup codes (user must verify with code to fully enable)
       await db.user.update({
@@ -79,7 +91,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         secret,
-        ...(process.env.NODE_ENV !== "production" ? { verifyCode } : {}),
+        otpauthUri,
         ...(process.env.NODE_ENV !== "production" ? { backupCodes } : {}),
         message: "Scannez ce code avec votre app d'authentification (Google Authenticator, Authy)",
       });

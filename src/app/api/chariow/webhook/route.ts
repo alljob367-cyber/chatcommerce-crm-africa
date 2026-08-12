@@ -263,11 +263,6 @@ export async function POST(request: Request) {
  * Endpoint de test pour vérifier la configuration
  */
 export async function GET() {
-  const configured = !!process.env.CHARIOW_API_KEY;
-  return NextResponse.json({
-    status: configured ? "configured" : "not_configured",
-    message: configured
-      ? "Webhook Chariow actif"
-      : "CHARIOW_API_KEY non configuree dans les variables d'environnement",
-  });
+  // Health check only — never leak config status
+  return NextResponse.json({ status: "ok" });
 }
