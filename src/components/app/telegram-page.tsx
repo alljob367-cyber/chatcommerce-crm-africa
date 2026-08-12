@@ -422,11 +422,16 @@ export default function TelegramPage() {
     }
     setAgentSaving(true);
     try {
+      // SECURITY: Non-admins can only send token — strip all other fields
+      const payload = isAdmin
+        ? agentForm
+        : { agentId: editingAgent?.id, token: agentForm.token };
+
       if (editingAgent) {
         const res = await fetch(`/api/telegram/agents/${editingAgent.id}`, {
           method: "PUT",
           headers: { ...headers, "Content-Type": "application/json" },
-          body: JSON.stringify(agentForm),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
         toast.success("Agent mis à jour");
@@ -434,7 +439,7 @@ export default function TelegramPage() {
         const res = await fetch("/api/telegram/agents", {
           method: "POST",
           headers: { ...headers, "Content-Type": "application/json" },
-          body: JSON.stringify(agentForm),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error();
         toast.success("Agent créé");

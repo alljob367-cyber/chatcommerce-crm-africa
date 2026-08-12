@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #0F172A;
+  --bg-card: #1E293B;
+  --bg-card-hover: #334155;
+  --primary: #3B82F6;
+  --primary-light: #60A5FA;
+  --accent: #10B981;
+  --accent-light: #34D399;
+  --danger: #EF4444;
+  --danger-light: #FCA5A5;
+  --warning: #F59E0B;
+  --warning-light: #FCD34D;
+  --text: #F1F5F9;
+  --text-muted: #94A3B8;
+  --border: #334155;
+  --font-heading: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --fs-display: 48px;
+  --fs-h1: 36px;
+  --fs-h2: 28px;
+  --fs-h3: 22px;
+  --fs-body: 16px;
+  --fs-small: 13px;
+  --fs-micro: 11px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+.slide {
+  width: 1280px;
+  min-height: 720px;
+  overflow: hidden;
+  padding: 56px 64px;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--text);
+  position: relative;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.flex-row { display: flex; gap: 24px; align-items: flex-start; }
+.flex-col { display: flex; flex-direction: column; gap: 16px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-green { background: rgba(16,185,129,0.15); color: var(--accent); }
+.badge-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+.badge-blue { background: rgba(59,130,246,0.15); color: var(--primary); }
+.badge-yellow { background: rgba(245,158,11,0.15); color: var(--warning); }
+
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.material-icons{width: 1em;direction: rtl;}

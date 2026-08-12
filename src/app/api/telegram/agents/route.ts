@@ -15,6 +15,8 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+
     const agents = await db.telegramAgent.findMany({
       where: { companyId: session.companyId },
       select: {
@@ -26,7 +28,8 @@ export async function GET(request: Request) {
         token: false,  // NEVER expose bot token to client
         isActive: true,
         welcomeMessage: true,
-        aiConfig: true,
+        // SECURITY: Only expose AI config to admins — contains apiKey
+        ...(isAdmin ? { aiConfig: true } : { aiEnabled: true }),
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -36,7 +39,19 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ agents });
+    // Strip apiKey from aiConfig for extra safety
+    const safeAgents = agents.map((a: Record<string, unknown>) => {
+      if (a.aiConfig && typeof a.aiConfig === "string") {
+        try {
+          const parsed = JSON.parse(a.aiConfig);
+          delete parsed.apiKey;
+          a.aiConfig = JSON.stringify(parsed);
+        } catch { /* ignore */ }
+      }
+      return a;
+    });
+
+    return NextResponse.json({ agents: safeAgents });
   } catch (error: unknown) {
     console.error("[API /telegram/agents]", error);
     const { error: msg, status } = handleError(error);

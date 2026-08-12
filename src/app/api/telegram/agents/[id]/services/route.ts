@@ -45,6 +45,12 @@ export async function POST(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // SECURITY: Only admins can create services
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut gerer les services." }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { name, description, price, duration, image, isActive } = body;
@@ -93,6 +99,12 @@ export async function DELETE(
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // SECURITY: Only admins can delete services
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut supprimer des services." }, { status: 403 });
+    }
 
     const { id } = await params;
     const { searchParams } = new URL(request.url);

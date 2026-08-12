@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, height=720">
+  <title>Module Telegram Agents</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 16px;
+      height: 520px;
+    }
+    .card-large { grid-column: 1 / 3; grid-row: 1 / 3; }
+    .card-medium { grid-column: 3; }
+    .card-small { grid-column: 3; }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .before-after {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .ba-box {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .ba-before {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+    .ba-after {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    .ba-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .route-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+      font-size: 12px;
+    }
+    .route-row:last-child { border-bottom: none; }
+    .route-path {
+      font-family: var(--font-mono);
+      color: var(--primary-light);
+      font-size: 11px;
+      flex: 1;
+    }
+    .route-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .plan-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(51,65,85,0.4);
+    }
+    .plan-row:last-child { border-bottom: none; }
+    .plan-name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .plan-limit {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+    .bot-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .bot-chip {
+      font-size: 11px;
+      padding: 4px 10px;
+      background: rgba(59,130,246,0.15);
+      color: var(--primary-light);
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .sec-line {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="display: flex; flex-direction: column;">
+    <!-- Header -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+        <span class="material-icons" style="color: var(--primary); font-size: 28px;">smart_toy</span>
+        <h1 style="font-size: 28px; font-weight: 800; color: var(--text);">Module Telegram Agents</h1>
+        <span class="badge badge-red" style="font-size: 11px;">3 bugs critiques corrigés</span>
+      </div>
+      <p style="font-size: 14px; color: var(--text-muted); margin-left: 40px;">Le cœur de l'application — Audit complet et corrections appliquées</p>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="bento-grid" style="flex: 1;">
+      <!-- Card 1: Configuration AI (Large) -->
+      <div class="card card-large">
+        <div class="card-header">
+          <div class="icon-circle" style="background: rgba(239,68,68,0.15);">
+            <span class="material-icons" style="color: var(--danger); font-size: 24px;">lock_open</span>
+          </div>
+          <span class="card-title">Configuration AI Bloquée</span>
+          <span class="badge badge-green">CORRIGÉ</span>
+        </div>
+        <div class="before-after">
+          <div class="ba-box ba-before">
+            <div class="ba-label" style="color: var(--danger);">Avant — Vulnérable</div>
+            Non-admins pouvaient voir <span style="font-family: var(--font-mono); color: var(--danger);">apiKey</span>, <span style="font-family: var(--font-mono); color: var(--danger);">provider</span>, <span style="font-family: var(--font-mono); color: var(--danger);">model</span>
+          </div>
+          <div class="ba-box ba-after">
+            <div class="ba-label" style="color: var(--accent);">Après — Sécurisé</div>
+            <span style="font-family: var(--font-mono); color: var(--accent);">aiConfig</span> caché pour non-admins, <span style="font-family: var(--font-mono); color: var(--accent);">apiKey</span> strippé
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span class="material-icons" style="color: var(--accent); font-size: 18px; margin-top: 2px;">check_circle</span>
+            <span class="sec-line" style="margin: 0;">Frontend: Champs AI visibles <span style="font-weight: 700; color: var(--accent);">SEULEMENT</span> pour admins</span>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <span class="material-icons" style="color: var(--accent); font-size: 18px; margin-top: 2px;">check_circle</span>
+            <span class="sec-line" style="margin: 0;"><span style="font-family: var(--font-mono); color: var(--primary-light);">saveAgent</span>: Payload strippé selon role</span>
+          </div>
+        </div>
+        <!-- Decorative accent -->
+        <div data-decor aria-hidden="true" style="position: absolute; bottom: -20px; right: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 50%;"></div>
+      </div>
+
+      <!-- Card 2: Routes Protégées -->
+      <div class="card card-medium">
+        <div class="card-header">
+          <span class="material-icons" style="color: var(--primary); font-size: 20px;">route</span>
+          <span class="card-title" style="font-size: 16px;">Routes Protégées</span>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <div class="route-row">
+            <span class="route-path">GET /agents</span>
+            <span class="route-badge" style="background: rgba(16,185,129,0.2); color: var(--accent);">Role select</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">PUT /agents/[id]</span>
+            <span class="route-badge" style="background: rgba(59,130,246,0.2); color: var(--primary-light);">token only</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">POST /agents</span>
+            <span class="route-badge" style="background: rgba(59,130,246,0.2); color: var(--primary-light);">token only</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">DELETE</span>
+            <span class="route-badge" style="background: rgba(239,68,68,0.2); color: var(--danger);">Admin only</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">/setup</span>
+            <span class="route-badge" style="background: rgba(239,68,68,0.2); color: var(--danger);">Admin only</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">/activate</span>
+            <span class="route-badge" style="background: rgba(16,185,129,0.2); color: var(--accent);">All roles</span>
+          </div>
+          <div class="route-row">
+            <span class="route-path">Services</span>
+            <span class="route-badge" style="background: rgba(239,68,68,0.2); color: var(--danger);">Admin only</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Plan Limits -->
+      <div class="card card-small">
+        <div class="card-header">
+          <span class="material-icons" style="color: var(--accent); font-size: 20px;">layers</span>
+          <span class="card-title" style="font-size: 16px;">Plan Limits</span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-name">Starter</span>
+          <span class="plan-limit" style="color: var(--warning);">2 agents max</span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-name">Pro</span>
+          <span class="plan-limit">5 agents max</span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-name">Business</span>
+          <span class="plan-limit">12 agents max</span>
+        </div>
+        <div class="plan-row">
+          <span class="plan-name">Enterprise</span>
+          <span class="plan-limit" style="color: var(--accent);">Illimité</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+          <span class="material-icons" style="font-size: 14px; vertical-align: middle;">verified</span>
+          checkPlanLimit vérifié
+        </div>
+      </div>
+
+      <!-- Card 4: 12 Types de Bots - Full width at bottom -->
+      <div class="card" style="grid-column: 1 / -1; padding: 16px 20px;">
+        <div class="card-header" style="margin-bottom: 10px;">
+          <span class="material-icons" style="color: var(--primary); font-size: 20px;">category</span>
+          <span class="card-title" style="font-size: 16px;">12 Types de Bots Prêts à l'Emploi</span>
+          <span class="badge badge-blue" style="font-size: 10px;">Templates</span>
+        </div>
+        <div class="bot-chips">
+          <span class="bot-chip">🍽 Restaurant</span>
+          <span class="bot-chip">💇 Salon</span>
+          <span class="bot-chip">💊 Pharmacie</span>
+          <span class="bot-chip">🚕 Taxi</span>
+          <span class="bot-chip">👔 Pressing</span>
+          <span class="bot-chip">📚 Ecole</span>
+          <span class="bot-chip">🛒 Supermarché</span>
+          <span class="bot-chip">🏥 Clinique</span>
+          <span class="bot-chip">✈ Voyage</span>
+          <span class="bot-chip">🥐 Boulangerie</span>
+          <span class="bot-chip">🔧 Garage</span>
+          <span class="bot-chip">⚽ Sport</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside data-notes class="hidden">
+    • Le module Telegram est le plus critique de l'application
+    • 3 bugs critiques corrigés sur l'exposition de la config AI aux non-admins
+    • Toutes les routes sont maintenant protégées par des guards de role
+    • checkPlanLimit est vérifié avant chaque création d'agent
+    • 12 templates de bots disponibles pour différents secteurs d'activité
+  </aside>
+</body>
+</html>

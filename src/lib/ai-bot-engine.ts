@@ -13,6 +13,13 @@ export interface AIBotConfig {
   maxTokens: number;
   /** Custom base URL (for self-hosted LLMs) */
   baseUrl?: string;
+  /** OpenRouter multimodal settings */
+  multimodal?: {
+    enabled: boolean;
+    vision: boolean;   // Image understanding
+    audio: boolean;    // Audio transcription
+    imageGen: boolean; // Image generation
+  };
 }
 
 /** System prompt template functions for each business type */
@@ -154,7 +161,7 @@ export function buildContextFromBusinessData(params: {
 export async function generateAIResponse(
   message: string,
   config: AIBotConfig,
-  conversationHistory: Array<{ role: string; content: string }>,
+  conversationHistory: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }>,
   businessContext?: string | null
 ): Promise<string | null> {
   if (!config.enabled || !config.apiKey) {
@@ -162,18 +169,15 @@ export async function generateAIResponse(
   }
 
   try {
-    const messages: Array<{ role: string; content: string }> = [];
+    type MessageContent = string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    const messages: Array<{ role: string; content: MessageContent }> = [];
 
-    // Build the final system prompt: business data context first, then the configured prompt
-    const systemParts: string[] = [];
+    // Build system prompt: business data context + configured prompt
     if (businessContext) {
-      systemParts.push(businessContext);
+      messages.push({ role: "system", content: businessContext });
     }
     if (config.systemPrompt) {
-      systemParts.push(config.systemPrompt);
-    }
-    if (systemParts.length > 0) {
-      messages.push({ role: "system", content: systemParts.join("\n\n") });
+      messages.push({ role: "system", content: config.systemPrompt });
     }
 
     // Add conversation history (last 10 messages max for context window)

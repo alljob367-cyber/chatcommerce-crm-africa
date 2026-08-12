@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, height=720">
+  <title>Module AI Engine</title>
+  <link rel="stylesheet" href="global.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 28px;
+      height: 540px;
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-content {
+      margin-bottom: 18px;
+    }
+    .bullet-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .bullet-icon {
+      color: var(--accent);
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .code-inline {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: rgba(59,130,246,0.15);
+      color: var(--primary-light);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .provider-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      margin: 3px;
+    }
+    .right-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .vision-card {
+      background: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(16,185,129,0.08) 100%);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .vision-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-light);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vision-item {
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .config-box {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      line-height: 1.6;
+    }
+    .security-section {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .sec-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .sec-row:last-child { margin-bottom: 0; }
+    .sec-label {
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      min-width: 180px;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide" style="display: flex; flex-direction: column;">
+    <!-- Header -->
+    <div style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+        <span class="material-icons" style="color: var(--primary); font-size: 28px;">psychology</span>
+        <h1 style="font-size: 28px; font-weight: 800; color: var(--text);">Moteur IA — OpenRouter Multimodal Prêt</h1>
+        <span class="badge badge-green">PRÊT</span>
+      </div>
+      <p style="font-size: 14px; color: var(--text-muted); margin-left: 40px;">Audit et préparation du module AI Engine pour OpenRouter multimodal</p>
+    </div>
+
+    <!-- Split Layout -->
+    <div class="split-layout">
+      <!-- Left: Main Content -->
+      <div style="display: flex; flex-direction: column;">
+        <!-- Section 1: Fournisseurs -->
+        <div class="section-content">
+          <div class="section-title">
+            <span class="material-icons" style="font-size: 18px;">hub</span>
+            Fournisseurs Supportés
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+            <span class="provider-chip"><span class="material-icons" style="font-size: 14px; color: var(--primary);">star</span> OpenRouter (+100 modèles)</span>
+            <span class="provider-chip">OpenAI GPT-4o</span>
+            <span class="provider-chip">Anthropic Claude</span>
+            <span class="provider-chip">Google Gemini</span>
+            <span class="provider-chip">Meta Llama</span>
+            <span class="provider-chip">Mistral</span>
+          </div>
+        </div>
+
+        <!-- Section 2: Nouveautés Multimodales -->
+        <div class="section-content">
+          <div class="section-title">
+            <span class="material-icons" style="font-size: 18px;">auto_awesome</span>
+            Nouveautés Multimodales
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">visibility</span>
+            <span>Support <strong>vision</strong> (analyse d'images) — messages avec <span class="code-inline">image_url</span></span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">headphones</span>
+            <span>Support <strong>audio</strong> (transcription) — prêt pour intégration</span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">api</span>
+            <span>Interface <span class="code-inline">AIBotConfig.multipodal</span>: enabled, vision, audio, imageGen</span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">code</span>
+            <span>Messages multi-contenus: <span class="code-inline">string | Array&lt;{type, ...}&gt;</span></span>
+          </div>
+        </div>
+
+        <!-- Section 3: Contexte Business Anti-Hallucination -->
+        <div class="section-content">
+          <div class="section-title">
+            <span class="material-icons" style="font-size: 18px;">business</span>
+            Contexte Business Anti-Hallucination
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">database</span>
+            <span>Données réelles injectées dans le prompt système</span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">attach_money</span>
+            <span>Prix réels, stock, horaires — pas de données fictives</span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons" style="color: var(--danger); font-size: 16px; flex-shrink: 0;">warning</span>
+            <span style="font-weight: 600; color: var(--danger);">Règle stricte: NE JAMAIS inventer prix/produits/stock</span>
+          </div>
+          <div class="bullet-item">
+            <span class="material-icons bullet-icon">description</span>
+            <span>Prompt système par type de business <span style="color: var(--primary-light);">(12 templates)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <!-- Vision Card -->
+        <div class="vision-card">
+          <div class="vision-title">
+            <span class="material-icons" style="font-size: 18px;">image</span>
+            Multimodal Ready
+          </div>
+          <div class="vision-item">
+            <span class="material-icons" style="font-size: 14px; color: var(--accent); vertical-align: middle;">check</span>
+            Vision: Analyse d'images uploadées
+          </div>
+          <div class="vision-item">
+            <span class="marial-icons" style="font-size: 14px; color: var(--accent); vertical-align: middle;">check</span>
+            Audio: Transcription vocale
+          </div>
+          <div class="vision-item">
+            <span class="material-icons" style="font-size: 14px; color: var(--accent); vertical-align: middle;">check</span>
+            Image Gen: Génération d'images
+          </div>
+          <div class="config-box" style="margin-top: 10px;">
+{<br>
+&nbsp;&nbsp;enabled: boolean,<br>
+&nbsp;&nbsp;vision: boolean,<br>
+&nbsp;&nbsp;audio: boolean,<br>
+&nbsp;&nbsp;imageGen: boolean<br>
+}
+          </div>
+        </div>
+
+        <!-- Security Section -->
+        <div class="security-section">
+          <div style="font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span class="material-icons" style="font-size: 16px;">shield</span>
+            Sécurité
+          </div>
+          <div class="sec-row">
+            <span class="sec-label">POST /telegram/ai</span>
+            <span style="color: var(--accent);">Auth requise</span>
+          </div>
+          <div class="sec-row">
+            <span class="sec-label">POST /ai</span>
+            <span style="color: var(--warning);">Auth + Rate 20/min</span>
+          </div>
+          <div class="sec-row">
+            <span class="sec-label">apiKey</span>
+            <span style="color: var(--accent);">Jamais au client</span>
+          </div>
+          <div class="sec-row">
+            <span class="sec-label">Stockage</span>
+            <span>JSON dans DB</span>
+          </div>
+        </div>
+
+        <!-- OpenRouter Header Info -->
+        <div style="background: var(--bg); border-radius: 8px; padding: 12px; font-size: 11px; color: var(--text-muted);">
+          <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">OpenRouter Headers</div>
+          <div style="font-family: var(--font-mono); line-height: 1.8;">
+            <span style="color: var(--primary-light);">HTTP-Referer</span>: tracking<br>
+            <span style="color: var(--primary-light);">X-Title</span>: app ID
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside data-notes class="hidden">
+    • L'AI engine est prêt pour OpenRouter multimodal complet avec vision et support audio
+    • Interface multipodal configurée: enabled, vision, audio, imageGen
+    • Anti-hallucination: données réelles injectées, règle stricte de ne jamais inventer
+    • 12 templates de prompts système par type de business
+    • apiKey jamais exposé au client, stocké en JSON dans la DB
+  </aside>
+</body>
+</html>

@@ -17,6 +17,7 @@ export async function GET(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const { id } = await params;
     const agent = await db.telegramAgent.findFirst({
       where: { id, companyId: session.companyId },
@@ -29,7 +30,8 @@ export async function GET(
         token: false,  // NEVER expose bot token to client
         isActive: true,
         welcomeMessage: true,
-        aiConfig: true,
+        // SECURITY: Only expose full AI config to admins
+        ...(isAdmin ? { aiConfig: true } : { aiEnabled: true }),
         createdAt: true,
         updatedAt: true,
         services: { orderBy: { sortOrder: "asc" } },
@@ -38,6 +40,16 @@ export async function GET(
     });
 
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
+
+    // Strip apiKey from aiConfig for safety
+    if (isAdmin && (agent as Record<string, unknown>).aiConfig) {
+      try {
+        const parsed = JSON.parse((agent as Record<string, unknown>).aiConfig as string);
+        delete parsed.apiKey;
+        (agent as Record<string, unknown>).aiConfig = JSON.stringify(parsed);
+      } catch { /* ignore */ }
+    }
+
     return NextResponse.json({ agent });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
