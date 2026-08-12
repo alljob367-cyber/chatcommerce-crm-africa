@@ -704,7 +704,7 @@ export default function AuthPage() {
               <Image src="/logo.png" alt="ChatCommerce CRM" width={36} height={36} className="rounded-xl object-cover shadow-lg shadow-[#00E676]/30" />
               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#00E676] rounded-full animate-pulse" />
             </div>
-            <span className="font-bold text-lg text-white">
+            <span className="font-bold text-lg text-white font-heading tracking-tight">
               Chat<span className="text-[#00E676]">Commerce</span>
             </span>
           </div>
@@ -777,11 +777,11 @@ export default function AuthPage() {
               <div className="animate-fade-up">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00E676]/10 rounded-full border border-[#00E676]/20 backdrop-blur-sm">
                   <Rocket className="w-4 h-4 text-[#00E676]" />
-                  <span className="text-sm font-medium text-[#00E676]">La 1ère plateforme CRM Telegram pour l'Afrique</span>
+                  <span className="text-sm font-medium text-[#00E676] font-heading">La 1ère plateforme CRM Telegram pour l'Afrique</span>
                 </div>
               </div>
 
-              <h1 className="animate-fade-up delay-100 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
+              <h1 className="animate-fade-up delay-100 hero-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white">
                 Automatisez vos{" "}
                 <span className="relative">
                   <span className="bg-gradient-to-r from-[#00E676] via-[#00BFA5] to-[#00E5FF] bg-clip-text text-transparent animate-gradient">
@@ -792,8 +792,8 @@ export default function AuthPage() {
                 {" "}avec des Bots Telegram
               </h1>
 
-              <p className="animate-fade-up delay-200 text-lg md:text-xl text-zinc-400 max-w-lg leading-relaxed">
-                Créez votre bot en <span className="text-white font-semibold">1 clic</span>. Recevez des commandes, prenez des rendez-vous et gérez vos clients depuis Telegram. <span className="text-[#00E676] font-semibold">Zero code. Zero config.</span>
+              <p className="animate-fade-up delay-200 text-lg md:text-xl text-zinc-400 max-w-lg leading-relaxed text-balance">
+                Créez votre bot en <span className="text-white font-semibold font-heading">1 clic</span>. Recevez des commandes, prenez des rendez-vous et gérez vos clients depuis Telegram. <span className="text-[#00E676] font-semibold font-heading">Zero code. Zero config.</span>
               </p>
 
               <div className="animate-fade-up delay-300 flex flex-col sm:flex-row items-start gap-4">
@@ -857,10 +857,10 @@ export default function AuthPage() {
               { ref: null, count: null, suffix: "min", label: "Mise en place", isStatic: true, staticVal: "<2" },
             ].map((s, i) => (
               <div key={i} ref={s.ref && !s.isStatic ? s.ref : undefined} className="text-center p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/50 backdrop-blur-sm animate-fade-up">
-                <p className="text-3xl md:text-4xl font-black text-[#00E676]">
+                <p className="text-3xl md:text-4xl font-black text-[#00E676] font-heading tracking-tight">
                   {s.isStatic ? s.staticVal : `${s.count}${s.suffix}`}
                 </p>
-                <p className="text-xs text-zinc-500 mt-1">{s.label}</p>
+                <p className="text-xs text-zinc-500 mt-1 subheading-accent">{s.label}</p>
               </div>
             ))}
           </div>
@@ -883,10 +883,10 @@ export default function AuthPage() {
             <Badge className="mb-4 bg-[#00E676]/10 text-[#00E676] border-[#00E676]/20 hover:bg-[#00E676]/20">
               <Layers className="w-3 h-3 mr-1" /> 12 Agents Telegram
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">
+            <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               Un bot pour chaque <span className="text-[#00E676]">activite</span>
             </h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+            <p className="text-zinc-400 max-w-2xl mx-auto text-lg text-balance">
               Choisissez votre type d&apos;activité. Tout est pré-configuré : services, tarifs, horaires. Il suffit d&apos;activer.
             </p>
           </div>
@@ -900,7 +900,7 @@ export default function AuthPage() {
                     <agent.icon className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-lg font-bold text-white">{agent.label}</h3>
+                    <h3 className="text-lg font-bold text-white font-heading">{agent.label}</h3>
                     {agent.badge && (
                       <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/20">
                         {agent.badge}
@@ -926,7 +926,7 @@ export default function AuthPage() {
             <Badge className="mb-4 bg-[#00E676]/10 text-[#00E676] border-[#00E676]/20">
               <Cpu className="w-3 h-3 mr-1" /> Comment ça marche
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">
+            <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               3 étapes. <span className="text-[#00E676]">C&apos;est tout.</span>
             </h2>
           </div>
@@ -939,11 +939,11 @@ export default function AuthPage() {
               <div key={s.step} className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-br from-[#00E676]/10 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="relative p-8 rounded-2xl border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm text-center">
-                  <span className="absolute -top-4 left-8 text-6xl font-black text-[#00E676]/10">{s.step}</span>
+                  <span className="absolute -top-4 left-8 text-6xl font-black text-[#00E676]/10 font-heading">{s.step}</span>
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00E676]/20 to-[#00BFA5]/10 border border-[#00E676]/20 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
                     <s.icon className="w-8 h-8 text-[#00E676]" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3">{s.title}</h3>
+                  <h3 className="text-xl font-bold text-white mb-3 font-heading">{s.title}</h3>
                   <p className="text-sm text-zinc-400 leading-relaxed">{s.desc}</p>
                 </div>
                 {i < 2 && (
@@ -966,10 +966,10 @@ export default function AuthPage() {
             <Badge className="mb-4 bg-[#00E676]/10 text-[#00E676] border-[#00E676]/20">
               <Sparkles className="w-3 h-3 mr-1" /> Fonctionnalités
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">
+            <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               Tout pour <span className="text-[#00E676]">dominer</span> votre marché
             </h2>
-            <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+            <p className="text-zinc-400 max-w-2xl mx-auto text-lg text-balance">
               Un CRM complet intégré avec des bots Telegram puissants. Gérez votre activité depuis une seule plateforme.
             </p>
           </div>
@@ -981,7 +981,7 @@ export default function AuthPage() {
                   <div className="w-14 h-14 rounded-2xl bg-[#00E676]/10 border border-[#00E676]/20 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#00E676]/20 transition-all duration-500">
                     <f.icon className="w-7 h-7 text-[#00E676]" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
+                  <h3 className="text-lg font-bold text-white mb-2 font-heading">{f.title}</h3>
                   <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
                 </CardContent>
               </Card>
@@ -994,10 +994,10 @@ export default function AuthPage() {
       <section id="temoignages" className="relative py-24 px-4 sm:px-6 bg-zinc-950 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">
+            <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               Ils nous font <span className="text-[#00E676]">confiance</span>
             </h2>
-            <p className="text-zinc-400 text-lg">Plus de 500 commerçants africains utilisent ChatCommerce CRM</p>
+            <p className="text-zinc-400 text-lg text-balance">Plus de 500 commerçants africains utilisent ChatCommerce CRM</p>
           </div>
           <div className="max-w-3xl mx-auto">
             <Card className="border border-zinc-800/50 bg-zinc-900/50 backdrop-blur-sm">
@@ -1007,7 +1007,7 @@ export default function AuthPage() {
                     <Star key={i} className={`w-5 h-5 ${i < TESTIMONIALS[currentTestimonial].stars ? "fill-[#00E676] text-[#00E676]" : "text-zinc-700"}`} />
                   ))}
                 </div>
-                <p className="text-lg md:text-xl text-zinc-300 leading-relaxed mb-8 italic min-h-[80px]">
+                <p className="text-lg md:text-xl text-zinc-300 leading-relaxed mb-8 italic min-h-[80px] font-heading">
                   &ldquo;{TESTIMONIALS[currentTestimonial].text}&rdquo;
                 </p>
                 <div className="flex items-center justify-between">
@@ -1016,7 +1016,7 @@ export default function AuthPage() {
                       {TESTIMONIALS[currentTestimonial].name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-bold text-white">{TESTIMONIALS[currentTestimonial].name}</p>
+                      <p className="font-bold text-white font-heading">{TESTIMONIALS[currentTestimonial].name}</p>
                       <p className="text-sm text-zinc-500">{TESTIMONIALS[currentTestimonial].role}</p>
                     </div>
                   </div>
@@ -1051,10 +1051,10 @@ export default function AuthPage() {
             <Badge className="mb-4 bg-[#00E676]/10 text-[#00E676] border-[#00E676]/20">
               <Banknote className="w-3 h-3 mr-1" /> Tarifs
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black text-white mb-4">
+            <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               Simple et <span className="text-[#00E676]">transparent</span>
             </h2>
-            <p className="text-zinc-400 text-lg">Commencez gratuitement. Évoluez quand vous êtes prêt.</p>
+            <p className="text-zinc-400 text-lg text-balance">Commencez gratuitement. Évoluez quand vous êtes prêt.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {PRICING.map((plan) => (
@@ -1070,14 +1070,14 @@ export default function AuthPage() {
                   </div>
                 )}
                 <CardContent className="p-8">
-                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <h3 className="text-lg font-bold text-white font-heading">{plan.name}</h3>
                   <p className="text-sm text-zinc-500 mt-1">{plan.desc}</p>
                   <div className="mt-5 mb-7">
                     {plan.price === "Sur devis" ? (
-                      <span className="text-4xl font-black text-[#00E676]">Sur devis</span>
+                      <span className="text-4xl font-black text-[#00E676] font-heading tracking-tight">Sur devis</span>
                     ) : (
                       <>
-                        <span className="text-4xl font-black text-white">{plan.price}</span>
+                        <span className="text-4xl font-black text-white font-heading tracking-tight">{plan.price}</span>
                         {plan.period && <span className="text-sm text-zinc-500 ml-1">{plan.period}</span>}
                       </>
                     )}
@@ -1406,9 +1406,9 @@ export default function AuthPage() {
                           <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
                             <p.icon className="w-4 h-4 text-[#00E676]" />
                           </div>
-                          <p className="font-semibold text-white text-sm">{p.name}</p>
+                          <p className="font-semibold text-white text-sm font-heading">{p.name}</p>
                         </div>
-                        <p className="text-lg font-bold text-white mb-2">{p.price} <span className="text-xs text-zinc-400 font-normal">FCFA/mois</span></p>
+                        <p className="text-lg font-bold text-white mb-2 font-heading tracking-tight">{p.price} <span className="text-xs text-zinc-400 font-normal">FCFA/mois</span></p>
                         <ul className="space-y-1">
                           {p.features.map((f) => (
                             <li key={f} className="flex items-center gap-1.5 text-[11px] text-zinc-300">
