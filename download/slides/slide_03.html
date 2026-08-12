@@ -1,114 +1,80 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=1280">
-  <link rel="stylesheet" href="global.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
-    .bug-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .bug-table thead th {
-      text-align: left; padding: 10px 14px; font-weight: 600; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.8px; font-size: 11px;
-      border-bottom: 2px solid var(--border); background: rgba(30,41,59,0.6);
-    }
-    .bug-table tbody tr { border-bottom: 1px solid rgba(51,65,85,0.4); transition: background 0.15s; }
-    .bug-table tbody tr:hover { background: rgba(59,130,246,0.04); }
-    .bug-table tbody td { padding: 12px 14px; vertical-align: top; color: var(--text); line-height: 1.45; }
-    .bug-table tbody tr:last-child { border-bottom: none; }
-    .sev-critique { background: rgba(239,68,68,0.15); color: var(--danger); font-weight: 700; }
-    .sev-haute { background: rgba(245,158,11,0.15); color: var(--warning); font-weight: 700; }
-    .sev-moyenne { background: rgba(250,204,21,0.15); color: var(--warning-light); font-weight: 700; }
-    .fix-text { font-family: var(--font-mono); font-size: 12px; color: var(--accent-light); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Bugs Critiques Corriges</title>
+<link rel="stylesheet" href="global.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  table.result-table td { vertical-align: top; }
+  .bug-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.45;
+    max-width: 620px;
+  }
+  .module-cell {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 13px;
+    white-space: nowrap;
+    padding-right: 16px;
+    min-width: 160px;
+  }
+  .sev-cell { min-width: 90px; }
+  .statut-cell { min-width: 90px; }
+</style>
 </head>
 <body>
-  <div class="slide" style="padding-top: 48px; padding-bottom: 48px; display: flex; flex-direction: column;">
-    <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <div class="icon-circle" style="background: rgba(239,68,68,0.15);">
-          <span class="material-icons" style="color: var(--danger); font-size: 24px;">bug_report</span>
-        </div>
-        <div>
-          <h2 style="font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--text);">Bugs Critiques Corriges</h2>
-          <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">7 vulnerabilites identifiees et resolues dans cette session</p>
-        </div>
-      </div>
-      <div style="display: flex; gap: 10px;">
-        <span class="badge sev-critique" style="font-size: 11px; padding: 4px 10px;">CRITIQUE</span>
-        <span class="badge sev-haute" style="font-size: 11px; padding: 4px 10px;">HAUTE</span>
-        <span class="badge sev-moyenne" style="font-size: 11px; padding: 4px 10px;">MOYENNE</span>
-      </div>
-    </div>
+<div class="slide">
 
-    <!-- Table -->
-    <div class="card" style="padding: 0; overflow: hidden; flex: 1; display: flex; flex-direction: column;">
-      <table class="bug-table" style="flex: 1;">
-        <thead>
-          <tr>
-            <th style="width: 16%;">Module</th>
-            <th style="width: 32%;">Bug</th>
-            <th style="width: 13%;">Severite</th>
-            <th style="width: 39%;">Correctif</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Telegram Agents GET</td>
-            <td>aiConfig + apiKey expose aux non-admins</td>
-            <td><span class="badge sev-critique" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">CRITIQUE</span></td>
-            <td class="fix-text">Role-based select + strip apiKey</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Telegram Agent [id] GET</td>
-            <td>aiConfig complet expose a tous les roles</td>
-            <td><span class="badge sev-critique" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">CRITIQUE</span></td>
-            <td class="fix-text">isAdmin guard sur aiConfig</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Telegram Page Frontend</td>
-            <td>saveAgent envoit tous les champs AI meme pour non-admins</td>
-            <td><span class="badge sev-critique" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">CRITIQUE</span></td>
-            <td class="fix-text">Payload strippé selon role</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Services POST/DELETE</td>
-            <td>Non-admins pouvaient creer/supprimer des services</td>
-            <td><span class="badge sev-haute" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">HAUTE</span></td>
-            <td class="fix-text">Admin-only guard ajouté</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">AI Bot Engine</td>
-            <td>Pas de support multimodal OpenRouter</td>
-            <td><span class="badge sev-moyenne" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">MOYENNE</span></td>
-            <td class="fix-text">Interface multimodal + vision/audio</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Plan Limits Sync</td>
-            <td>maxProducts non verifie lors du sync</td>
-            <td><span class="badge sev-haute" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">HAUTE</span></td>
-            <td class="fix-text">checkPlanLimit ajouté (corrigé precedemment)</td>
-          </tr>
-          <tr>
-            <td style="font-weight: 600; color: var(--primary-light); font-size: 13px;">Chariow Webhook</td>
-            <td>Non-transactionnel, double update possible</td>
-            <td><span class="badge sev-haute" style="font-size: 11px; padding: 3px 10px; border-radius: 4px;">HAUTE</span></td>
-            <td class="fix-text">db.$transaction pour atomicité (corrigé precedemment)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  <h1 style="font-family:var(--font-heading);font-size:var(--fs-h1);font-weight:700;color:var(--text);margin-bottom:28px;">
+    Bugs Critiques Corriges
+  </h1>
 
-    <aside data-notes class="hidden">
-      7 bugs corriges dont 3 critiques sur l'exposition de la config AI aux non-admins.
-      Les 3 bugs critiques concernent tous l'exposition d'apiKey et aiConfig aux roles non-admin.
-      3 bugs haute severite sur les guards d'acces et les transactions DB.
-      1 bug moyenne severite sur l'ajout du support multimodal.
-      Tous les correctifs sont deployes en production.
-    </aside>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th style="width:14%;">Module</th>
+          <th style="width:58%;">Bug</th>
+          <th class="sev-cell">Severite</th>
+          <th class="statut-cell">Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="module-cell">Telegram Agents / AI Config</td>
+          <td class="bug-text">openEditAgent() lisait le champ openHours au lieu de aiConfig — les parametres IA n'etaient jamais charges lors de l'edition d'un agent</td>
+          <td class="sev-cell"><span class="badge badge-red">CRITIQUE</span></td>
+          <td class="statut-cell"><span class="badge badge-green">CORRIGE</span></td>
+        </tr>
+        <tr>
+          <td class="module-cell">Products / Automations / Campaigns</td>
+          <td class="bug-text">Routes POST/PATCH/DELETE sans verification admin — tout utilisateur authentifie pouvait creer/supprimer des ressources</td>
+          <td class="sev-cell"><span class="badge badge-red">CRITIQUE</span></td>
+          <td class="statut-cell"><span class="badge badge-green">CORRIGE</span></td>
+        </tr>
+        <tr>
+          <td class="module-cell">Dashboard Analytics</td>
+          <td class="bug-text">SQL PostgreSQL-only (NOW()-INTERVAL) crash en SQLite local — date("createdAt") incompatible</td>
+          <td class="sev-cell"><span class="badge badge-amber">MOYEN</span></td>
+          <td class="statut-cell"><span class="badge badge-green">CORRIGE</span></td>
+        </tr>
+        <tr>
+          <td class="module-cell">Chariow Checkout</td>
+          <td class="bug-text">Pas de validation d'upgrade de plan — un utilisateur pouvait payer pour un plan inferieur ou identique</td>
+          <td class="sev-cell"><span class="badge badge-amber">MOYEN</span></td>
+          <td class="statut-cell"><span class="badge badge-green">CORRIGE</span></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+
+  <span class="page-num">03</span>
+</div>
 </body>
 </html>

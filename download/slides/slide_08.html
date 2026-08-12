@@ -1,317 +1,84 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=1280, height=720">
-  <title>Modules Admin &amp; Infrastructure</title>
-  <link rel="stylesheet" href="global.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <style>
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 28px;
-      height: 540px;
-    }
-    .col-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 22px;
-      display: flex;
-      flex-direction: column;
-    }
-    .col-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border);
-    }
-    .col-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .col-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text);
-    }
-    .section-block {
-      margin-bottom: 16px;
-    }
-    .section-label {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--primary-light);
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .info-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--text);
-      line-height: 1.5;
-      margin-bottom: 6px;
-    }
-    .info-check {
-      color: var(--accent);
-      font-size: 16px;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .code-tag {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      background: rgba(59,130,246,0.12);
-      color: var(--primary-light);
-      padding: 1px 6px;
-      border-radius: 4px;
-    }
-    .role-badge {
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 4px;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .role-super {
-      background: rgba(239,68,68,0.15);
-      color: var(--danger);
-      border: 1px solid rgba(239,68,68,0.3);
-    }
-    .route-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .route-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 10px;
-      background: rgba(15,23,42,0.5);
-      border-radius: 6px;
-      font-size: 11px;
-    }
-    .route-method {
-      font-family: var(--font-mono);
-      font-weight: 700;
-      min-width: 36px;
-    }
-    .route-path {
-      font-family: var(--font-mono);
-      color: var(--primary-light);
-      flex: 1;
-      margin: 0 10px;
-    }
-    .route-access {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-weight: 600;
-    }
-    .recommendation-box {
-      background: rgba(245,158,11,0.1);
-      border: 1px solid rgba(245,158,11,0.3);
-      border-radius: 10px;
-      padding: 14px;
-      margin-top: auto;
-    }
-    .rec-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--warning);
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .rec-item {
-      font-size: 11px;
-      color: var(--text);
-      line-height: 1.5;
-      margin-bottom: 4px;
-    }
-    .rec-item:last-child { margin-bottom: 0; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Corrections Techniques</title>
+<link rel="stylesheet" href="global.css">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { margin: 0; background: var(--bg); }
+  .before-label { font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--accent-red);font-weight:600;letter-spacing:0.04em;margin-bottom:4px; }
+  .after-label { font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--accent-green);font-weight:600;letter-spacing:0.04em;margin-bottom:4px; }
+  .fix-text { font-family:var(--font-body);font-size:var(--fs-micro);color:var(--text-secondary);line-height:1.6; }
+  .file-tag { font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-muted);background:rgba(129,140,248,0.1);padding:2px 8px;border-radius:4px;display:inline-block;margin-bottom:8px; }
+</style>
 </head>
 <body>
-  <div class="slide" style="display: flex; flex-direction: column;">
-    <!-- Header -->
-    <div style="margin-bottom: 20px;">
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
-        <span class="material-icons" style="color: var(--primary); font-size: 28px;">admin_panel_settings</span>
-        <h1 style="font-size: 28px; font-weight: 800; color: var(--text);">Modules Admin &amp; Infrastructure</h1>
-      </div>
-      <p style="font-size: 14px; color: var(--text-muted); margin-left: 40px;">Audit de l'administration et de l'infrastructure de sécurité</p>
-    </div>
+<div class="slide" style="display:flex;flex-direction:column;">
 
-    <!-- Two Column Layout -->
-    <div class="two-col">
-      <!-- Left: Administration -->
-      <div class="col-card">
-        <div class="col-header">
-          <div class="col-icon" style="background: rgba(239,68,68,0.15);">
-            <span class="material-icons" style="color: var(--danger); font-size: 22px;">shield</span>
-          </div>
-          <span class="col-title">Administration</span>
-          <span class="role-badge role-super">
-            <span class="material-icons" style="font-size: 14px;">lock</span>
-            super_admin ONLY
-          </span>
-        </div>
-
-        <div class="section-block">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">router</span>
-            Routes Protégées
-          </div>
-          <div class="route-list">
-            <div class="route-item">
-              <span class="route-method" style="color: var(--accent);">GET</span>
-              <span class="route-path">/api/admin</span>
-              <span class="route-access" style="background: rgba(239,68,68,0.2); color: var(--danger);">403 others</span>
-            </div>
-            <div class="route-item">
-              <span class="route-method" style="color: var(--primary);">PUT</span>
-              <span class="route-path">/api/admin</span>
-              <span class="route-access" style="background: rgba(239,68,68,0.2); color: var(--danger);">403 others</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">settings</span>
-            Actions Admin
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span><span class="code-tag">update-company-plan</span> — Changer le plan d'une entreprise</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span><span class="code-tag">overview-metrics</span> — Dashboard stats globales</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span><span class="code-tag">confirm/reject</span> — Validation paiements admin</span>
-          </div>
-        </div>
-
-        <div class="section-block" style="margin-bottom: 0;">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">verified_user</span>
-            Sécurité
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Guard <span class="code-tag">super_admin</span> appliqué sur toutes les routes</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Retour <span style="color: var(--danger); font-weight: 600;">403 Forbidden</span> pour tous les autres rôles</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: Infrastructure -->
-      <div class="col-card">
-        <div class="col-header">
-          <div class="col-icon" style="background: rgba(59,130,246,0.15);">
-            <span class="material-icons" style="color: var(--primary); font-size: 22px;">dns</span>
-          </div>
-          <span class="col-title">Infrastructure</span>
-        </div>
-
-        <div class="section-block">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">key</span>
-            Middleware &amp; Auth
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>JWT HS256 avec <span class="code-tag">jose</span></span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Password: <span class="code-tag">bcrypt</span> cost 12</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span><span class="code-tag">JWT_SECRET</span> obligatoire en production</span>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">public</span>
-            Routes Publiques
-          </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-            <span class="code-tag">/api/auth</span>
-            <span class="code-tag">/api/seed</span>
-            <span class="code-tag">/api/cron</span>
-            <span class="code-tag">/api/chariow/webhook</span>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-label">
-            <span class="material-icons" style="font-size: 16px;">security</span>
-            Protections
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Rate limiting: <span style="color: var(--warning);">In-memory (dev)</span></span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>XSS: <span class="code-tag">sanitize()</span> escape &lt; &gt; " '</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Pagination: <span class="code-tag">safePagination()</span> cap 100</span>
-          </div>
-          <div class="info-row">
-            <span class="material-icons info-check">check</span>
-            <span>Erreurs: <span class="code-tag">handleError()</span> messages français</span>
-          </div>
-        </div>
-
-        <!-- Recommendation Box -->
-        <div class="recommendation-box">
-          <div class="rec-title">
-            <span class="material-icons" style="font-size: 16px;">warning</span>
-            RECOMMANDATION — Rate Limiting
-          </div>
-          <div class="rec-item">• Le rate limiting actuel est <strong>in-memory seulement</strong></div>
-          <div class="rec-item">• En serverless (Vercel), chaque invocation est un processus séparé</div>
-          <div class="rec-item">• <strong>TODO</strong>: Migrer vers <span class="code-tag">Upstash Redis</span> ou <span class="code-tag">Vercel KV</span></div>
-        </div>
-      </div>
-    </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+    <h1 style="font-family:var(--font-heading);font-size:var(--fs-h1);font-weight:700;color:var(--text);margin:0;">Corrections Techniques</h1>
   </div>
 
-  <aside data-notes class="hidden">
-    • L'administration est strictement protégée: seuls les super_admins ont accès
-    • Toutes les routes admin retournent 403 Forbidden pour les autres rôles
-    • JWT_SECRET est obligatoire en production, bcrypt cost 12 pour les passwords
-    • La recommandation principale est la migration du rate limiting vers Upstash Redis
-    • En serverless, le rate limiting in-memory ne fonctionne pas entre les invocations
-  </aside>
+  <div class="grid-2" style="flex:1;align-content:start;">
+
+    <!-- Card 1 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="material-icons" style="color:var(--accent-red);font-size:18px;">bug_report</span>
+        <span style="font-family:var(--font-heading);font-size:var(--fs-h3);font-weight:600;color:var(--text);">AI Config Leak</span>
+      </div>
+      <span class="file-tag">telegram-page.tsx</span>
+      <div class="before-label">AVANT</div>
+      <p class="fix-text">openEditAgent() lisait agent.openHours comme JSON pour extraire la config IA. Le champ aiConfig n'etait jamais lu. Type TelegramAgent ne contenait pas aiConfig.</p>
+      <div class="after-label">APRES</div>
+      <p class="fix-text">openEditAgent() lit agent.aiConfig directement. Type TelegramAgent inclut aiConfig?: string | null.</p>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="material-icons" style="color:var(--accent-red);font-size:18px;">bug_report</span>
+        <span style="font-family:var(--font-heading);font-size:var(--fs-h3);font-weight:600;color:var(--text);">Missing Admin Guards</span>
+      </div>
+      <span class="file-tag">products/route.ts · automations/route.ts · campaigns/route.ts · contacts/route.ts</span>
+      <div class="before-label">AVANT</div>
+      <p class="fix-text">POST/PATCH/DELETE accessibles par tout utilisateur authentifie.</p>
+      <div class="after-label">APRES</div>
+      <p class="fix-text">Verification isAdmin = role === 'company_admin' || 'super_admin' avant chaque write.</p>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="material-icons" style="color:var(--accent-amber);font-size:18px;">warning</span>
+        <span style="font-family:var(--font-heading);font-size:var(--fs-h3);font-weight:600;color:var(--text);">SQL Incompatibilite</span>
+      </div>
+      <span class="file-tag">dashboard/route.ts</span>
+      <div class="before-label">AVANT</div>
+      <p class="fix-text">NOW() - INTERVAL '6 days' (PostgreSQL only, crash SQLite).</p>
+      <div class="after-label">APRES</div>
+      <p class="fix-text">Date pre-calculee en parametre $2 (compatible SQLite + PostgreSQL).</p>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="material-icons" style="color:var(--accent-amber);font-size:18px;">warning</span>
+        <span style="font-family:var(--font-heading);font-size:var(--fs-h3);font-weight:600;color:var(--text);">No Upgrade Validation</span>
+      </div>
+      <span class="file-tag">chariow/checkout/route.ts</span>
+      <div class="before-label">AVANT</div>
+      <p class="fix-text">Aucune verification que le plan cible est superieur.</p>
+      <div class="after-label">APRES</div>
+      <p class="fix-text">PLAN_ORDER.indexOf() compare current vs target, bloque si target &lt;= current.</p>
+    </div>
+
+  </div>
+
+  <span class="page-num">08 / 09</span>
+</div>
 </body>
 </html>
