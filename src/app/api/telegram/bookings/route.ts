@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -79,6 +80,20 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { agentId, customerName, customerPhone, serviceId, serviceName, bookingDate, bookingTime, notes, chatId } = body;
+
+    // Vérifier les limites de réservation du plan
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      include: { company: true },
+    });
+    const companyPlan = user?.company?.plan || "starter";
+    const bookingCount = await db.telegramBooking.count({
+      where: { companyId: session.companyId, status: { notIn: ["cancelled"] } },
+    });
+    const limitError = checkPlanLimit(companyPlan, "maxBookings", bookingCount);
+    if (limitError) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
+    }
 
     // Validate required fields
     if (!agentId || !customerName || !bookingDate || !bookingTime) {

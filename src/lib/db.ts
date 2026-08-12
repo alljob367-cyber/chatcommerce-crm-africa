@@ -55,8 +55,8 @@ export async function ensureBootstrapped() {
         country: "Cameroun",
         plan: "enterprise",
         whatsappNumber: "+237612345678",
-        maxContacts: 50000,
-        maxAgents: 50,
+        maxContacts: 999999,
+        maxAgents: 999999,
       },
     });
 

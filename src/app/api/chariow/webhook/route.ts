@@ -143,9 +143,12 @@ export async function POST(request: Request) {
         }
       }
 
-      // Paiement réussi — mettre à jour la commande ET upgrader le plan
-      const [updatedOrder] = await db.$transaction([
-        // Mettre à jour la commande Chariow
+      // Paiement réussi — mettre à jour la commande ET upgrader le plan dans une transaction atomique
+      const { PLAN_LIMITS } = await import("@/lib/plan-limits");
+      const limits = PLAN_LIMITS[existingOrder.plan] || PLAN_LIMITS.starter;
+
+      await db.$transaction([
+        // 1. Mettre à jour la commande Chariow
         db.chariowOrder.update({
           where: { id: existingOrder.id },
           data: {
@@ -154,25 +157,25 @@ export async function POST(request: Request) {
             updatedAt: new Date(),
           },
         }),
+        // 2. Upgrader le plan ET les limites de l'entreprise en une seule opération
+        db.company.update({
+          where: { id: existingOrder.companyId },
+          data: {
+            plan: existingOrder.plan,
+            maxContacts: limits.maxContacts,
+            maxAgents: limits.maxAgents,
+            updatedAt: new Date(),
+          },
+        }),
       ]);
 
-      // Upgrader le plan de l'entreprise (currentCompany already fetched above)
+      // Mettre à jour ou créer la subscription
       const companyWithSubs = await db.company.findUnique({
         where: { id: existingOrder.companyId },
         include: { subscriptions: true },
       });
 
       if (companyWithSubs) {
-        // Mise à jour du plan de l'entreprise
-        await db.company.update({
-          where: { id: existingOrder.companyId },
-          data: {
-            plan: existingOrder.plan,
-            updatedAt: new Date(),
-          },
-        });
-
-        // Mettre à jour ou créer la subscription
         const activeSub = companyWithSubs.subscriptions.find(
           (s) => s.status === "active" || s.status === "trialing"
         );
@@ -184,7 +187,7 @@ export async function POST(request: Request) {
               plan: existingOrder.plan,
               status: "active",
               currentPeriodStart: new Date(),
-              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // +30 jours
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
               updatedAt: new Date(),
             },
           });
@@ -199,17 +202,6 @@ export async function POST(request: Request) {
             },
           });
         }
-
-        // Mettre à jour les limites selon le nouveau plan
-        const { PLAN_LIMITS } = await import("@/lib/plan-limits");
-        const limits = PLAN_LIMITS[existingOrder.plan] || PLAN_LIMITS.starter;
-        await db.company.update({
-          where: { id: existingOrder.companyId },
-          data: {
-            maxContacts: limits.maxContacts,
-            maxAgents: limits.maxAgents,
-          },
-        });
 
         console.log(
           `[Chariow Webhook] Plan upgrade: ${existingOrder.plan} pour company=${existingOrder.companyId}`

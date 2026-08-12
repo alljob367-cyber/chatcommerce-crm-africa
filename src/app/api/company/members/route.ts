@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken, hashPassword } from "@/lib/auth";
 import { sanitize, isValidEmail, handleError, rateLimit, secureRandom } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 // Hardcoded accounts fallback
 const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; role: string }> = {
@@ -81,15 +82,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
     }
 
-    // Check plan limits
+    // Check plan limits via checkPlanLimit (centralisée, pas le champ DB dénormalisé)
+    let companyPlan = "starter";
+    try {
+      const userRecord = await db.user.findUnique({
+        where: { id: auth.payload.userId },
+        include: { company: true },
+      });
+      companyPlan = userRecord?.company?.plan || "starter";
+    } catch { /* utilise starter par défaut */ }
+
     const agentCount = await db.user.count({
       where: { companyId: auth.company.id, isActive: true },
     });
-    if (agentCount >= auth.company.maxAgents) {
-      return NextResponse.json(
-        { error: `Limite d'agents atteinte (${auth.company.maxAgents}). Ameliorez votre plan.` },
-        { status: 403 }
-      );
+    const limitError = checkPlanLimit(companyPlan, "maxAgents", agentCount);
+    if (limitError) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
     }
 
     const body = await request.json();

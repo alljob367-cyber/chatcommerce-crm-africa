@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -36,11 +37,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Récupérer le plan de l'entreprise pour les vérifications de limites
+    const user = await db.user.findUnique({
+      where: { id: session.userId },
+      include: { company: true },
+    });
+    const companyPlan = user?.company?.plan || "starter";
+
     if (action === "products_to_services") {
       return handleProductsToServices(
         session.companyId,
         agentId,
-        productIds || []
+        productIds || [],
+        companyPlan
       );
     }
 
@@ -48,7 +57,8 @@ export async function POST(request: Request) {
       return handleServicesToProducts(
         session.companyId,
         agentId,
-        serviceIds || []
+        serviceIds || [],
+        companyPlan
       );
     }
 
@@ -69,7 +79,8 @@ export async function POST(request: Request) {
 async function handleProductsToServices(
   companyId: string,
   agentId: string,
-  productIds: string[]
+  productIds: string[],
+  companyPlan: string
 ) {
   // Fetch active products for the company
   const where: Record<string, unknown> = {
@@ -181,7 +192,8 @@ async function handleProductsToServices(
 async function handleServicesToProducts(
   companyId: string,
   agentId: string,
-  serviceIds: string[]
+  serviceIds: string[],
+  companyPlan: string
 ) {
   // Fetch services for the agent
   const serviceWhere: Record<string, unknown> = { agentId };
@@ -207,6 +219,18 @@ async function handleServicesToProducts(
   const existingProducts = await db.product.findMany({
     where: { companyId, isActive: true },
   });
+
+  // Compter combien de NOUVEAUX produits seraient créés (pas les updates)
+  const existingNames = new Set(existingProducts.map((p) => p.name.toLowerCase()));
+  const newCount = services.filter((s) => !existingNames.has(s.name.toLowerCase())).length;
+
+  if (newCount > 0) {
+    const currentProductCount = existingProducts.length;
+    const limitError = checkPlanLimit(companyPlan, "maxProducts", currentProductCount + newCount);
+    if (limitError) {
+      return NextResponse.json({ error: limitError }, { status: 403 });
+    }
+  }
 
   // Build a map by name (case-insensitive)
   const productByName = new Map(
