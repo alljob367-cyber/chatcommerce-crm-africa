@@ -55,6 +55,9 @@ export async function GET(request: Request) {
     // Total days for chart
     const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+    // Precompute date for Telegram daily bookings query
+    const sevenDaysAgo = new Date(Date.now() - 6 * 86400000).toISOString();
+
     // Run all queries in parallel
     const [
       totalContacts,
@@ -79,7 +82,6 @@ export async function GET(request: Request) {
       tgPendingBookings,
       tgThisMonthBookings,
       tgRecentBookings,
-      tgDailyBookingsRaw,
     ] = await Promise.all([
       db.contact.count({ where: { companyId } }),
 
@@ -189,18 +191,17 @@ export async function GET(request: Request) {
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-
-      // Daily bookings for last 7 days — compatible PostgreSQL and SQLite
-      const sevenDaysAgo = new Date(Date.now() - 6 * 86400000);
-      tgDailyBookingsRaw = await db.$queryRawUnsafe<{ date: string; count: number }[]>(
-        `SELECT DATE("createdAt") as date, COUNT(*) as count 
-         FROM "TelegramBooking" 
-         WHERE "companyId" = $1 AND "createdAt" >= $2
-         GROUP BY DATE("createdAt") 
-         ORDER BY date ASC`,
-        companyId, sevenDaysAgo.toISOString()
-      );
     ]);
+
+    // Telegram daily bookings — Prisma query (compatible with SQLite and PostgreSQL)
+    const tgDailyBookingsRaw = await db.$queryRawUnsafe<{ date: string; count: number }[]>(
+      `SELECT DATE("createdAt") as date, COUNT(*) as count 
+       FROM "TelegramBooking" 
+       WHERE "companyId" = $1 AND "createdAt" >= $2
+       GROUP BY DATE("createdAt") 
+       ORDER BY date ASC`,
+      companyId, sevenDaysAgo
+    );
 
     // Calculate real avg response time (admin reply after user message)
     const messageMap = new Map<string, { lastUser: Date | null; delays: number[] }>();
