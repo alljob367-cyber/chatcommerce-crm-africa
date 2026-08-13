@@ -23,7 +23,9 @@ import {
   Loader2,
   Info,
   ChevronRight,
+  Shield,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const PLAN_PRICES: Record<string, number> = {
   starter: 5000,
@@ -46,7 +48,7 @@ const PAYMENT_CONFIG = {
     bgColor: "bg-orange-50 dark:bg-orange-500/10",
     borderColor: "border-orange-200 dark:border-orange-500/30",
     textColor: "text-orange-600 dark:text-orange-400",
-    number: "+237 690 000 001",
+    defaultNumber: "+237 690 000 001",
     instructions: [
       "Ouvrez votre application Orange Money",
       "Allez dans Transfert / Envoyer de l'argent",
@@ -62,7 +64,7 @@ const PAYMENT_CONFIG = {
     bgColor: "bg-yellow-50 dark:bg-yellow-500/10",
     borderColor: "border-yellow-200 dark:border-yellow-500/30",
     textColor: "text-yellow-600 dark:text-yellow-400",
-    number: "+237 670 000 001",
+    defaultNumber: "+237 670 000 001",
     instructions: [
       "Composez *126# sur votre telephone MTN",
       "Choisissez Transfert d'argent",
@@ -95,6 +97,7 @@ interface PaymentRecord {
 
 export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
   const { user, token } = useAppStore();
+  const isAdmin = user?.role === "company_admin" || user?.role === "super_admin";
   const [step, setStep] = useState<Step>(targetPlan ? "method" : "select");
   const [selectedPlan, setSelectedPlan] = useState<string>(targetPlan || "");
   const [paymentMethod, setPaymentMethod] = useState<string>("");
@@ -110,18 +113,33 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [error, setError] = useState("");
 
+  // Phone numbers for Mobile Money reception (editable by admin)
+  const [orangeNumber, setOrangeNumber] = useState(PAYMENT_CONFIG.orange_money.defaultNumber);
+  const [mtnNumber, setMtnNumber] = useState(PAYMENT_CONFIG.mtn_money.defaultNumber);
+  const [editingNumbers, setEditingNumbers] = useState(false);
+  const [savingNumbers, setSavingNumbers] = useState(false);
+
   const currentPlan = user?.company?.plan || "starter";
 
-  // Charger l'historique des paiements
+  // Charger l'historique des paiements ET les numéros de réception
   useEffect(() => {
     if (token) {
       setLoadingPayments(true);
-      fetch("/api/payments", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.payments) setPayments(data.payments);
+      Promise.all([
+        fetch("/api/payments", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+        fetch("/api/company", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+      ])
+        .then(([paymentsData, companyData]) => {
+          if (paymentsData.payments) setPayments(paymentsData.payments);
+          // Load payment settings (phone numbers)
+          const settings = companyData.paymentSettings;
+          if (settings) {
+            try {
+              const parsed = typeof settings === 'string' ? JSON.parse(settings) : settings;
+              if (parsed.orangeNumber) setOrangeNumber(parsed.orangeNumber);
+              if (parsed.mtnNumber) setMtnNumber(parsed.mtnNumber);
+            } catch {}
+          }
         })
         .catch(() => {})
         .finally(() => setLoadingPayments(false));
@@ -136,6 +154,25 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // Save reception phone numbers (admin only)
+  const handleSaveNumbers = async () => {
+    setSavingNumbers(true);
+    try {
+      const res = await fetch("/api/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ paymentSettings: JSON.stringify({ orangeNumber, mtnNumber }) }),
+      });
+      if (res.ok) {
+        setEditingNumbers(false);
+        toast.success("Numeros de reception mis a jour");
+      }
+    } catch { toast.error("Erreur de sauvegarde"); }
+    finally { setSavingNumbers(false); }
+  };
+
+  const getPaymentNumber = (method: string) => method === "orange_money" ? orangeNumber : mtnNumber;
 
   const handleSubmitPayment = async () => {
     if (!form.transactionRef.trim() || !form.senderPhone.trim()) {
@@ -367,7 +404,16 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
                       </div>
                       <div className="mt-4 p-3 bg-muted rounded-lg">
                         <p className="text-xs text-muted-foreground">Envoyez a</p>
-                        <p className="font-mono font-bold text-foreground text-lg">{m.number}</p>
+                        {editingNumbers && isAdmin ? (
+                          <Input
+                            value={method === "orange_money" ? orangeNumber : mtnNumber}
+                            onChange={(e) => { if (method === "orange_money") setOrangeNumber(e.target.value); else setMtnNumber(e.target.value); }}
+                            className="mt-1 font-mono text-lg h-8"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <p className="font-mono font-bold text-foreground text-lg">{getPaymentNumber(method)}</p>
+                        )}
                       </div>
                       <Button
                         className={`w-full mt-4 ${
@@ -383,10 +429,80 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
                 );
               })}
             </div>
+
+            {/* Admin: Edit numbers button */}
+            {isAdmin && (
+              <div className="flex justify-end mt-2">
+                {editingNumbers ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditingNumbers(false)}>Annuler</Button>
+                    <Button size="sm" className="bg-[#25D366] text-white" onClick={handleSaveNumbers} disabled={savingNumbers}>
+                      {savingNumbers ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
+                      Enregistrer
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setEditingNumbers(true)}>
+                    ✏️ Modifier les numeros de reception
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Separator */}
+            <div className="relative my-6">
+              <Separator />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground font-medium">OU</span>
+            </div>
+
+            {/* Chariow Online Payment Card */}
+            <Card
+              className="border-2 border-[#ffcc00]/40 hover:border-[#ffcc00]/70 transition-all hover:shadow-md cursor-pointer group"
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/chariow/checkout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ plan: selectedPlan }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) { setError(data.error || "Erreur de paiement"); return; }
+                  if (data.checkoutUrl) {
+                    window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+                    toast.info("Page de paiement Chariow ouverte dans un nouvel onglet");
+                  } else if (data.status === "completed") {
+                    toast.success("Paiement deja effectue pour ce plan !");
+                  }
+                } catch { toast.error("Erreur de connexion au service de paiement"); }
+              }}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-[#ffcc00]/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CreditCard className="w-7 h-7 text-[#ffcc00]" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground text-lg">Paiement en ligne</p>
+                      <Badge className="bg-[#ffcc00] text-gray-900 text-[10px] font-bold">Chariow</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Carte bancaire, Mobile Money, paiement securise</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#ffcc00] group-hover:translate-x-1 transition-all" />
+                </div>
+                <div className="mt-4 p-3 bg-[#ffcc00]/5 rounded-lg border border-[#ffcc00]/10">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#ffcc00]" />
+                    <p className="text-xs text-muted-foreground">Paiement instantane et automatique. Votre plan est active immediatement apres confirmation.</p>
+                  </div>
+                </div>
+                <Button className="w-full mt-4 bg-[#ffcc00] hover:bg-[#ffcc00]/90 text-gray-900 font-semibold">
+                  Payer en ligne avec Chariow <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
-
-        {/* STEP 3: Payment Instructions & Form */}
         {step === "pay" && config && (
           <div className="space-y-4">
             <button
@@ -414,8 +530,8 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
                     <Separator className="my-3" />
                     <p className="text-xs text-muted-foreground mb-1">Numero du destinataire</p>
                     <div className="flex items-center justify-center gap-2">
-                      <p className="text-xl font-mono font-bold text-foreground">{config.number}</p>
-                      <button onClick={() => handleCopy(config.number)} className="p-1.5 hover:bg-muted-foreground/10 rounded">
+                      <p className="text-xl font-mono font-bold text-foreground">{getPaymentNumber(paymentMethod)}</p>
+                      <button onClick={() => handleCopy(getPaymentNumber(paymentMethod))} className="p-1.5 hover:bg-muted-foreground/10 rounded">
                         {copied ? <Check className="w-4 h-4 text-[#25D366]" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                       </button>
                     </div>

@@ -25,6 +25,7 @@ model Company {
   whatsappPhoneId String?
   currency        String?  @default("XAF")
   notificationSettings String? // JSON: { newOrders, newMessages, paymentConfirmations, dailyReports }
+  paymentSettings    String? // JSON: { orangeNumber, mtnNumber }
   isActive    Boolean  @default(true)
   maxContacts Int     @default(500)
   maxAgents   Int     @default(3)
