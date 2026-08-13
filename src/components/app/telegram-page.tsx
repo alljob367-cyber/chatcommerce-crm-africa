@@ -207,6 +207,8 @@ export default function TelegramPage() {
   const [globalBotUsername, setGlobalBotUsername] = useState<string | null>(null);
   const [globalTokenSaving, setGlobalTokenSaving] = useState(false);
   const [globalTokenActivatingAll, setGlobalTokenActivatingAll] = useState(false);
+  const [webhookRegistering, setWebhookRegistering] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<string | null>(null);
 
   // Agent form dialog (create/edit)
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
@@ -324,9 +326,31 @@ export default function TelegramPage() {
       if (!res.ok) throw new Error(data.error);
       toast.success(data.message || "Token global supprime");
       setGlobalBotUsername(null);
+      setWebhookStatus(null);
       await Promise.all([fetchAgents(), fetchStats()]);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erreur");
+    }
+  };
+
+  const registerWebhook = async () => {
+    setWebhookRegistering(true);
+    setWebhookStatus(null);
+    try {
+      const res = await fetch("/api/telegram/webhook-setup", {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message || "Webhook enregistre !");
+      setWebhookStatus("active");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur";
+      toast.error(msg);
+      setWebhookStatus("error: " + msg);
+    } finally {
+      setWebhookRegistering(false);
     }
   };
 
@@ -771,10 +795,15 @@ export default function TelegramPage() {
                         <p className="text-[10px] text-green-600 dark:text-green-400">Tous les agents partagent ce token</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" onClick={removeGlobalToken} className="gap-2 text-red-600 border-red-200 hover:bg-red-50 shrink-0">
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Supprimer
-                    </Button>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" onClick={registerWebhook} disabled={webhookRegistering} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
+                        {webhookRegistering ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                        {webhookStatus === "active" ? "Webhook Actif" : "Lancer le Bot"}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={removeGlobalToken} className="gap-2 text-red-600 border-red-200 hover:bg-red-50">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <>
