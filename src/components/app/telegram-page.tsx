@@ -376,7 +376,7 @@ export default function TelegramPage() {
     };
     load();
     return () => { cancelled = true; };
-  }, [fetchAgents, fetchBookings, fetchStats]);
+  }, [fetchAgents, fetchBookings, fetchStats, fetchGlobalToken]);
 
   // ─── One-Click Setup ───────────────────────────────────────────
 
