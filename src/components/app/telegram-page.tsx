@@ -189,7 +189,12 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function TelegramPage() {
   const { token, user } = useAppStore();
-  const isAdmin = user?.role === "super_admin" || user?.id === "admin-hardcoded-001";
+  // company_admin = propriétaire de l'entreprise (peut créer/gérer agents)
+  // super_admin / hardcoded = admin système (voit tout)
+  const isCompanyAdmin = user?.role === "company_admin";
+  const isSystemAdmin = user?.role === "super_admin" || user?.id === "admin-hardcoded-001";
+  const canManageAgents = isCompanyAdmin || isSystemAdmin; // Peut créer, modifier, supprimer agents
+  const isAdmin = isSystemAdmin; // Pour les sections système (config IA avancée)
 
   // Data states
   const [agents, setAgents] = useState<TelegramAgent[]>([]);
@@ -528,8 +533,8 @@ export default function TelegramPage() {
     }
     setAgentSaving(true);
     try {
-      // SECURITY: Non-admins can only send token — strip all other fields
-      const payload = isAdmin
+      // SECURITY: Non-managers can only send token — strip all other fields
+      const payload = canManageAgents
         ? agentForm
         : { agentId: editingAgent?.id, token: agentForm.token };
 
@@ -654,7 +659,7 @@ export default function TelegramPage() {
     if (!selectedAgent) return;
     setConfigSaving(true);
     try {
-      const payload = isAdmin
+      const payload = canManageAgents
         ? {
             name: configForm.name,
             botUsername: configForm.botUsername,
@@ -771,8 +776,8 @@ export default function TelegramPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* ─── Global Bot Token (Admin Only) ─── */}
-      {isAdmin && (
+      {/* ─── Global Bot Token ─── */}
+      {canManageAgents && (
         <Card className="border-[#0088cc]/30 bg-gradient-to-r from-[#0088cc]/5 to-transparent">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -862,7 +867,7 @@ export default function TelegramPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {isAdmin ? (
+          {canManageAgents ? (
             <>
               <Button onClick={() => handleOneClickSetup()} disabled={settingUp} variant="outline" className="gap-2">
                 {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
@@ -880,7 +885,7 @@ export default function TelegramPage() {
       </div>
 
       {/* ─── Empty State ─── */}
-      {!hasAgents && isAdmin && (
+      {!hasAgents && canManageAgents && (
         <Card className="border-dashed">
           <CardContent className="py-16 flex flex-col items-center text-center gap-6">
             <div className="w-20 h-20 rounded-full bg-[#0088cc]/10 flex items-center justify-center">
@@ -932,7 +937,7 @@ export default function TelegramPage() {
       )}
 
       {/* ─── Empty State (non-admin) ─── */}
-      {!hasAgents && !isAdmin && (
+      {!hasAgents && !canManageAgents && (
         <Card className="border-dashed">
           <CardContent className="py-16 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
@@ -990,7 +995,7 @@ export default function TelegramPage() {
               {/* Agents Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {agents.map((agent) => (
-                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => isAdmin ? openAgentConfig(agent) : openActivateDialog(agent)}>
+                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => canManageAgents ? openAgentConfig(agent) : openActivateDialog(agent)}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1059,7 +1064,7 @@ export default function TelegramPage() {
                               <ShoppingBag className="w-4 h-4" />
                               Services ({agent._count.services})
                             </Button>
-                            {isAdmin && (
+                            {canManageAgents && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
                                   <Edit className="w-4 h-4" />
@@ -1074,7 +1079,7 @@ export default function TelegramPage() {
                       </div>
                       {/* Click hint */}
                       <p className="text-[10px] text-center text-muted-foreground">
-                        {isAdmin ? "Cliquez pour configurer l&apos;agent" : "Cliquez pour configurer le token"}
+                        {canManageAgents ? "Cliquez pour configurer l&apos;agent" : "Cliquez pour configurer le token"}
                       </p>
                     </CardContent>
                   </Card>
@@ -1669,7 +1674,7 @@ export default function TelegramPage() {
 
               {/* Config Tabs */}
               <Tabs value={configTab} onValueChange={setConfigTab} className="flex-1 min-h-0">
-                <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : "grid-cols-3"}`}>
+                <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : canManageAgents ? "grid-cols-3" : "grid-cols-2"}`}>
                   <TabsTrigger value="infos" className="gap-1.5 text-xs">
                     <Settings2 className="w-3.5 h-3.5" />
                     Infos
@@ -1698,12 +1703,12 @@ export default function TelegramPage() {
                       <Input
                         value={configForm.name}
                         onChange={(e) => setConfigForm({ ...configForm, name: e.target.value })}
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Type d&apos;activite</Label>
-                      <Select value={configForm.businessType} onValueChange={(v) => setConfigForm({ ...configForm, businessType: v })} disabled={!isAdmin}>
+                      <Select value={configForm.businessType} onValueChange={(v) => setConfigForm({ ...configForm, businessType: v })} disabled={!canManageAgents}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {Object.entries(BUSINESS_TYPE_CONFIG).map(([key, cfg]) => (
@@ -1728,7 +1733,7 @@ export default function TelegramPage() {
                         value={configForm.botUsername}
                         onChange={(e) => setConfigForm({ ...configForm, botUsername: e.target.value })}
                         placeholder="@mon_bot"
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1737,7 +1742,7 @@ export default function TelegramPage() {
                         value={configForm.address}
                         onChange={(e) => setConfigForm({ ...configForm, address: e.target.value })}
                         placeholder="Douala, Quartier Bonapriso"
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                     <div className="space-y-2">
@@ -1746,7 +1751,7 @@ export default function TelegramPage() {
                         value={configForm.phone}
                         onChange={(e) => setConfigForm({ ...configForm, phone: e.target.value })}
                         placeholder="+237 6XX XXX XXX"
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
@@ -1755,7 +1760,7 @@ export default function TelegramPage() {
                         value={configForm.openHours}
                         onChange={(e) => setConfigForm({ ...configForm, openHours: e.target.value })}
                         placeholder="Lun-Sam: 8h-22h · Dim: 10h-18h"
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                     <div className="space-y-2 sm:col-span-2">
@@ -1765,7 +1770,7 @@ export default function TelegramPage() {
                         onChange={(e) => setConfigForm({ ...configForm, welcomeMessage: e.target.value })}
                         placeholder="Message affiché quand un client lance le bot..."
                         rows={3}
-                        disabled={!isAdmin}
+                        disabled={!canManageAgents}
                       />
                     </div>
                   </div>
@@ -1807,7 +1812,7 @@ export default function TelegramPage() {
                           <p className="font-semibold text-sm whitespace-nowrap">
                             {formatCurrency(svc.price, configForm.currency || "XAF")}
                           </p>
-                          {isAdmin && (
+                          {canManageAgents && (
                             <Button size="sm" variant="ghost" onClick={() => deleteService(svc.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0">
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -1818,7 +1823,7 @@ export default function TelegramPage() {
                   )}
 
                   {/* Add Service */}
-                  {isAdmin && (
+                  {canManageAgents && (
                     <div className="border-t pt-4 space-y-3">
                       <p className="text-sm font-medium">Ajouter un service</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1944,7 +1949,7 @@ export default function TelegramPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Devise</Label>
-                      <Select value={configForm.currency} onValueChange={(v) => setConfigForm({ ...configForm, currency: v })} disabled={!isAdmin}>
+                      <Select value={configForm.currency} onValueChange={(v) => setConfigForm({ ...configForm, currency: v })} disabled={!canManageAgents}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="XAF">FCFA (XAF)</SelectItem>
@@ -1956,7 +1961,7 @@ export default function TelegramPage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Mode de paiement</Label>
-                      <Select value={configForm.paymentMethod} onValueChange={(v) => setConfigForm({ ...configForm, paymentMethod: v })} disabled={!isAdmin}>
+                      <Select value={configForm.paymentMethod} onValueChange={(v) => setConfigForm({ ...configForm, paymentMethod: v })} disabled={!canManageAgents}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="orange_money">Orange Money</SelectItem>
