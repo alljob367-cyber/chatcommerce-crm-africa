@@ -130,7 +130,7 @@ export default function DriversPage() {
     setLoading(true);
     fetch("/api/drivers", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((d) => setDrivers(d.drivers || d || []))
+      .then((d) => setDrivers(Array.isArray(d.drivers) ? d.drivers : Array.isArray(d) ? d : []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [token]);

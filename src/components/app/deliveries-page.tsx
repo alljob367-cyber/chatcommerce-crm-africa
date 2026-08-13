@@ -180,7 +180,7 @@ export default function DeliveriesPage() {
     const params = statusFilter && statusFilter !== "all" ? `?status=${statusFilter}` : "";
     fetch(`/api/deliveries${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((d) => setDeliveries(d.deliveries || d || []))
+      .then((d) => setDeliveries(Array.isArray(d.deliveries) ? d.deliveries : Array.isArray(d) ? d : []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [token, statusFilter]);
