@@ -109,7 +109,7 @@ const PRICING = [
     period: "FCFA/mois",
     desc: "Pour les auto-entrepreneurs ambitieux",
     features: ["5 agents Telegram", "CRM complet", "Dashboard avance", "2 000 contacts", "Campagnes Telegram Ads (10)", "Livraisons avec livreurs (3)", "IA Assistant", "Communaute WhatsApp"],
-    cta: "Essai Gratuit 7 jours",
+    cta: "Commencer a 14 900 FCFA",
     popular: true,
   },
   {
@@ -118,7 +118,7 @@ const PRICING = [
     period: "FCFA/mois",
     desc: "Pour les PME qui veulent grandir",
     features: ["12 agents Telegram", "CRM complet", "Dashboard avance", "5 000 contacts", "Campagnes Telegram Ads (50)", "Livraisons avec livreurs (10)", "IA Assistant", "Rapports PDF", "Paiement Mobile Money", "Support prioritaire"],
-    cta: "Essai Gratuit 14 jours",
+    cta: "Commencer a 29 900 FCFA",
     popular: false,
   },
   {
@@ -589,7 +589,7 @@ export default function AuthPage() {
           toast.info("Paiement en attente. Vous commencez avec le plan Starter. Votre plan sera mis a jour automatiquement apres confirmation.");
         } else {
           setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
-          toast.info("Aucun paiement detecte. Vous commencez avec le plan Starter gratuit.");
+          toast.info("Plan Starter active. Vous pouvez mettre a niveau a tout moment.");
         }
       }
     } catch {
@@ -805,7 +805,7 @@ export default function AuthPage() {
               </div>
 
               <div className="animate-fade-up delay-400 flex items-center gap-6 text-sm text-zinc-500">
-                <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#00E676]" /> Gratuit</span>
+                <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#00E676]" /> 5 000 FCFA/mois</span>
                 <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#00E676]" /> Sans carte bancaire</span>
                 <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-[#00E676]" /> Prêt en 2 min</span>
               </div>
@@ -1032,7 +1032,7 @@ export default function AuthPage() {
             <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
               Simple et <span className="text-[#00E676]">transparent</span>
             </h2>
-            <p className="text-zinc-400 text-lg text-balance">Commencez gratuitement. Évoluez quand vous êtes prêt.</p>
+            <p className="text-zinc-400 text-lg text-balance">Choisissez votre plan et commencez immediatement.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {PRICING.map((plan) => (
@@ -1111,7 +1111,7 @@ export default function AuthPage() {
                   onClick={handleGoRegister}
                   className="shimmer-btn bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black px-8 py-6 text-base font-bold shadow-xl shadow-[#00E676]/30 hover:shadow-[#00E676]/50 transition-all hover:scale-[1.02]"
                 >
-                  Commencer Gratuitement
+                  S'inscrire maintenant
                 </Button>
                 <Button
                   size="lg"
@@ -1421,24 +1421,9 @@ export default function AuthPage() {
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     Retour
                   </Button>
-                  {selectedPlan === "starter" ? (
-                    <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => {
-                      const token = localStorage.getItem("cc_token");
-                      const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
-                      if (token) {
-                        setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
-                        setRegStep(1);
-                        setShowRegister(false);
-                        toast.success("Bienvenue sur ChatCommerce CRM ! Plan Starter active.");
-                      }
-                    }}>
-                      <Rocket className="w-4 h-4 mr-2" />Commencer gratuitement
-                    </Button>
-                  ) : (
-                    <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => handleRegPayPlan(selectedPlan)} disabled={regCheckoutLoading}>
-                      {regCheckoutLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Paiement...</> : <><CreditCard className="w-4 h-4 mr-2" />Payer {selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA</>}
-                    </Button>
-                  )}
+                  <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => handleRegPayPlan(selectedPlan)} disabled={regCheckoutLoading}>
+                    {regCheckoutLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Paiement...</> : <><CreditCard className="w-4 h-4 mr-2" />Payer {selectedPlan === "starter" ? "5 000" : selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA</>}
+                  </Button>
                 </div>
               </div>
             </>
