@@ -14,6 +14,9 @@ export const PLAN_LIMITS: Record<string, {
   maxMessages: number;
   maxDrivers: number;
   maxCampaigns: number;
+  maxLeads: number;
+  maxOrders: number;
+  maxDeliveries: number;
 }> = {
   starter: {
     maxContacts: 500,
@@ -24,7 +27,10 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 100,
     maxMessages: 1000,
     maxDrivers: 0,
-    maxCampaigns: 0, // Telegram Ads: Pro+ only
+    maxCampaigns: 0,
+    maxLeads: 100,
+    maxOrders: 50,
+    maxDeliveries: 0,
   },
   pro: {
     maxContacts: 2000,
@@ -35,7 +41,10 @@ export const PLAN_LIMITS: Record<string, {
     maxBookings: 500,
     maxMessages: 3000,
     maxDrivers: 3,
-    maxCampaigns: 10, // Telegram Ads: limited
+    maxCampaigns: 10,
+    maxLeads: 500,
+    maxOrders: 200,
+    maxDeliveries: 50,
   },
   business: {
     maxContacts: 5000,
@@ -47,6 +56,9 @@ export const PLAN_LIMITS: Record<string, {
     maxMessages: 10000,
     maxDrivers: 10,
     maxCampaigns: 50,
+    maxLeads: 2000,
+    maxOrders: 1000,
+    maxDeliveries: 200,
   },
   enterprise: {
     maxContacts: 999999,
@@ -58,6 +70,9 @@ export const PLAN_LIMITS: Record<string, {
     maxMessages: 999999,
     maxDrivers: 999999,
     maxCampaigns: 999999,
+    maxLeads: 999999,
+    maxOrders: 999999,
+    maxDeliveries: 999999,
   },
 };
 
@@ -90,6 +105,9 @@ export async function checkPlanLimit(
       maxMessages: "messages",
       maxDrivers: "chauffeurs",
       maxCampaigns: "campagnes",
+      maxLeads: "leads/prospects",
+      maxOrders: "commandes",
+      maxDeliveries: "livraisons",
     };
 
     if (max >= 999999) return null; // Unlimited

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { safePagination, handleError } from "@/lib/security";
 import { notifyCustomerOrderStatus } from "@/lib/telegram-notifications";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -50,6 +51,16 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // Check plan limit for orders
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    if (company) {
+      const orderCount = await db.order.count({ where: { companyId: session.companyId } });
+      const limitError = checkPlanLimit(company.plan, "maxOrders", orderCount);
+      if (limitError) {
+        return NextResponse.json({ error: limitError }, { status: 403 });
+      }
+    }
 
     const body = await request.json();
     const { contactId, items, notes, paymentMethod } = body;

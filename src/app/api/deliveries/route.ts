@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,16 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    // Check plan limit for deliveries
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    if (company) {
+      const deliveryCount = await db.delivery.count({ where: { companyId: session.companyId } });
+      const limitError = checkPlanLimit(company.plan, "maxDeliveries", deliveryCount);
+      if (limitError) {
+        return NextResponse.json({ error: limitError }, { status: 403 });
+      }
+    }
 
     const body = await request.json();
     const {

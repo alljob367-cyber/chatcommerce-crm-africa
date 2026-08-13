@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
+import { checkPlanLimit } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -78,6 +79,18 @@ export async function POST(request: Request) {
           assignedToId: session.userId,
         },
       });
+    }
+
+    // Check plan limit for messages
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    if (company) {
+      const messageCount = await db.message.count({
+        where: { conversation: { companyId: session.companyId } },
+      });
+      const limitError = checkPlanLimit(company.plan, "maxMessages", messageCount);
+      if (limitError) {
+        return NextResponse.json({ error: limitError }, { status: 403 });
+      }
     }
 
     // Create message

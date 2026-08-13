@@ -47,6 +47,17 @@ export async function POST(request: Request) {
     const session = await authenticate(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Check plan limit for leads
+    const { checkPlanLimit } = await import("@/lib/plan-limits");
+    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    if (company) {
+      const leadCount = await db.lead.count({ where: { companyId: session.companyId } });
+      const limitError = checkPlanLimit(company.plan, "maxLeads", leadCount);
+      if (limitError) {
+        return NextResponse.json({ error: limitError }, { status: 403 });
+      }
+    }
+
     const body = await request.json();
     const { contactId, status, value, notes, assignedToId } = body;
 
