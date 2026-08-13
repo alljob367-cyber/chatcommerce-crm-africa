@@ -25,9 +25,14 @@ export async function GET(request: Request) {
         businessType: true,
         name: true,
         botUsername: true,
-        token: false,  // NEVER expose bot token to client
+        token: true,  // needed by frontend to detect placeholder vs real token
         isActive: true,
         welcomeMessage: true,
+        address: true,
+        phone: true,
+        openHours: true,
+        currency: true,
+        paymentMethod: true,
         // SECURITY: Only expose AI config to admins — contains apiKey
         ...(isAdmin ? { aiConfig: true } : { aiEnabled: true }),
         createdAt: true,
@@ -39,8 +44,9 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Strip apiKey from aiConfig for extra safety
+    // Strip token from non-admin responses and apiKey from aiConfig
     const safeAgents = agents.map((a: Record<string, unknown>) => {
+      if (!isAdmin) delete a.token;
       if (a.aiConfig && typeof a.aiConfig === "string") {
         try {
           const parsed = JSON.parse(a.aiConfig);

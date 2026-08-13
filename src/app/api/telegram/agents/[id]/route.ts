@@ -27,9 +27,14 @@ export async function GET(
         businessType: true,
         name: true,
         botUsername: true,
-        token: false,  // NEVER expose bot token to client
+        token: true,  // needed by frontend to detect placeholder
         isActive: true,
         welcomeMessage: true,
+        address: true,
+        phone: true,
+        openHours: true,
+        currency: true,
+        paymentMethod: true,
         // SECURITY: Only expose full AI config to admins
         ...(isAdmin ? { aiConfig: true } : { aiEnabled: true }),
         createdAt: true,
@@ -41,12 +46,14 @@ export async function GET(
 
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 
-    // Strip apiKey from aiConfig for safety
-    if (isAdmin && (agent as Record<string, unknown>).aiConfig) {
+    // Strip token from non-admin and apiKey from aiConfig for safety
+    const agentRec = agent as Record<string, unknown>;
+    if (!isAdmin) delete agentRec.token;
+    if (isAdmin && agentRec.aiConfig && typeof agentRec.aiConfig === "string") {
       try {
-        const parsed = JSON.parse((agent as Record<string, unknown>).aiConfig as string);
+        const parsed = JSON.parse(agentRec.aiConfig as string);
         delete parsed.apiKey;
-        (agent as Record<string, unknown>).aiConfig = JSON.stringify(parsed);
+        agentRec.aiConfig = JSON.stringify(parsed);
       } catch { /* ignore */ }
     }
 
@@ -89,7 +96,13 @@ export async function PUT(
     }
 
     // ── Admin : modification complète ──
-    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
+    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiConfig: aiConfigStr, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
+
+    // Parse AI config from either aiConfig (JSON string) or individual fields
+    let aiConfigParsed: Record<string, unknown> = {};
+    if (aiConfigStr && typeof aiConfigStr === "string") {
+      try { aiConfigParsed = JSON.parse(aiConfigStr); } catch { /* ignore */ }
+    }
 
     const agent = await db.telegramAgent.update({
       where: { id },
@@ -105,14 +118,15 @@ export async function PUT(
         ...(openHours !== undefined && { openHours }),
         ...(currency !== undefined && { currency }),
         ...(paymentMethod !== undefined && { paymentMethod }),
-        ...(aiEnabled !== undefined || aiProvider || aiApiKey ? {
+        // Support both aiConfig JSON and individual fields
+        ...(Object.keys(aiConfigParsed).length > 0 || aiEnabled !== undefined || aiProvider || aiApiKey ? {
           aiConfig: JSON.stringify({
-            enabled: aiEnabled ?? false,
-            provider: aiProvider || "openai",
-            apiKey: aiApiKey || "",
-            model: aiModel || "",
-            baseUrl: aiBaseUrl || "",
-            systemPrompt: aiSystemPrompt || "",
+            enabled: (aiConfigParsed.enabled as boolean) ?? aiEnabled ?? false,
+            provider: (aiConfigParsed.provider as string) || aiProvider || "openai",
+            apiKey: (aiConfigParsed.apiKey as string) || aiApiKey || "",
+            model: (aiConfigParsed.model as string) || aiModel || "",
+            baseUrl: (aiConfigParsed.baseUrl as string) || aiBaseUrl || "",
+            systemPrompt: (aiConfigParsed.systemPrompt as string) || aiSystemPrompt || "",
           }),
         } : {}),
       },
