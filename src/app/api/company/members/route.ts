@@ -7,7 +7,6 @@ import { checkPlanLimit } from "@/lib/plan-limits";
 // Hardcoded accounts fallback
 const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; role: string }> = {
   "admin-hardcoded-001": { userId: "admin-hardcoded-001", companyId: "company-admin-001", role: "company_admin" },
-  "demo-hardcoded-001": { userId: "demo-hardcoded-001", companyId: "company-demo-001", role: "company_admin" },
 };
 
 // Helper: authenticate

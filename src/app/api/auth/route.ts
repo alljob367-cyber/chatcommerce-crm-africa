@@ -6,23 +6,17 @@ import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
 
 // ─────────────────────────────────────────────────────
-// HARDCODED ADMIN & DEMO ACCOUNTS (DB-independent)
-// This ensures login works even if SQLite fails on Vercel
+// HARDCODED ADMIN ACCOUNT (DB-independent)
+// This ensures login works even if the database fails on Vercel
 // Passwords are hashed at module load via bcrypt (cost 12)
 // ─────────────────────────────────────────────────────
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@2024";
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "Demo@2024";
 
 // Lazy-init hashes (one-time cost per cold start)
 let _adminHash: string | null = null;
-let _demoHash: string | null = null;
 function getAdminHash(): string {
   if (!_adminHash) _adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
   return _adminHash;
-}
-function getDemoHash(): string {
-  if (!_demoHash) _demoHash = bcrypt.hashSync(DEMO_PASSWORD, 12);
-  return _demoHash;
 }
 
 const HARDCODED_ACCOUNTS: Record<string, {
@@ -44,16 +38,6 @@ const HARDCODED_ACCOUNTS: Record<string, {
     name: "Administrateur Principal",
     role: "company_admin",
     plan: "enterprise",
-  },
-  demo: {
-    email: "demo@chatcommerce.africa",
-    passwordHash: getDemoHash(),
-    userId: "demo-hardcoded-001",
-    companyId: "company-demo-001",
-    companyName: "ChatCommerce Demo",
-    name: "Utilisateur Demo",
-    role: "company_admin",
-    plan: "business",
   },
 };
 

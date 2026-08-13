@@ -7,7 +7,6 @@ import { hashPassword } from "@/lib/auth";
 // ═══════════════════════════════════════════
 
 const COMPANY_1_SLUG = "company-admin-001";
-const COMPANY_2_SLUG = "company-demo-001";
 
 interface Stats {
   companies: number;
@@ -276,21 +275,10 @@ export async function seedDemoData(): Promise<Stats> {
     address: "Douala, Cameroun",
   });
 
-  const company2 = await upsertCompany(COMPANY_2_SLUG, "Demo Entreprise SARL", {
-    whatsappNumber: "+237698765432",
-    phone: "+237698765432",
-    address: "Yaoundé, Cameroun",
-  });
-
   // ═══════════════════════════════════════════
   // 2. ENSURE USERS per company
   // ═══════════════════════════════════════════
-  const admin1 = await upsertUser(company1.id, "admin@company1.cm", "Marie Nkoulou", "company_admin", "+237612345678", "Admin@2024");
-  const manager1 = await upsertUser(company1.id, "manager@company1.cm", "Paul Essomba", "manager", "+237698765432", "Manager@2024");
-  const agent1 = await upsertUser(company1.id, "agent@company1.cm", "Amina Diallo", "agent", "+237655544433", "Agent@2024");
-
-  const admin2 = await upsertUser(company2.id, "admin@company2.cm", "Jean-Baptiste Fotso", "company_admin", "+237698765432", "Admin2@2024");
-  const agent2 = await upsertUser(company2.id, "agent@company2.cm", "Clarisse Ndongo", "agent", "+237677788899", "Agent2@2024");
+  const admin1 = await upsertUser(company1.id, "admin@chatcommerce.africa", "Administrateur Principal", "company_admin", "+237612345678", "Admin@2024");
 
   // ═══════════════════════════════════════════
   // 3. CATEGORIES & PRODUCTS — Company 1
@@ -346,26 +334,7 @@ export async function seedDemoData(): Promise<Stats> {
   };
 
   // ═══════════════════════════════════════════
-  // 4. CATEGORIES & PRODUCTS — Company 2
-  // ═══════════════════════════════════════════
-
-  // --- Restaurant Chez Maman ---
-  const catChezMaman = await upsertCategory(company2.id, "Plats traditionnels", 1);
-
-  const chezMamanProducts = {
-    ndole: await upsertProduct(company2.id, "CM-001", "Ndolé", 3000, catChezMaman.id, 20),
-    eru: await upsertProduct(company2.id, "CM-002", "Eru", 2500, catChezMaman.id, 18),
-    fufu: await upsertProduct(company2.id, "CM-003", "Fufu", 1000, catChezMaman.id, 30),
-  };
-
-  // --- Pressing Clean Plus (via TelegramAgent + BusinessService) ---
-  const pressingAgent = await upsertTelegramAgent(company2.id, "Pressing Clean Plus", "pressing", "DEMO-PRESSING-TOKEN-001");
-  const pressingChemise = await upsertBusinessService(pressingAgent.id, "Lavage chemise", 500, 60, 1);
-  const pressingCostume = await upsertBusinessService(pressingAgent.id, "Nettoyage costume", 2000, 180, 2);
-  const pressingRepassage = await upsertBusinessService(pressingAgent.id, "Repassage", 300, 30, 3);
-
-  // ═══════════════════════════════════════════
-  // 5. CONTACTS — 12 for Company 1, 8 for Company 2
+  // 4. CONTACTS — 12 for Company 1
   // ═══════════════════════════════════════════
   const contacts1: { id: string; name: string; phone: string }[] = [];
   const c1Data = [
@@ -388,25 +357,8 @@ export async function seedDemoData(): Promise<Stats> {
     contacts1.push(contact);
   }
 
-  const contacts2: { id: string; name: string; phone: string }[] = [];
-  const c2Data = [
-    { name: "Yao Koffi", phone: "+237671111111", city: "Yaoundé", tags: "régulier" },
-    { name: "Ndeye Fatou Diop", phone: "+237672222222", city: "Yaoundé", tags: "vip" },
-    { name: "Alain Moukouri", phone: "+237673333333", city: "Douala", tags: "nouveau,prospect" },
-    { name: "Béatrice Fotso", phone: "+237674444444", city: "Yaoundé", tags: "régulier" },
-    { name: "Ibrahim Ahidjo", phone: "+237675555555", city: "Garoua", tags: "nouveau" },
-    { name: "Sylvie Eyenga", phone: "+237676666666", city: "Douala", tags: "vip,régulier" },
-    { name: "Emmanuel Tabi", phone: "+237677777777", city: "Yaoundé", tags: "prospect" },
-    { name: "Aminata Sow", phone: "+237678888888", city: "Bamenda", tags: "régulier" },
-  ];
-
-  for (const c of c2Data) {
-    const contact = await upsertContact(company2.id, c.phone, c.name, c.city, c.tags);
-    contacts2.push(contact);
-  }
-
   // ═══════════════════════════════════════════
-  // 6. DRIVERS — 10 for Company 1
+  // 5. DRIVERS — 10 for Company 1
   // ═══════════════════════════════════════════
   const drivers: { id: string; name: string; vehicleType: string | null; status: string }[] = [];
 
@@ -462,7 +414,7 @@ export async function seedDemoData(): Promise<Stats> {
     const order = await upsertOrder(
       company1.id, orderNumber, contact.id, spec.status,
       subtotal, tax, total, spec.payment,
-      i % 2 === 0 ? admin1.id : agent1.id, spec.daysAgo
+      i % 2 === 0 ? admin1.id : admin1.id, spec.daysAgo
     );
 
     // Upsert order items
@@ -484,48 +436,6 @@ export async function seedDemoData(): Promise<Stats> {
     }
   }
 
-  // Company 2: 8 orders
-  const c2OrderSpecs = [
-    { contactIdx: 0, items: [{ prod: chezMamanProducts.ndole, qty: 1 }, { prod: chezMamanProducts.fufu, qty: 2 }], status: "delivered", daysAgo: 6, payment: "orange_money" },
-    { contactIdx: 1, items: [{ prod: chezMamanProducts.eru, qty: 2 }, { prod: chezMamanProducts.fufu, qty: 1 }], status: "delivered", daysAgo: 5, payment: "mtn_momo" },
-    { contactIdx: 2, items: [{ prod: chezMamanProducts.ndole, qty: 1 }, { prod: chezMamanProducts.eru, qty: 1 }], status: "confirmed", daysAgo: 2, payment: "orange_money" },
-    { contactIdx: 3, items: [{ prod: chezMamanProducts.fufu, qty: 3 }], status: "preparing", daysAgo: 1, payment: "mtn_momo" },
-    { contactIdx: 4, items: [{ prod: chezMamanProducts.ndole, qty: 2 }], status: "ready", daysAgo: 0, payment: "orange_money" },
-    { contactIdx: 5, items: [{ prod: chezMamanProducts.eru, qty: 1 }, { prod: chezMamanProducts.ndole, qty: 1 }], status: "pending", daysAgo: 0, payment: "mtn_momo" },
-    { contactIdx: 6, items: [{ prod: chezMamanProducts.fufu, qty: 2 }], status: "cancelled", daysAgo: 3, payment: "orange_money" },
-    { contactIdx: 7, items: [{ prod: chezMamanProducts.ndole, qty: 1 }, { prod: chezMamanProducts.eru, qty: 2 }], status: "pending", daysAgo: 0, payment: "mtn_momo" },
-  ];
-
-  for (let i = 0; i < c2OrderSpecs.length; i++) {
-    const spec = c2OrderSpecs[i];
-    const contact = contacts2[spec.contactIdx];
-    const subtotal = spec.items.reduce((s, item) => s + item.prod.price * item.qty, 0);
-    const tax = Math.round(subtotal * 0.1925);
-    const total = subtotal + tax;
-    const orderNumber = `CMD-${String(3001 + i).padStart(4, "0")}`;
-    const order = await upsertOrder(
-      company2.id, orderNumber, contact.id, spec.status,
-      subtotal, tax, total, spec.payment,
-      i % 2 === 0 ? admin2.id : agent2.id, spec.daysAgo
-    );
-
-    for (const item of spec.items) {
-      const itemId = `${order.id}-item-${item.prod.id}`;
-      await db.orderItem.upsert({
-        where: { id: itemId },
-        update: {},
-        create: {
-          id: itemId,
-          orderId: order.id,
-          productId: item.prod.id,
-          productName: item.prod.name,
-          quantity: item.qty,
-          unitPrice: item.prod.price,
-          total: item.prod.price * item.qty,
-        },
-      });
-    }
-  }
 
   // ═══════════════════════════════════════════
   // 8. TELEGRAM BOOKINGS — 10 for Salon (Company 1)
@@ -623,7 +533,7 @@ export async function seedDemoData(): Promise<Stats> {
   // ═══════════════════════════════════════════
   // 10. SUBSCRIPTIONS
   // ═══════════════════════════════════════════
-  for (const [comp, plan] of [[company1, "business"], [company2, "business"]] as const) {
+  for (const [comp, plan] of [[company1, "business"]] as const) {
     const subId = `${comp.id}-subscription`;
     await db.subscription.upsert({
       where: { id: subId },

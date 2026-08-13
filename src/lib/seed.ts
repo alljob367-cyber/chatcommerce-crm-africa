@@ -19,10 +19,8 @@ export async function seedDatabase() {
     },
   });
 
-  // Create users
+  // Create admin user only
   const adminPass = await hashPassword("admin123");
-  const agentPass = await hashPassword("agent123");
-  const managerPass = await hashPassword("manager123");
 
   const admin = await db.user.create({
     data: {
@@ -31,30 +29,6 @@ export async function seedDatabase() {
       name: "Marie Nkoulou",
       phone: "+237612345678",
       role: "company_admin",
-      emailVerified: true,
-      companyId: company.id,
-    },
-  });
-
-  const manager = await db.user.create({
-    data: {
-      email: "manager@chatcommerce.africa",
-      passwordHash: managerPass,
-      name: "Paul Essomba",
-      phone: "+237698765432",
-      role: "manager",
-      emailVerified: true,
-      companyId: company.id,
-    },
-  });
-
-  const agent1 = await db.user.create({
-    data: {
-      email: "agent@chatcommerce.africa",
-      passwordHash: agentPass,
-      name: "Amina Diallo",
-      phone: "+237655544433",
-      role: "agent",
       emailVerified: true,
       companyId: company.id,
     },
@@ -164,12 +138,7 @@ export async function seedDatabase() {
         companyId: company.id,
         contactId: contact.id,
         status,
-        assignedToId:
-          i % 3 === 0
-            ? agent1.id
-            : i % 3 === 1
-              ? manager.id
-              : admin.id,
+        assignedToId: admin.id,
         lastMessage: sampleMessages[i],
         lastMessageAt: new Date(Date.now() - Math.random() * 86400000),
         unreadCount: i % 4 === 0 ? Math.floor(Math.random() * 5) + 1 : 0,
@@ -190,7 +159,7 @@ export async function seedDatabase() {
                 : "Merci ! J'attends votre réponse.",
           direction: j % 2 === 0 ? "inbound" : "outbound",
           senderType: j % 2 === 0 ? "customer" : "agent",
-          senderId: j % 2 === 1 ? agent1.id : null,
+          senderId: j % 2 === 1 ? admin.id : null,
           isRead: j < msgCount - 1,
           createdAt: new Date(Date.now() - (msgCount - j) * 3600000),
         },
@@ -226,7 +195,7 @@ export async function seedDatabase() {
         currency: "XAF",
         paymentMethod: i % 2 === 0 ? "orange_money" : "mtn_momo",
         paymentStatus: status === "delivered" ? "paid" : "pending",
-        createdById: i % 3 === 0 ? admin.id : agent1.id,
+        createdById: i % 3 === 0 ? admin.id : admin.id,
         createdAt: new Date(Date.now() - (10 - i) * 86400000),
       },
     });
@@ -301,7 +270,7 @@ export async function seedDatabase() {
         source: "whatsapp",
         value: Math.random() * 200000 + 50000,
         notes: "Prospect intéressé par nos services de livraison",
-        assignedToId: [admin.id, manager.id, agent1.id][i % 3],
+        assignedToId: [admin.id, admin.id, admin.id][i % 3],
       },
     });
   }

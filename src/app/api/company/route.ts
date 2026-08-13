@@ -6,7 +6,6 @@ import { sanitize, handleError, rateLimit } from "@/lib/security";
 // Hardcoded accounts (DB-independent fallback)
 const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; companyName: string; country: string; plan: string; role: string }> = {
   "admin-hardcoded-001": { userId: "admin-hardcoded-001", companyId: "company-admin-001", companyName: "ChatCommerce CRM Africa", country: "Cameroun", plan: "enterprise", role: "company_admin" },
-  "demo-hardcoded-001": { userId: "demo-hardcoded-001", companyId: "company-demo-001", companyName: "ChatCommerce Demo", country: "Cameroun", plan: "business", role: "company_admin" },
 };
 
 // Helper: authenticate and get user + company from token

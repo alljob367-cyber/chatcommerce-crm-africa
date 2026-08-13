@@ -24,12 +24,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Guard for hardcoded demo/admin accounts (not in DB)
-    const HARDCODED_IDS = ["admin-hardcoded-001", "demo-hardcoded-001"];
+    // Guard for hardcoded admin account (not in DB)
+    const HARDCODED_IDS = ["admin-hardcoded-001"];
     if (HARDCODED_IDS.includes(payload.userId)) {
       const HARDCODED_PASSWORDS: Record<string, string> = {
         "admin-hardcoded-001": "Admin@2024",
-        "demo-hardcoded-001": "Demo@2024",
       };
       const storedPassword = HARDCODED_PASSWORDS[payload.userId];
       if (currentPassword !== storedPassword) {
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
         );
       }
       // Hardcoded accounts can't persist password changes
-      return NextResponse.json({ message: "Mot de passe des comptes demo ne peut pas etre modifie" });
+      return NextResponse.json({ message: "Mot de passe du compte admin ne peut pas etre modifie" });
     }
 
     // Fetch user with password hash

@@ -85,33 +85,7 @@ export async function ensureBootstrapped() {
       },
     });
 
-    // Create demo company
-    const demoCompany = await db.company.create({
-      data: {
-        name: "ChatCommerce Demo",
-        slug: "chatcommerce-demo",
-        country: "Cameroun",
-        plan: "business",
-        whatsappNumber: "+237699999999",
-        maxContacts: 5000,
-        maxAgents: 10,
-      },
-    });
-
-    await db.user.create({
-      data: {
-        email: "demo@chatcommerce.africa",
-        passwordHash: bcrypt.hashSync("Demo@2024", 12),
-        name: "Utilisateur Demo",
-        phone: "+237699999999",
-        role: "company_admin",
-        emailVerified: true,
-        isActive: true,
-        companyId: demoCompany.id,
-      },
-    });
-
-    console.log("[DB] Bootstrap complete: admin + demo accounts created on PostgreSQL");
+    console.log("[DB] Bootstrap complete: admin account created on PostgreSQL");
   } catch (error) {
     console.error("[DB] Bootstrap failed:", error);
   }
