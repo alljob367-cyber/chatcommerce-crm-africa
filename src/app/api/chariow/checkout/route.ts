@@ -90,15 +90,21 @@ export async function POST(request: Request) {
     }
 
     // 5b. Validate plan upgrade (not downgrade or same plan)
+    //    Exception: allow payment if no completed Chariow order exists (first payment / registration)
     if (user.company.plan) {
-      const { PLAN_ORDER } = await import("@/lib/plan-limits");
-      const currentIdx = PLAN_ORDER.indexOf(user.company.plan as any);
-      const targetIdx = PLAN_ORDER.indexOf(plan as any);
-      if (targetIdx <= currentIdx) {
-        return NextResponse.json(
-          { error: `Vous etes deja au plan ${user.company.plan} ou a un plan superieur. Choisissez un plan superieur.` },
-          { status: 400 }
-        );
+      const hasPaid = await db.chariowOrder.count({
+        where: { companyId: payload.companyId, userId: payload.userId, status: "completed" },
+      });
+      if (hasPaid > 0) {
+        const { PLAN_ORDER } = await import("@/lib/plan-limits");
+        const currentIdx = PLAN_ORDER.indexOf(user.company.plan as any);
+        const targetIdx = PLAN_ORDER.indexOf(plan as any);
+        if (targetIdx <= currentIdx) {
+          return NextResponse.json(
+            { error: `Vous etes deja au plan ${user.company.plan} ou a un plan superieur. Choisissez un plan superieur.` },
+            { status: 400 }
+          );
+        }
       }
     }
 

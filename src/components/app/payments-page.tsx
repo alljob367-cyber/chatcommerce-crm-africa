@@ -459,6 +459,7 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
             <Card
               className="border-2 border-[#ffcc00]/40 hover:border-[#ffcc00]/70 transition-all hover:shadow-md cursor-pointer group"
               onClick={async () => {
+                if (!selectedPlan) { toast.error("Veuillez d'abord selectionner un plan"); return; }
                 try {
                   const res = await fetch("/api/chariow/checkout", {
                     method: "POST",
@@ -466,7 +467,7 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
                     body: JSON.stringify({ plan: selectedPlan }),
                   });
                   const data = await res.json();
-                  if (!res.ok) { setError(data.error || "Erreur de paiement"); return; }
+                  if (!res.ok) { toast.error(data.error || "Erreur de paiement"); setError(data.error || "Erreur de paiement"); return; }
                   if (data.checkoutUrl) {
                     window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
                     toast.info("Page de paiement Chariow ouverte dans un nouvel onglet");

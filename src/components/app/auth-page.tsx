@@ -1444,9 +1444,24 @@ export default function AuthPage() {
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     Retour
                   </Button>
-                  <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => handleRegPayPlan(selectedPlan)} disabled={regCheckoutLoading}>
-                    {regCheckoutLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Paiement...</> : <><CreditCard className="w-4 h-4 mr-2" />Payer {selectedPlan === "starter" ? "5 000" : selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA</>}
-                  </Button>
+                  {selectedPlan === "starter" ? (
+                    <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => {
+                      const token = localStorage.getItem("cc_token");
+                      const userData = JSON.parse(localStorage.getItem("cc_user") || "{}");
+                      if (token) {
+                        setAuth(token, { ...userData, company: { ...userData.company, plan: "starter" } });
+                        setRegStep(1);
+                        setShowRegister(false);
+                        toast.success("Bienvenue sur ChatCommerce CRM ! Plan Starter active.");
+                      }
+                    }}>
+                      <Rocket className="w-4 h-4 mr-2" />Commencer gratuitement
+                    </Button>
+                  ) : (
+                    <Button className="flex-2 bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black font-semibold hover:shadow-lg hover:shadow-[#00E676]/30" onClick={() => handleRegPayPlan(selectedPlan)} disabled={regCheckoutLoading}>
+                      {regCheckoutLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Paiement...</> : <><CreditCard className="w-4 h-4 mr-2" />Payer {selectedPlan === "pro" ? "14 900" : selectedPlan === "business" ? "29 900" : "69 900"} FCFA</>}
+                    </Button>
+                  )}
                 </div>
               </div>
             </>
