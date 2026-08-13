@@ -5,7 +5,7 @@
 
 export interface AIBotConfig {
   enabled: boolean;
-  provider: "openai" | "anthropic" | "openrouter" | "custom";
+  provider: "openai" | "anthropic" | "openrouter" | "mistral" | "custom";
   apiKey: string;
   model: string;
   systemPrompt: string;
@@ -202,6 +202,9 @@ export async function generateAIResponse(
         case "anthropic":
           baseUrl = "https://api.anthropic.com/v1";
           break;
+        case "mistral":
+          baseUrl = "https://api.mistral.ai/v1";
+          break;
         default:
           baseUrl = "https://api.openai.com/v1";
       }
@@ -231,7 +234,9 @@ export async function generateAIResponse(
       ? "google/gemini-2.0-flash-001"
       : config.provider === "anthropic"
         ? "claude-3-haiku-20240307"
-        : "gpt-4o-mini";
+        : config.provider === "mistral"
+          ? "mistral-small-latest"
+          : "gpt-4o-mini";
 
     // Build request
     const response = await fetch(endpoint, {
@@ -369,9 +374,9 @@ export function buildAIBotConfig(agentData: {
 
   return {
     enabled: overrides.enabled ?? false,
-    provider: overrides.provider ?? "openrouter",
+    provider: overrides.provider ?? "mistral",
     apiKey: overrides.apiKey || "",
-    model: overrides.model || "google/gemini-2.0-flash-001",
+    model: overrides.model || "mistral-small-latest",
     systemPrompt,
     temperature: overrides.temperature ?? 0.7,
     maxTokens: overrides.maxTokens ?? 500,
