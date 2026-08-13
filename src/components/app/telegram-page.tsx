@@ -85,7 +85,7 @@ import { formatCurrency } from "@/lib/currencies";
 interface TelegramAgent {
   id: string;
   name: string;
-  token: string;
+  token: string | boolean | null;
   botUsername: string | null;
   businessType: string;
   isActive: boolean;
@@ -307,12 +307,14 @@ export default function TelegramPage() {
   }, [headers]);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
       await Promise.all([fetchAgents(), fetchBookings(), fetchStats()]);
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
     load();
+    return () => { cancelled = true; };
   }, [fetchAgents, fetchBookings, fetchStats]);
 
   // ─── One-Click Setup ───────────────────────────────────────────
@@ -416,7 +418,7 @@ export default function TelegramPage() {
     }
     setAgentForm({
       name: agent.name,
-      token: agent.token,
+      token: typeof agent.token === "string" ? agent.token : "",
       botUsername: agent.botUsername || "",
       businessType: agent.businessType,
       welcomeMessage: agent.welcomeMessage || "",
@@ -532,7 +534,7 @@ export default function TelegramPage() {
     }
     setConfigForm({
       name: agent.name,
-      token: agent.token,
+      token: typeof agent.token === "string" ? agent.token : "",
       botUsername: agent.botUsername || "",
       businessType: agent.businessType,
       welcomeMessage: agent.welcomeMessage || "",
@@ -680,7 +682,7 @@ export default function TelegramPage() {
   }
 
   const hasAgents = agents.length > 0;
-  const isPlaceholder = (t: string) => t.startsWith("PLACEHOLDER_");
+  const isPlaceholder = (t: string | boolean | null | undefined) => !t || typeof t === "boolean" || t.startsWith("PLACEHOLDER_");
 
   return (
     <div className="p-4 md:p-6 space-y-6">
