@@ -344,7 +344,7 @@ export default function TelegramPage() {
 
   const openActivateDialog = (agent: TelegramAgent) => {
     setActivateAgent(agent);
-    setActivateToken("");
+    setActivateToken(!isPlaceholder(agent.token) ? String(agent.token) : "");
     setActivateDialogOpen(true);
   };
 
@@ -805,14 +805,10 @@ export default function TelegramPage() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="dashboard" className="gap-2">
                 <Eye className="w-4 h-4" />
                 Vue d&apos;ensemble
-              </TabsTrigger>
-              <TabsTrigger value="agents" className="gap-2">
-                <Bot className="w-4 h-4" />
-                Agents
                 {agents.length > 0 && (
                   <Badge variant="secondary" className="ml-1 text-xs">{agents.length}</Badge>
                 )}
@@ -831,7 +827,7 @@ export default function TelegramPage() {
               {/* Agents Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {agents.map((agent) => (
-                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => openAgentConfig(agent)}>
+                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => isAdmin ? openAgentConfig(agent) : openActivateDialog(agent)}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -915,7 +911,7 @@ export default function TelegramPage() {
                       </div>
                       {/* Click hint */}
                       <p className="text-[10px] text-center text-muted-foreground">
-                        Cliquez sur la carte pour configurer l&apos;agent
+                        {isAdmin ? "Cliquez pour configurer l&apos;agent" : "Cliquez pour configurer le token"}
                       </p>
                     </CardContent>
                   </Card>
@@ -991,117 +987,6 @@ export default function TelegramPage() {
                   </CardContent>
                 </Card>
               )}
-            </TabsContent>
-
-            {/* ─── Agents Tab ─── */}
-            <TabsContent value="agents" className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {agents.map((agent) => (
-                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => openAgentConfig(agent)}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {(() => { const bc = getBusinessConfig(agent.businessType); const Icon = bc.icon; return (
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bc.bg} ${bc.bgDark}`}>
-                              <Icon className={`w-5 h-5 ${bc.color}`} />
-                            </div>
-                          ); })()}
-                          <div>
-                            <CardTitle className="text-sm">{agent.name}</CardTitle>
-                            <p className="text-xs text-muted-foreground">
-                              {agent.botUsername || "Pas de username"}
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={agent.isActive}
-                          onCheckedChange={() => toggleAgentActive(agent)}
-                          disabled={isPlaceholder(agent.token) || !isAdmin}
-                        />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {/* Info */}
-                      <div className="space-y-1.5 text-xs">
-                        {agent.address && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{agent.address}</span>
-                          </div>
-                        )}
-                        {agent.phone && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Phone className="w-3.5 h-3.5 shrink-0" />
-                            <span>{agent.phone}</span>
-                          </div>
-                        )}
-                        {agent.paymentMethod && agent.paymentMethod !== "none" && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                            <span>{agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod === "cash" ? "Espèces" : agent.paymentMethod}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Token Status */}
-                      <div className={`p-2 rounded-lg text-xs flex items-center gap-2 ${isPlaceholder(agent.token) ? "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400" : "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"}`}>
-                        {isPlaceholder(agent.token) ? (
-                          <>
-                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                            Token placeholder — cliquez pour activer
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                            Bot connecté et actif
-                          </>
-                        )}
-                      </div>
-
-                      {/* Counts */}
-                      <div className="flex gap-3 text-center">
-                        <div className="flex-1 p-2 rounded-lg bg-muted/50">
-                          <p className="text-sm font-bold">{agent._count.services}</p>
-                          <p className="text-[10px] text-muted-foreground">Services</p>
-                        </div>
-                        <div className="flex-1 p-2 rounded-lg bg-muted/50">
-                          <p className="text-sm font-bold">{agent._count.bookings}</p>
-                          <p className="text-[10px] text-muted-foreground">Réservations</p>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        {isPlaceholder(agent.token) ? (
-                          <Button size="sm" onClick={() => openActivateDialog(agent)} className="gap-2 flex-1 bg-[#0088cc] hover:bg-[#006699] text-white">
-                            <Power className="w-3.5 h-3.5" />
-                            Activer
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => openServices(agent)} className="gap-2 flex-1">
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            Services
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => openEditAgent(agent)} className="gap-2">
-                              <Edit className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => deleteAgent(agent.id)} className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                      {/* Click hint */}
-                      <p className="text-[10px] text-center text-muted-foreground">
-                        Cliquez pour configurer
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
             </TabsContent>
 
             {/* ─── Bookings Tab ─── */}
@@ -1454,10 +1339,12 @@ export default function TelegramPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Power className="w-5 h-5 text-[#0088cc]" />
-              Activer le Bot Telegram
+              {activateAgent && !isPlaceholder(activateAgent.token) ? "Token du Bot" : "Activer le Bot Telegram"}
             </DialogTitle>
             <DialogDescription>
-              Connectez votre bot en entrant le token fourni par @BotFather
+              {activateAgent && !isPlaceholder(activateAgent.token)
+                ? "Modifiez ou mettez à jour le token de votre bot"
+                : "Connectez votre bot en entrant le token fourni par @BotFather"}
             </DialogDescription>
           </DialogHeader>
           {activateAgent && (
