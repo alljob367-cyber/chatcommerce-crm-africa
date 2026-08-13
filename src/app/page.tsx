@@ -26,6 +26,15 @@ import CampaignsPage from "@/components/app/campaigns-page";
 import { ErrorBoundary } from "@/components/app/error-boundary";
 
 function PageRenderer({ page }: { page: string }) {
+  const { user } = useAppStore();
+  const isAdmin = user?.role === "super_admin" || user?.id === "admin-hardcoded-001";
+
+  // Block admin-only pages for non-admin users
+  const adminPages = ["admin-payments", "admin", "reports", "api-docs"];
+  if (adminPages.includes(page) && !isAdmin) {
+    return <DashboardPage />;
+  }
+
   switch (page) {
     case "dashboard": return <DashboardPage />;
     case "contacts": return <ContactsPage />;

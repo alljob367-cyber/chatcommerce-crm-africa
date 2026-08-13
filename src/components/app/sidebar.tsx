@@ -133,7 +133,8 @@ export default function Sidebar() {
         <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto custom-scroll" role="navigation" aria-label="Navigation principale">
           {navItems
             .filter((item) => {
-              if (item.adminOnly && user?.role !== "super_admin" && user?.role !== "company_admin") return false;
+              // adminOnly: reserved for super_admin and the hardcoded admin only
+              if (item.adminOnly && user?.role !== "super_admin" && user?.id !== "admin-hardcoded-001") return false;
               if (item.proOnly && user?.company?.plan !== "pro" && user?.company?.plan !== "business" && user?.company?.plan !== "enterprise") return false;
               return true;
             })
