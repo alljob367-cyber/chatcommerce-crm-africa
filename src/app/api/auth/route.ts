@@ -288,9 +288,9 @@ export async function POST(request: Request) {
           data: {
             companyId: company.id,
             plan: "starter",
-            status: "trialing",
+            status: "active",
             currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 14 * 86400000),
+            currentPeriodEnd: new Date(Date.now() + 30 * 86400000),
           },
         });
 

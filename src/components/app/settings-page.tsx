@@ -673,16 +673,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Trial countdown
-  const getTrialInfo = () => {
-    if (!subscription || subscription.status !== "trialing") return null;
-    const end = new Date(subscription.currentPeriodEnd).getTime();
-    const now = Date.now();
-    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
-    return daysLeft;
-  };
-
-  const trialDays = getTrialInfo();
+  // No trial period — all subscriptions start as active
 
   // Plan upgrade handler — Chariow checkout
   const handleUpgrade = async (targetPlan: string) => {
@@ -1301,24 +1292,12 @@ export default function SettingsPage() {
                             {plan.charAt(0).toUpperCase() + plan.slice(1)}
                           </h3>
                           <Badge
-                            className={`text-[10px] ${
-                              subscription?.status === "trialing"
-                                ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                                : "bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20"
-                            }`}
+                            className={`text-[10px] bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20`}
                           >
-                            {subscription?.status === "trialing"
-                              ? "Periode d'essai"
-                              : "Actif"}
+                            {"Actif"}
                           </Badge>
                         </div>
-                        {trialDays !== null && (
-                          <p className="text-xs text-amber-500 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" />
-                            {trialDays} jour{trialDays > 1 ? "s" : ""}{" "}
-                            restant{trialDays > 1 ? "s" : ""} dans l'essai
-                          </p>
-                        )}
+
                       </div>
                     </div>
                     <div className="flex gap-6 text-sm">
