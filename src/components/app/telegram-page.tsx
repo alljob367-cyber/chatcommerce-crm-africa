@@ -283,6 +283,12 @@ export default function TelegramPage() {
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
+  // ─── Plan limits for Telegram agents ───────────────────────
+  const userPlan = user?.company?.plan || "starter";
+  const PLAN_MAX_AGENTS: Record<string, number> = { starter: 2, pro: 5, business: 12, enterprise: 999999 };
+  const maxTelegramAgents = PLAN_MAX_AGENTS[userPlan] || 2;
+  const hasReachedLimit = agents.length >= maxTelegramAgents;
+
   // ─── Fetch Global Token ─────────────────────────────────────
   const fetchGlobalToken = useCallback(async () => {
     try {
@@ -869,11 +875,11 @@ export default function TelegramPage() {
         <div className="flex gap-2">
           {canManageAgents ? (
             <>
-              <Button onClick={() => handleOneClickSetup()} disabled={settingUp} variant="outline" className="gap-2">
+              <Button onClick={() => handleOneClickSetup()} disabled={settingUp || hasReachedLimit} variant="outline" className="gap-2">
                 {settingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                 {settingUp ? "Création..." : "Créer l'Agent"}
               </Button>
-              <Button onClick={openCreateAgent} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
+              <Button onClick={openCreateAgent} disabled={hasReachedLimit} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
                 <Plus className="w-4 h-4" />
                 Agent Personnalisé
               </Button>
@@ -883,6 +889,31 @@ export default function TelegramPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Plan Limit Banner ─── */}
+      {canManageAgents && (
+        <div className={`flex items-center justify-between p-3 rounded-lg text-sm ${hasReachedLimit ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50" : "bg-muted/50"}`}>
+          <div className="flex items-center gap-2">
+            <Bot className="w-4 h-4" />
+            <span className="font-medium">
+              {hasReachedLimit
+                ? `Limite atteinte : ${agents.length}/${maxTelegramAgents === 999999 ? "Illimite" : maxTelegramAgents} agents Telegram`
+                : `Agents : ${agents.length}/${maxTelegramAgents === 999999 ? "Illimite" : maxTelegramAgents}`
+              }
+            </span>
+          </div>
+          {!isSystemAdmin && (
+            <span className="text-xs text-muted-foreground">
+              Plan <span className="font-semibold uppercase">{userPlan}</span>
+            </span>
+          )}
+          {hasReachedLimit && !isSystemAdmin && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Passez a un plan superieur pour creer plus d&apos;agents
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ─── Empty State ─── */}
       {!hasAgents && canManageAgents && (

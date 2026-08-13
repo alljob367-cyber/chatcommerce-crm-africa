@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
+import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -83,11 +84,32 @@ export async function POST(request: Request) {
 
     // If activateAll is true, propagate token to all agents and activate them
     if (activateAll) {
-      const agents = await db.telegramAgent.findMany({
+      // ─── CHECK PLAN LIMIT ───────────────────────────────
+      const company = await db.company.findUnique({
+        where: { id: session.companyId },
+        select: { plan: true },
+      });
+      const currentPlan = company?.plan || "starter";
+      const currentAgentCount = await db.telegramAgent.count({
         where: { companyId: session.companyId },
       });
+      const limitError = await checkPlanLimit(currentPlan, "maxTelegramAgents", currentAgentCount);
+      if (limitError) {
+        return NextResponse.json({ error: limitError }, { status: 403 });
+      }
 
-      for (const agent of agents) {
+      // Also limit how many we activate to not exceed the plan
+      const maxAllowed = PLAN_LIMITS[currentPlan]?.maxTelegramAgents || PLAN_LIMITS.starter.maxTelegramAgents;
+
+      const agents = await db.telegramAgent.findMany({
+        where: { companyId: session.companyId },
+        orderBy: { createdAt: "asc" },
+      });
+
+      // Only activate up to the plan limit
+      const agentsToActivate = agents.slice(0, maxAllowed);
+
+      for (const agent of agentsToActivate) {
         await db.telegramAgent.update({
           where: { id: agent.id },
           data: {
@@ -99,8 +121,8 @@ export async function POST(request: Request) {
         activatedCount++;
       }
 
-      // Set bot commands for all agents
-      const businessTypes = agents.map((a) => a.businessType);
+      // Set bot commands for all activated agents
+      const businessTypes = agentsToActivate.map((a) => a.businessType);
       const uniqueTypes = [...new Set(businessTypes)];
       for (const bt of uniqueTypes) {
         const commands = bt === "restaurant"
