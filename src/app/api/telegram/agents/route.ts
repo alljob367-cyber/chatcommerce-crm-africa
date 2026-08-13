@@ -71,7 +71,9 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    console.log("[API /telegram/agents POST] session:", JSON.stringify({ userId: session.userId, companyId: session.companyId, role: session.role, isAdmin }));
     const body = await request.json();
+    console.log("[API /telegram/agents POST] body keys:", Object.keys(body));
 
     if (!isAdmin) {
       // ── Agent / Viewer : ne peut fournir que le token pour activer un agent existant ──
@@ -146,8 +148,10 @@ export async function POST(request: Request) {
     });
 
     const { token: _botToken, ...safeAgent } = agent;
-    return NextResponse.json({ agent: safeAgent }, { status: 201 });
+    console.log("[API /telegram/agents POST] Agent créé:", safeAgent.id, "par userId:", session.userId, "companyId:", session.companyId);
+    return NextResponse.json({ agent: safeAgent, message: "Agent créé avec succès !" }, { status: 201 });
   } catch (error: unknown) {
+    console.error("[API /telegram/agents POST] Erreur:", error);
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });
   }

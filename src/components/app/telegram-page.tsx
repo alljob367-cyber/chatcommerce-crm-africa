@@ -550,21 +550,23 @@ export default function TelegramPage() {
           headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error();
-        toast.success("Agent mis à jour");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur serveur");
+        toast.success(data.message || "Agent mis à jour");
       } else {
         const res = await fetch("/api/telegram/agents", {
           method: "POST",
           headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error();
-        toast.success("Agent créé");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur serveur");
+        toast.success(data.message || "Agent créé");
       }
       setAgentDialogOpen(false);
       await fetchAgents();
-    } catch {
-      toast.error("Erreur lors de la sauvegarde");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
     } finally {
       setAgentSaving(false);
     }
@@ -577,12 +579,13 @@ export default function TelegramPage() {
         method: "DELETE",
         headers,
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur serveur");
       toast.success("Agent supprimé");
       await fetchAgents();
       await fetchBookings(bookingStatusFilter);
-    } catch {
-      toast.error("Erreur lors de la suppression");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la suppression");
     }
   };
 
@@ -593,10 +596,11 @@ export default function TelegramPage() {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !agent.isActive }),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur serveur");
       await fetchAgents();
-    } catch {
-      toast.error("Erreur lors du changement de statut");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors du changement de statut");
     }
   };
 
@@ -691,18 +695,19 @@ export default function TelegramPage() {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur serveur");
       toast.success("Configuration sauvegardée");
       await fetchAgents();
       // Refresh selected agent data
       const agentRes = await fetch("/api/telegram/agents", { headers });
       if (agentRes.ok) {
-        const data = await agentRes.json();
-        const updated = (data.agents || []).find((a: TelegramAgent) => a.id === selectedAgent.id);
+        const data2 = await agentRes.json();
+        const updated = (data2.agents || []).find((a: TelegramAgent) => a.id === selectedAgent.id);
         if (updated) setSelectedAgent(updated);
       }
-    } catch {
-      toast.error("Erreur lors de la sauvegarde");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
     } finally {
       setConfigSaving(false);
     }
