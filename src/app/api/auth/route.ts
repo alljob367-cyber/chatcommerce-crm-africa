@@ -76,7 +76,7 @@ async function bootstrap() {
     try {
       await ensureBootstrapped();
     } catch (e) {
-      console.error("[BOOTSTRAP] DB bootstrap failed (non-critical for admin/demo):", e);
+      console.error("[BOOTSTRAP] DB bootstrap failed (non-critical for admin):", e);
     }
   }
 }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         );
       }
 
-      // ★★★ HARDCODED ADMIN/DEMO LOGIN (DB-FREE) ★★★
+      // ★★★ HARDCODED ADMIN LOGIN (DB-FREE) ★★★
       for (const [, account] of Object.entries(HARDCODED_ACCOUNTS)) {
         if (email === account.email && bcrypt.compareSync(password, account.passwordHash)) {
           const token = await createHardcodedToken(account.userId, account.companyId, account.role);
@@ -190,27 +190,6 @@ export async function POST(request: Request) {
         console.error("[AUTH] DB login error:", dbError);
         return NextResponse.json({ error: "Service temporairement indisponible. Reessayez." }, { status: 503 });
       }
-    }
-
-    // ─── DEMO (direct demo login, DB-FREE) ──────────
-    if (action === "demo") {
-      const account = HARDCODED_ACCOUNTS.demo;
-      const token = await createHardcodedToken(account.userId, account.companyId, account.role);
-      console.log("[AUTH] Hardcoded demo login success");
-      return NextResponse.json({
-        token,
-        user: {
-          id: account.userId,
-          name: account.name,
-          email: account.email,
-          role: account.role,
-        },
-        company: {
-          id: account.companyId,
-          name: account.companyName,
-          plan: account.plan,
-        },
-      });
     }
 
     // ─── REGISTER ────────────────────────────────────
@@ -361,11 +340,9 @@ export async function POST(request: Request) {
       }
 
       // For hardcoded accounts, simulate success (can't change their password in DB)
-      const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId || payload.userId === HARDCODED_ACCOUNTS.demo.userId;
+      const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId;
       if (isHardcoded) {
-        const account = payload.userId === HARDCODED_ACCOUNTS.admin.userId
-          ? HARDCODED_ACCOUNTS.admin
-          : HARDCODED_ACCOUNTS.demo;
+        const account = HARDCODED_ACCOUNTS.admin;
         if (!bcrypt.compareSync(currentPassword, account.passwordHash)) {
           return NextResponse.json({ error: "Mot de passe actuel incorrect" }, { status: 401 });
         }
@@ -412,7 +389,7 @@ export async function POST(request: Request) {
       }
 
       // For hardcoded accounts, just return success
-      const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId || payload.userId === HARDCODED_ACCOUNTS.demo.userId;
+      const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId;
       if (isHardcoded) {
         return NextResponse.json({ success: true, message: "Profil mis a jour" });
       }
@@ -453,13 +430,11 @@ export async function GET(request: Request) {
     }
 
     // Check if this is a hardcoded account token
-    const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId || payload.userId === HARDCODED_ACCOUNTS.demo.userId;
+    const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId;
     
     if (isHardcoded) {
       // Return hardcoded user data (no DB needed)
-      const account = payload.userId === HARDCODED_ACCOUNTS.admin.userId
-        ? HARDCODED_ACCOUNTS.admin
-        : HARDCODED_ACCOUNTS.demo;
+      const account = HARDCODED_ACCOUNTS.admin;
       return NextResponse.json({
         id: account.userId,
         name: account.name,

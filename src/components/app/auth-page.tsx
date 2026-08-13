@@ -48,6 +48,7 @@ import {
   Crown,
   CreditCard,
   ExternalLink,
+  LogIn,
 } from "lucide-react";
 import {
   Dialog,
@@ -384,26 +385,14 @@ export default function AuthPage() {
     // Scroll to register dialog (it's a modal so just open it)
   };
 
-  const handleDemo = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "demo" }),
-      });
-      const data = await res.json();
-      if (data.token && data.user) {
-        setAuth(data.token, { ...data.user, company: data.company });
-      } else {
-        setError(data.error || "Erreur de connexion demo");
-      }
-    } catch {
-      setError("Erreur de connexion au serveur");
-    } finally {
-      setLoading(false);
-    }
+  // Demo removed — only admin account remains
+  const handleGoLogin = () => {
+    setShowRegister(false);
+    setShowLogin(true);
+  };
+  const handleGoRegister = () => {
+    setShowLogin(false);
+    setShowRegister(true);
   };
 
   const handleLogin = async () => {
@@ -799,22 +788,11 @@ export default function AuthPage() {
               <div className="animate-fade-up delay-300 flex flex-col sm:flex-row items-start gap-4">
                 <Button
                   size="lg"
-                  onClick={handleDemo}
-                  disabled={loading}
+                  onClick={handleGoLogin}
                   className="shimmer-btn bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black px-8 py-6 text-base font-bold shadow-xl shadow-[#00E676]/25 hover:shadow-[#00E676]/40 transition-all hover:scale-[1.02]"
                 >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                      Connexion...
-                    </span>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 mr-2" />
-                      Voir la Demo en Direct
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Se Connecter
                 </Button>
                 <Button
                   size="lg"
@@ -1130,11 +1108,10 @@ export default function AuthPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
                   size="lg"
-                  onClick={handleDemo}
-                  disabled={loading}
+                  onClick={handleGoRegister}
                   className="shimmer-btn bg-gradient-to-r from-[#00E676] to-[#00BFA5] text-black px-8 py-6 text-base font-bold shadow-xl shadow-[#00E676]/30 hover:shadow-[#00E676]/50 transition-all hover:scale-[1.02]"
                 >
-                  {loading ? "Connexion..." : "Essayer Gratuitement"}
+                  Commencer Gratuitement
                 </Button>
                 <Button
                   size="lg"
