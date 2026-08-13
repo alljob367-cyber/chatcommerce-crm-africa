@@ -201,7 +201,7 @@ export default function TelegramPage() {
   const [settingUp, setSettingUp] = useState(false);
   const [settingUpType, setSettingUpType] = useState<string | null>(null);
 
-  // Agent form dialog
+  // Agent form dialog (create/edit)
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<TelegramAgent | null>(null);
   const [agentForm, setAgentForm] = useState({
@@ -242,6 +242,30 @@ export default function TelegramPage() {
   });
   const [serviceSaving, setServiceSaving] = useState(false);
   const [servicesLoading, setServicesLoading] = useState(false);
+
+  // Agent config dialog (full config panel when clicking an agent card)
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<TelegramAgent | null>(null);
+  const [configTab, setConfigTab] = useState("infos");
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configForm, setConfigForm] = useState({
+    name: "",
+    token: "",
+    botUsername: "",
+    businessType: "restaurant",
+    welcomeMessage: "",
+    address: "",
+    phone: "",
+    openHours: "",
+    currency: "XAF",
+    paymentMethod: "none",
+    aiEnabled: false,
+    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "custom",
+    aiApiKey: "",
+    aiModel: "",
+    aiBaseUrl: "",
+    aiSystemPrompt: "",
+  });
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
@@ -497,6 +521,95 @@ export default function TelegramPage() {
     }
   };
 
+  // ─── Agent Config Panel (click on card) ────────────────────────
+
+  const openAgentConfig = async (agent: TelegramAgent) => {
+    setSelectedAgent(agent);
+    // Parse AI config
+    let aiOverrides: Record<string, unknown> = {};
+    if (isAdmin && agent.aiConfig) {
+      try { aiOverrides = JSON.parse(agent.aiConfig); } catch { /* ignore */ }
+    }
+    setConfigForm({
+      name: agent.name,
+      token: agent.token,
+      botUsername: agent.botUsername || "",
+      businessType: agent.businessType,
+      welcomeMessage: agent.welcomeMessage || "",
+      address: agent.address || "",
+      phone: agent.phone || "",
+      openHours: agent.openHours || "",
+      currency: agent.currency,
+      paymentMethod: agent.paymentMethod || "none",
+      aiEnabled: (aiOverrides.enabled as boolean) ?? false,
+      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "custom") ?? "openrouter",
+      aiApiKey: (aiOverrides.apiKey as string) || "",
+      aiModel: (aiOverrides.model as string) || "",
+      aiBaseUrl: (aiOverrides.baseUrl as string) || "",
+      aiSystemPrompt: (aiOverrides.systemPrompt as string) || "",
+    });
+    setConfigTab("infos");
+    setConfigDialogOpen(true);
+    // Also load services for the Services tab
+    setServicesAgent(agent);
+    setServicesLoading(true);
+    try {
+      const res = await fetch(`/api/telegram/agents/${agent.id}/services`, { headers });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setServices(data.services || []);
+    } catch { /* ignore */ } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  const saveAgentConfig = async () => {
+    if (!selectedAgent) return;
+    setConfigSaving(true);
+    try {
+      const payload = isAdmin
+        ? {
+            name: configForm.name,
+            botUsername: configForm.botUsername,
+            businessType: configForm.businessType,
+            welcomeMessage: configForm.welcomeMessage,
+            address: configForm.address,
+            phone: configForm.phone,
+            openHours: configForm.openHours,
+            currency: configForm.currency,
+            paymentMethod: configForm.paymentMethod,
+            aiConfig: JSON.stringify({
+              enabled: configForm.aiEnabled,
+              provider: configForm.aiProvider,
+              apiKey: configForm.aiApiKey,
+              model: configForm.aiModel,
+              baseUrl: configForm.aiBaseUrl,
+              systemPrompt: configForm.aiSystemPrompt,
+            }),
+          }
+        : { token: configForm.token };
+      const res = await fetch(`/api/telegram/agents/${selectedAgent.id}`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Configuration sauvegardée");
+      await fetchAgents();
+      // Refresh selected agent data
+      const agentRes = await fetch("/api/telegram/agents", { headers });
+      if (agentRes.ok) {
+        const data = await agentRes.json();
+        const updated = (data.agents || []).find((a: TelegramAgent) => a.id === selectedAgent.id);
+        if (updated) setSelectedAgent(updated);
+      }
+    } catch {
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
   const saveService = async () => {
     if (!servicesAgent || !serviceForm.name || !serviceForm.price) {
       toast.error("Nom et prix requis");
@@ -716,7 +829,7 @@ export default function TelegramPage() {
               {/* Agents Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {agents.map((agent) => (
-                  <Card key={agent.id} className="overflow-hidden">
+                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => openAgentConfig(agent)}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -772,8 +885,8 @@ export default function TelegramPage() {
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex gap-2 flex-wrap">
+                      {/* Configurer Button */}
+                      <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                         {isPlaceholder(agent.token) ? (
                           <Button size="sm" onClick={() => openActivateDialog(agent)} className="gap-2 bg-[#0088cc] hover:bg-[#006699] flex-1">
                             <Power className="w-4 h-4" />
@@ -798,6 +911,10 @@ export default function TelegramPage() {
                           </>
                         )}
                       </div>
+                      {/* Click hint */}
+                      <p className="text-[10px] text-center text-muted-foreground">
+                        Cliquez sur la carte pour configurer l&apos;agent
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -878,7 +995,7 @@ export default function TelegramPage() {
             <TabsContent value="agents" className="space-y-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {agents.map((agent) => (
-                  <Card key={agent.id} className="overflow-hidden">
+                  <Card key={agent.id} className="overflow-hidden hover:shadow-md transition-all cursor-pointer hover:border-[#0088cc]/50" onClick={() => openAgentConfig(agent)}>
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -952,7 +1069,7 @@ export default function TelegramPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         {isPlaceholder(agent.token) ? (
                           <Button size="sm" onClick={() => openActivateDialog(agent)} className="gap-2 flex-1 bg-[#0088cc] hover:bg-[#006699] text-white">
                             <Power className="w-3.5 h-3.5" />
@@ -975,6 +1092,10 @@ export default function TelegramPage() {
                           </>
                         )}
                       </div>
+                      {/* Click hint */}
+                      <p className="text-[10px] text-center text-muted-foreground">
+                        Cliquez pour configurer
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -1467,6 +1588,404 @@ export default function TelegramPage() {
               Ajouter
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Agent Config Dialog (click on card) ─── */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+          {selectedAgent && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  {(() => { const bc = getBusinessConfig(selectedAgent.businessType); const Icon = bc.icon; return (
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${bc.bg} ${bc.bgDark}`}>
+                      <Icon className={`w-5 h-5 ${bc.color}`} />
+                    </div>
+                  ); })()}
+                  <div>
+                    <span>Configuration — </span>
+                    <span className="font-bold">{selectedAgent.name}</span>
+                    <p className="text-xs text-muted-foreground font-normal">
+                      {getBusinessConfig(selectedAgent.businessType).label}
+                      {selectedAgent.botUsername ? ` · @${selectedAgent.botUsername}` : ""}
+                      {" · "}{selectedAgent._count.services} services · {selectedAgent._count.bookings} réservations
+                    </p>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Config Tabs */}
+              <Tabs value={configTab} onValueChange={setConfigTab} className="flex-1 min-h-0">
+                <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4" : "grid-cols-3"}`}>
+                  <TabsTrigger value="infos" className="gap-1.5 text-xs">
+                    <Settings2 className="w-3.5 h-3.5" />
+                    Infos
+                  </TabsTrigger>
+                  <TabsTrigger value="services" className="gap-1.5 text-xs">
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    Services
+                  </TabsTrigger>
+                  {isAdmin && (
+                    <TabsTrigger value="ai" className="gap-1.5 text-xs">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      IA
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="payment" className="gap-1.5 text-xs">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Paiement
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* ── Infos Tab ── */}
+                <TabsContent value="infos" className="flex-1 overflow-y-auto space-y-4 mt-4 pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nom de l&apos;agent</Label>
+                      <Input
+                        value={configForm.name}
+                        onChange={(e) => setConfigForm({ ...configForm, name: e.target.value })}
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Type d&apos;activite</Label>
+                      <Select value={configForm.businessType} onValueChange={(v) => setConfigForm({ ...configForm, businessType: v })} disabled={!isAdmin}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(BUSINESS_TYPE_CONFIG).map(([key, cfg]) => (
+                            <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Token Telegram</Label>
+                      <Input
+                        type="password"
+                        value={configForm.token}
+                        onChange={(e) => setConfigForm({ ...configForm, token: e.target.value })}
+                        placeholder={isPlaceholder(configForm.token) ? "Collez le token de @BotFather ici" : "Token configuré"}
+                      />
+                      <p className="text-xs text-muted-foreground">Obtenez votre token via @BotFather sur Telegram</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Username du Bot</Label>
+                      <Input
+                        value={configForm.botUsername}
+                        onChange={(e) => setConfigForm({ ...configForm, botUsername: e.target.value })}
+                        placeholder="@mon_bot"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Adresse</Label>
+                      <Input
+                        value={configForm.address}
+                        onChange={(e) => setConfigForm({ ...configForm, address: e.target.value })}
+                        placeholder="Douala, Quartier Bonapriso"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telephone</Label>
+                      <Input
+                        value={configForm.phone}
+                        onChange={(e) => setConfigForm({ ...configForm, phone: e.target.value })}
+                        placeholder="+237 6XX XXX XXX"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Horaires d&apos;ouverture</Label>
+                      <Input
+                        value={configForm.openHours}
+                        onChange={(e) => setConfigForm({ ...configForm, openHours: e.target.value })}
+                        placeholder="Lun-Sam: 8h-22h · Dim: 10h-18h"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label>Message de bienvenue</Label>
+                      <Textarea
+                        value={configForm.welcomeMessage}
+                        onChange={(e) => setConfigForm({ ...configForm, welcomeMessage: e.target.value })}
+                        placeholder="Message affiché quand un client lance le bot..."
+                        rows={3}
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* ── Services Tab ── */}
+                <TabsContent value="services" className="flex-1 overflow-y-auto space-y-3 mt-4 pr-1">
+                  {servicesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : services.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Aucun service configure</p>
+                      <p className="text-xs text-muted-foreground mt-1">Ajoutez des {getBusinessConfig(selectedAgent.businessType).servicesLabel} ci-dessous</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {services.map((svc, i) => (
+                        <div key={svc.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                          <span className="text-lg font-bold text-muted-foreground w-6 text-center">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{svc.name}</p>
+                              {svc.duration && (
+                                <Badge variant="outline" className="text-[10px] gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {svc.duration}min
+                                </Badge>
+                              )}
+                              {!svc.isActive && (
+                                <Badge variant="outline" className="text-[10px] text-muted-foreground">Inactif</Badge>
+                              )}
+                            </div>
+                            {svc.description && (
+                              <p className="text-xs text-muted-foreground truncate">{svc.description}</p>
+                            )}
+                          </div>
+                          <p className="font-semibold text-sm whitespace-nowrap">
+                            {formatCurrency(svc.price, configForm.currency || "XAF")}
+                          </p>
+                          {isAdmin && (
+                            <Button size="sm" variant="ghost" onClick={() => deleteService(svc.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Service */}
+                  {isAdmin && (
+                    <div className="border-t pt-4 space-y-3">
+                      <p className="text-sm font-medium">Ajouter un service</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Nom du service"
+                          value={serviceForm.name}
+                          onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
+                        />
+                        <Input
+                          placeholder="Prix (FCFA)"
+                          value={serviceForm.price}
+                          onChange={(e) => setServiceForm({ ...serviceForm, price: e.target.value })}
+                          type="number"
+                        />
+                        <Input
+                          placeholder="Durée (minutes, optionnel)"
+                          value={serviceForm.duration}
+                          onChange={(e) => setServiceForm({ ...serviceForm, duration: e.target.value })}
+                          type="number"
+                        />
+                        <Input
+                          placeholder="Description (optionnel)"
+                          value={serviceForm.description}
+                          onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
+                        />
+                      </div>
+                      <Button onClick={saveService} disabled={serviceSaving || !serviceForm.name || !serviceForm.price} size="sm" className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
+                        {serviceSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                        Ajouter
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ── AI Tab (admin only) ── */}
+                {isAdmin && (
+                  <TabsContent value="ai" className="flex-1 overflow-y-auto space-y-4 mt-4 pr-1">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div>
+                        <p className="text-sm font-medium">Assistant IA active</p>
+                        <p className="text-xs text-muted-foreground">Activer les reponses automatiques par IA pour ce bot</p>
+                      </div>
+                      <Switch
+                        checked={configForm.aiEnabled}
+                        onCheckedChange={(v) => setConfigForm({ ...configForm, aiEnabled: v })}
+                      />
+                    </div>
+
+                    {configForm.aiEnabled && (
+                      <div className="space-y-4 pl-0">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label>Fournisseur IA</Label>
+                            <Select value={configForm.aiProvider} onValueChange={(v) => setConfigForm({ ...configForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "custom" })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="openrouter">OpenRouter (Multi-modal)</SelectItem>
+                                <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="anthropic">Anthropic</SelectItem>
+                                <SelectItem value="custom">Personnalise</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Modele</Label>
+                            <Input
+                              placeholder={configForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : configForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-4o-mini"}
+                              value={configForm.aiModel}
+                              onChange={(e) => setConfigForm({ ...configForm, aiModel: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Cle API</Label>
+                          <Input
+                            type="password"
+                            placeholder="sk-or-..."
+                            value={configForm.aiApiKey}
+                            onChange={(e) => setConfigForm({ ...configForm, aiApiKey: e.target.value })}
+                          />
+                        </div>
+                        {configForm.aiProvider === "openrouter" && (
+                          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
+                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                              <strong>OpenRouter</strong> supporte +100 modeles multi-modaux (Gemini, GPT-4o, Claude, Llama Vision, etc.). Cle sur <span className="underline">openrouter.ai/keys</span>
+                            </p>
+                          </div>
+                        )}
+                        {configForm.aiProvider === "custom" && (
+                          <div className="space-y-2">
+                            <Label>URL de base (Base URL)</Label>
+                            <Input
+                              placeholder="https://api.example.com/v1"
+                              value={configForm.aiBaseUrl}
+                              onChange={(e) => setConfigForm({ ...configForm, aiBaseUrl: e.target.value })}
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <Label>Prompt Systeme (optionnel)</Label>
+                          <Textarea
+                            placeholder="Instructions pour l'IA... Laissez vide pour le prompt par defaut."
+                            rows={4}
+                            value={configForm.aiSystemPrompt}
+                            onChange={(e) => setConfigForm({ ...configForm, aiSystemPrompt: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {!configForm.aiEnabled && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">L'assistant IA est desactive</p>
+                        <p className="text-xs">Activez-le pour que le bot reponde automatiquement avec l'IA</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
+
+                {/* ── Payment Tab ── */}
+                <TabsContent value="payment" className="flex-1 overflow-y-auto space-y-4 mt-4 pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Devise</Label>
+                      <Select value={configForm.currency} onValueChange={(v) => setConfigForm({ ...configForm, currency: v })} disabled={!isAdmin}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="XAF">FCFA (XAF)</SelectItem>
+                          <SelectItem value="XOF">FCFA (XOF)</SelectItem>
+                          <SelectItem value="EUR">Euro</SelectItem>
+                          <SelectItem value="USD">Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mode de paiement</Label>
+                      <Select value={configForm.paymentMethod} onValueChange={(v) => setConfigForm({ ...configForm, paymentMethod: v })} disabled={!isAdmin}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="orange_money">Orange Money</SelectItem>
+                          <SelectItem value="mtn_money">MTN Mobile Money</SelectItem>
+                          <SelectItem value="cash">Especes</SelectItem>
+                          <SelectItem value="none">Aucun</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Payment Info */}
+                  {(configForm.paymentMethod === "orange_money" || configForm.paymentMethod === "mtn_money") && (
+                    <div className={`p-4 rounded-lg border ${configForm.paymentMethod === "orange_money" ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50" : "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50"}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <CreditCard className={`w-5 h-5 ${configForm.paymentMethod === "orange_money" ? "text-orange-600" : "text-yellow-600"}`} />
+                        <p className="font-medium text-sm">
+                          {configForm.paymentMethod === "orange_money" ? "Orange Money" : "MTN Mobile Money"}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Les clients pourront payer directement via {configForm.paymentMethod === "orange_money" ? "Orange Money" : "MTN Mobile Money"} lorsqu&apos;ils passent commande sur le bot.
+                        Assurez-vous que votre numero de paiement est configure dans les parametres du bot Telegram.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  <div className="p-4 rounded-lg bg-muted/50 space-y-2">
+                    <p className="text-sm font-medium">Resume de la configuration</p>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Agent :</span>
+                        <span className="font-medium">{configForm.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Type :</span>
+                        <span className="font-medium">{getBusinessConfig(configForm.businessType).label}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Devise :</span>
+                        <span className="font-medium">{configForm.currency}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Paiement :</span>
+                        <span className="font-medium">
+                          {configForm.paymentMethod === "orange_money" ? "Orange Money" : configForm.paymentMethod === "mtn_money" ? "MTN MoMo" : configForm.paymentMethod === "cash" ? "Especes" : "Aucun"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Services :</span>
+                        <span className="font-medium">{selectedAgent._count.services}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">IA :</span>
+                        <span className="font-medium">{configForm.aiEnabled ? "Active" : "Desactivee"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Token :</span>
+                        <span className="font-medium">{isPlaceholder(configForm.token) ? "Non configure" : "Configure"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Statut :</span>
+                        <Badge variant="outline" className={selectedAgent.isActive ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : ""}>
+                          {selectedAgent.isActive ? "Actif" : "Inactif"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter className="border-t pt-4 flex-shrink-0">
+                <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>Fermer</Button>
+                <Button onClick={saveAgentConfig} disabled={configSaving} className="gap-2 bg-[#0088cc] hover:bg-[#006699]">
+                  {configSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Settings2 className="w-4 h-4" />}
+                  Sauvegarder
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
