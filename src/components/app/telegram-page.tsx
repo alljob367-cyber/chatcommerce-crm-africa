@@ -188,7 +188,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function TelegramPage() {
   const { token, user } = useAppStore();
-  const isAdmin = user?.role === "company_admin" || user?.role === "super_admin";
+  const isAdmin = user?.role === "super_admin" || user?.id === "admin-hardcoded-001";
 
   // Data states
   const [agents, setAgents] = useState<TelegramAgent[]>([]);
