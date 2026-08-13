@@ -67,6 +67,7 @@ import {
   RefreshCw,
   LayoutList,
   Calendar,
+  Save,
   Pill,
   Car,
   Shirt,
@@ -201,6 +202,12 @@ export default function TelegramPage() {
   const [settingUp, setSettingUp] = useState(false);
   const [settingUpType, setSettingUpType] = useState<string | null>(null);
 
+  // Global Bot Token state
+  const [globalToken, setGlobalToken] = useState("");
+  const [globalBotUsername, setGlobalBotUsername] = useState<string | null>(null);
+  const [globalTokenSaving, setGlobalTokenSaving] = useState(false);
+  const [globalTokenActivatingAll, setGlobalTokenActivatingAll] = useState(false);
+
   // Agent form dialog (create/edit)
   const [agentDialogOpen, setAgentDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<TelegramAgent | null>(null);
@@ -269,6 +276,60 @@ export default function TelegramPage() {
 
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
+  // ─── Fetch Global Token ─────────────────────────────────────
+  const fetchGlobalToken = useCallback(async () => {
+    try {
+      const res = await fetch("/api/company/global-token", { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      setGlobalBotUsername(data.botUsername || null);
+    } catch { /* ignore */ }
+  }, [headers]);
+
+  const saveGlobalToken = async (activateAll: boolean = false) => {
+    if (!globalToken.trim()) {
+      toast.error("Token requis");
+      return;
+    }
+    if (activateAll) {
+      setGlobalTokenActivatingAll(true);
+    } else {
+      setGlobalTokenSaving(true);
+    }
+    try {
+      const res = await fetch("/api/company/global-token", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ token: globalToken.trim(), activateAll }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message || "Token global configure !");
+      setGlobalBotUsername(data.botUsername);
+      setGlobalToken(""); // Clear input after save
+      await Promise.all([fetchAgents(), fetchStats()]);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la configuration");
+    } finally {
+      setGlobalTokenSaving(false);
+      setGlobalTokenActivatingAll(false);
+    }
+  };
+
+  const removeGlobalToken = async () => {
+    if (!confirm("Supprimer le token global et desactiver tous les agents ?")) return;
+    try {
+      const res = await fetch("/api/company/global-token", { method: "DELETE", headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success(data.message || "Token global supprime");
+      setGlobalBotUsername(null);
+      await Promise.all([fetchAgents(), fetchStats()]);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erreur");
+    }
+  };
+
   // ─── Fetch Data ────────────────────────────────────────────────
 
   const fetchAgents = useCallback(async () => {
@@ -310,7 +371,7 @@ export default function TelegramPage() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchAgents(), fetchBookings(), fetchStats()]);
+      await Promise.all([fetchAgents(), fetchBookings(), fetchStats(), fetchGlobalToken()]);
       if (!cancelled) setLoading(false);
     };
     load();
@@ -686,6 +747,79 @@ export default function TelegramPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {/* ─── Global Bot Token (Admin Only) ─── */}
+      {isAdmin && (
+        <Card className="border-[#0088cc]/30 bg-gradient-to-r from-[#0088cc]/5 to-transparent">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-[#0088cc]/10 flex items-center justify-center">
+                  <MessageCircle className="w-6 h-6 text-[#0088cc]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Token Bot Global</h3>
+                  <p className="text-xs text-muted-foreground">Un seul token pour tous les agents</p>
+                </div>
+              </div>
+              <div className="flex-1 space-y-3 w-full">
+                {globalBotUsername ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 flex-1">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800 dark:text-green-300">Bot actif : {globalBotUsername}</p>
+                        <p className="text-[10px] text-green-600 dark:text-green-400">Tous les agents partagent ce token</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={removeGlobalToken} className="gap-2 text-red-600 border-red-200 hover:bg-red-50 shrink-0">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Supprimer
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Collez votre token Telegram (de @BotFather) ici..."
+                        value={globalToken}
+                        onChange={(e) => setGlobalToken(e.target.value)}
+                        type="password"
+                        className="flex-1"
+                      />
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        onClick={() => saveGlobalToken(false)}
+                        disabled={globalTokenSaving || !globalToken.trim()}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        {globalTokenSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                        Sauvegarder
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => saveGlobalToken(true)}
+                        disabled={globalTokenActivatingAll || !globalToken.trim()}
+                        className="gap-2 bg-[#0088cc] hover:bg-[#006699]"
+                      >
+                        {globalTokenActivatingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                        Sauvegarder + Activer Tous les Agents
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Avec un seul token, tous vos agents Telegram utiliseront le meme bot.
+                      Le token sera automatiquement applique a tous les agents existants.
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
