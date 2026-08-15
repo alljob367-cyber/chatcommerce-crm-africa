@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
     if (company) {
       const deliveryCount = await db.delivery.count({ where: { companyId: session.companyId } });
-      const limitError = checkPlanLimit(company.plan, "maxDeliveries", deliveryCount);
+      const limitError = await checkPlanLimit(company.plan, "maxDeliveries", deliveryCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
       }

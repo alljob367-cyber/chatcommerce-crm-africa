@@ -354,7 +354,7 @@ export async function POST(request: Request) {
     // Check plan limit BEFORE creating any agents
     const company = await db.company.findUnique({ where: { id: companyId }, select: { plan: true } });
     const currentCount = existingAgents.length;
-    const limitError = checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", currentCount);
+    const limitError = await checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", currentCount);
     if (limitError) {
       return NextResponse.json({ error: limitError }, { status: 403 });
     }

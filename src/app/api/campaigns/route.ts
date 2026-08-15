@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       select: { plan: true },
     });
     const campaignCount = await db.campaign.count({ where: { companyId: session.companyId } });
-    const limitError = checkPlanLimit(company?.plan || "starter", "maxCampaigns", campaignCount);
+    const limitError = await checkPlanLimit(company?.plan || "starter", "maxCampaigns", campaignCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     // Count recipients based on segment

@@ -226,7 +226,7 @@ async function handleServicesToProducts(
 
   if (newCount > 0) {
     const currentProductCount = existingProducts.length;
-    const limitError = checkPlanLimit(companyPlan, "maxProducts", currentProductCount + newCount);
+    const limitError = await checkPlanLimit(companyPlan, "maxProducts", currentProductCount + newCount);
     if (limitError) {
       return NextResponse.json({ error: limitError }, { status: 403 });
     }

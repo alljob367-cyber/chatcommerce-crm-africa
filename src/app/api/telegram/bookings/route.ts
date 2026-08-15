@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     const bookingCount = await db.telegramBooking.count({
       where: { companyId: session.companyId, status: { notIn: ["cancelled"] } },
     });
-    const limitError = checkPlanLimit(companyPlan, "maxBookings", bookingCount);
+    const limitError = await checkPlanLimit(companyPlan, "maxBookings", bookingCount);
     if (limitError) {
       return NextResponse.json({ error: limitError }, { status: 403 });
     }

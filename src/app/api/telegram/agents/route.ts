@@ -119,7 +119,7 @@ export async function POST(request: Request) {
     // Check plan limit for telegram agents
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
     const agentCount = await db.telegramAgent.count({ where: { companyId: session.companyId } });
-    const limitError = checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", agentCount);
+    const limitError = await checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", agentCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const agent = await db.telegramAgent.create({

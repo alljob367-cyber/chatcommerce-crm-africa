@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     // Check plan limit for automations
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
     const autoCount = await db.automation.count({ where: { companyId: session.companyId } });
-    const limitError = checkPlanLimit(company?.plan || "starter", "maxAutomations", autoCount);
+    const limitError = await checkPlanLimit(company?.plan || "starter", "maxAutomations", autoCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const sanitizedName = sanitize(name);

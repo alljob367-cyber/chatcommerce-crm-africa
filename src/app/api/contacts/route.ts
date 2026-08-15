@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
     if (company) {
       const contactCount = await db.contact.count({ where: { companyId: session.companyId } });
-      const limitError = checkPlanLimit(company.plan, "maxContacts", contactCount);
+      const limitError = await checkPlanLimit(company.plan, "maxContacts", contactCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
       }

@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     const agentCount = await db.user.count({
       where: { companyId: auth.company.id, isActive: true },
     });
-    const limitError = checkPlanLimit(companyPlan, "maxAgents", agentCount);
+    const limitError = await checkPlanLimit(companyPlan, "maxAgents", agentCount);
     if (limitError) {
       return NextResponse.json({ error: limitError }, { status: 403 });
     }

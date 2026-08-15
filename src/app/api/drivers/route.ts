@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       const driverCount = await db.driver.count({
         where: { companyId: session.companyId, isActive: true },
       });
-      const limitError = checkPlanLimit(company.plan, "maxDrivers", driverCount);
+      const limitError = await checkPlanLimit(company.plan, "maxDrivers", driverCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
       }

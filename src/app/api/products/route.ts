@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     // Check plan limit for products
     const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
     const productCount = await db.product.count({ where: { companyId: session.companyId, isActive: true } });
-    const limitError = checkPlanLimit(company?.plan || "starter", "maxProducts", productCount);
+    const limitError = await checkPlanLimit(company?.plan || "starter", "maxProducts", productCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const sanitizedName = sanitize(name);

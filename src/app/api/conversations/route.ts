@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       const messageCount = await db.message.count({
         where: { conversation: { companyId: session.companyId } },
       });
-      const limitError = checkPlanLimit(company.plan, "maxMessages", messageCount);
+      const limitError = await checkPlanLimit(company.plan, "maxMessages", messageCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
       }
