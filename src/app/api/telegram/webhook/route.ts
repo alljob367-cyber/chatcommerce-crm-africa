@@ -248,6 +248,26 @@ async function createBooking(
     paymentInfo = `\n\n💵 Paiement en espèces sur place.`;
   }
 
+  // ── Notify merchant about new order ──
+  try {
+    const orderNotif = [
+      `🛒 <b>NOUVELLE COMMANDE</b>`,
+      ``,
+      `📋 Service: <b>${service.name}</b>`,
+      `👤 Client: <b>${customerName}</b>`,
+      `💰 Prix: <b>${priceStr}</b>`,
+      `📱 Chat ID: <code>${chatId}</code>`,
+      `🕐 Date: ${new Date().toLocaleString("fr-FR")}`,
+      ``,
+      service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash"
+        ? `<i>En attente de paiement client.</i>`
+        : `<i>Commande en espèces — à confirmer.</i>`,
+    ].join("\n");
+    await sendTelegramMessage(agent.token, chatId, orderNotif);
+  } catch (notifErr) {
+    console.error("[Telegram Webhook] Failed to notify merchant about order:", notifErr);
+  }
+
   const baseText = lang === "fr"
     ? `✅ <b>Commande enregistrée !</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Prix: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`
     : `✅ <b>Order placed!</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Price: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`;
@@ -333,6 +353,26 @@ async function handlePaymentSubmission(
         data: { status: "confirmed" },
       });
     } catch { /* ignore */ }
+  }
+
+  // ── Notify merchant about new payment ──
+  try {
+    const merchantNotif = [
+      `💰 <b>NOUVEAU PAIEMENT REÇU</b>`,
+      ``,
+      `📋 Service: <b>${pendingPayment.serviceName || "Commande"}</b>`,
+      `👤 Client: <b>${pendingPayment.customerName}</b>${pendingPayment.customerPhone ? ` (${pendingPayment.customerPhone})` : ""}`,
+      `💰 Montant: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>`,
+      `📱 Via: <b>${payMethodName}</b>`,
+      `🔖 Transaction: <code>${transactionRef}</code>`,
+      `🕐 Date: ${new Date().toLocaleString("fr-FR")}`,
+      ``,
+      `<i>Le paiement a été automatiquement confirmé par le client.</i>`,
+      `<i>Vérifiez dans votre dashboard: Paiements Marchands</i>`,
+    ].join("\n");
+    await sendTelegramMessage(agent.token, chatId, merchantNotif);
+  } catch (notifErr) {
+    console.error("[Telegram Webhook] Failed to notify merchant:", notifErr);
   }
 
   return lang === "fr"

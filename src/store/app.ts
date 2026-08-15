@@ -12,6 +12,7 @@ export type Page =
   | "settings"
   | "ai"
   | "payments"
+  | "merchant-payments"
   | "admin-payments"
   | "telegram"
   | "drivers"
