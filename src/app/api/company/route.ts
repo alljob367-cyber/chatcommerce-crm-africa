@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError, rateLimit } from "@/lib/security";
-
-// Hardcoded accounts (DB-independent fallback)
-const HARDCODED_ACCOUNTS: Record<string, { userId: string; companyId: string; companyName: string; country: string; plan: string; role: string }> = {
-  "admin-hardcoded-001": { userId: "admin-hardcoded-001", companyId: "company-admin-001", companyName: "ChatCommerce CRM Africa", country: "Cameroun", plan: "enterprise", role: "company_admin" },
-};
 
 // Helper: authenticate and get user + company from token
 async function authenticate(request: Request) {
@@ -15,14 +10,20 @@ async function authenticate(request: Request) {
   const payload = await verifyToken(token);
   if (!payload) return null;
 
-  // Hardcoded accounts fallback (works even without DB)
-  const hardcoded = HARDCODED_ACCOUNTS[payload.userId];
-  if (hardcoded) {
-    return {
-      user: { id: hardcoded.userId, name: hardcoded.role === "company_admin" ? "Administrateur" : "Demo User", email: "", role: hardcoded.role },
-      company: { id: hardcoded.companyId, name: hardcoded.companyName, country: hardcoded.country, plan: hardcoded.plan, maxContacts: 99999, maxAgents: 999, whatsappNumber: null, notificationSettings: null },
-      payload,
-    };
+  // Hardcoded admin: resolve from DB
+  if (payload.userId === "admin-hardcoded-001") {
+    try {
+      await ensureBootstrapped();
+      const realCompanyId = await resolveCompanyId(payload);
+      const company = await db.company.findUnique({ where: { id: realCompanyId } });
+      if (company) {
+        return {
+          user: { id: payload.userId, name: "Administrateur", email: "admin@chatcommerce.africa", role: payload.role },
+          company,
+          payload,
+        };
+      }
+    } catch { /* fall through */ }
   }
 
   try {
@@ -41,11 +42,11 @@ async function authenticate(request: Request) {
 // GET /api/company — fetch company details + subscription + usage
 export async function GET(request: Request) {
   try {
-    const auth = await authenticate(request);
-    if (!auth) {
+    const authData = await authenticate(request);
+    if (!authData) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
-    const { company } = auth;
+    const { company } = authData;
 
     // Get subscription info
     const subscription = await db.subscription.findFirst({
@@ -72,6 +73,16 @@ export async function GET(request: Request) {
       } catch { /* use defaults */ }
     }
 
+    // Parse payment settings (mobile money phone numbers)
+    let paymentSettings = null;
+    if (company.paymentSettings) {
+      try {
+        paymentSettings = typeof company.paymentSettings === "string"
+          ? JSON.parse(company.paymentSettings)
+          : company.paymentSettings;
+      } catch { /* ignore */ }
+    }
+
     // Get telegram agent count
     const telegramAgentCount = await db.telegramAgent.count({ where: { companyId: company.id } });
 
@@ -85,6 +96,7 @@ export async function GET(request: Request) {
         maxContacts: company.maxContacts,
         maxAgents: company.maxAgents,
         notifications,
+        paymentSettings,
       },
       subscription: subscription
         ? {
@@ -102,14 +114,66 @@ export async function GET(request: Request) {
   }
 }
 
+// PUT /api/company — update company fields (payment settings, etc.)
+export async function PUT(request: Request) {
+  try {
+    const authData = await authenticate(request);
+    if (!authData) {
+      return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    }
+    if (authData.user.role !== "company_admin" && authData.user.role !== "super_admin") {
+      return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+    }
+
+    const body = await request.json();
+
+    // Rate limit
+    const rl = await rateLimit(`company:update:${authData.payload.userId}`, 10, 60000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: "Trop de requetes. Patientez." }, { status: 429 });
+    }
+
+    // Update payment settings (mobile money numbers)
+    if (body.paymentSettings !== undefined) {
+      await db.company.update({
+        where: { id: authData.company.id },
+        data: {
+          paymentSettings: body.paymentSettings,
+          updatedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({ success: true, message: "Numeros de paiement mis a jour" });
+    }
+
+    // Update notification settings
+    if (body.notificationSettings !== undefined) {
+      await db.company.update({
+        where: { id: authData.company.id },
+        data: {
+          notificationSettings: body.notificationSettings,
+          updatedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json({ success: true, message: "Parametres mis a jour" });
+    }
+
+    return NextResponse.json({ error: "Aucune donnee a mettre a jour" }, { status: 400 });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}
+
 // POST /api/company — update company info or notification settings
 export async function POST(request: Request) {
   try {
-    const auth = await authenticate(request);
-    if (!auth) {
+    const authData = await authenticate(request);
+    if (!authData) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
-    if (auth.user.role !== "company_admin" && auth.user.role !== "super_admin") {
+    if (authData.user.role !== "company_admin" && authData.user.role !== "super_admin") {
       return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
     }
 
@@ -117,7 +181,7 @@ export async function POST(request: Request) {
     const { action } = body;
 
     // Rate limit
-    const rl = await rateLimit(`company:update:${auth.payload.userId}`, 10, 60000);
+    const rl = await rateLimit(`company:update:${authData.payload.userId}`, 10, 60000);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Trop de requetes. Patientez." }, { status: 429 });
     }
@@ -128,7 +192,7 @@ export async function POST(request: Request) {
 
       if (name) {
         await db.company.update({
-          where: { id: auth.company.id },
+          where: { id: authData.company.id },
           data: {
             name: sanitize(name).slice(0, 200),
             country: country ? sanitize(country).slice(0, 100) : undefined,
@@ -152,9 +216,8 @@ export async function POST(request: Request) {
         daily_reports: !!daily_reports,
       });
 
-      // Store notification preferences in the company's notificationSettings field
       await db.company.update({
-        where: { id: auth.company.id },
+        where: { id: authData.company.id },
         data: {
           notificationSettings: notifData,
           updatedAt: new Date(),
