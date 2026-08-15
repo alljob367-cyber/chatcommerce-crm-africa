@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { safePagination, handleError } from "@/lib/security";
 
@@ -14,6 +14,8 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const conversationId = searchParams.get("conversationId");
     const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
     }
 
     const conv = await db.conversation.findFirst({
-      where: { id: conversationId, companyId: session.companyId },
+      where: { id: conversationId, companyId: realCompanyId },
     });
     if (!conv) return NextResponse.json({ error: "Conversation non trouvée" }, { status: 404 });
 

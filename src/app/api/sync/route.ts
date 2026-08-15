@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
     if (!session)
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const body = await request.json();
     const { action, agentId, productIds, serviceIds } = body;
 
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
 
     // Verify the agent belongs to the company
     const agent = await db.telegramAgent.findFirst({
-      where: { id: agentId, companyId: session.companyId },
+      where: { id: agentId, companyId: realCompanyId },
     });
     if (!agent) {
       return NextResponse.json(
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
 
     if (action === "products_to_services") {
       return handleProductsToServices(
-        session.companyId,
+        realCompanyId,
         agentId,
         productIds || [],
         companyPlan
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
 
     if (action === "services_to_products") {
       return handleServicesToProducts(
-        session.companyId,
+        realCompanyId,
         agentId,
         serviceIds || [],
         companyPlan

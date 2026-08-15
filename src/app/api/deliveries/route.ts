@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const driverId = searchParams.get("driverId") || "";
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
       "on_the_way", "delivered", "cancelled",
     ];
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status && status !== "all" && VALID_STATUSES.includes(status)) where.status = status;
     if (driverId) where.driverId = driverId;
 
@@ -66,10 +68,12 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Check plan limit for deliveries
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
     if (company) {
-      const deliveryCount = await db.delivery.count({ where: { companyId: session.companyId } });
+      const deliveryCount = await db.delivery.count({ where: { companyId: realCompanyId } });
       const limitError = await checkPlanLimit(company.plan, "maxDeliveries", deliveryCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
@@ -96,7 +100,7 @@ export async function POST(request: Request) {
     // If linked to an order, verify it belongs to this company
     if (orderId) {
       const order = await db.order.findFirst({
-        where: { id: orderId, companyId: session.companyId },
+        where: { id: orderId, companyId: realCompanyId },
       });
       if (!order) {
         return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
@@ -106,7 +110,7 @@ export async function POST(request: Request) {
     // If linked to a Telegram agent, verify it belongs to this company
     if (agentId) {
       const agent = await db.telegramAgent.findFirst({
-        where: { id: agentId, companyId: session.companyId },
+        where: { id: agentId, companyId: realCompanyId },
       });
       if (!agent) {
         return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
@@ -115,7 +119,7 @@ export async function POST(request: Request) {
 
     const delivery = await db.delivery.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         orderId: orderId || null,
         agentId: agentId || null,
         pickupAddress: sanitize(pickupAddress),

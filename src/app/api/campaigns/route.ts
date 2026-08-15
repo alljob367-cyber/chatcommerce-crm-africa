@@ -6,7 +6,7 @@
 // ============================================================
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -23,11 +23,13 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status && status !== "all") where.status = status;
     if (type && type !== "all") where.type = type;
 
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
 
     // Aggregate stats
     const stats = await db.campaign.aggregate({
-      where: { companyId: session.companyId },
+      where: { companyId: realCompanyId },
       _count: true,
       _sum: {
         sentCount: true,
@@ -79,6 +81,8 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: create campaigns
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
@@ -96,10 +100,10 @@ export async function POST(request: Request) {
 
     // Check plan limit
     const company = await db.company.findUnique({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       select: { plan: true },
     });
-    const campaignCount = await db.campaign.count({ where: { companyId: session.companyId } });
+    const campaignCount = await db.campaign.count({ where: { companyId: realCompanyId } });
     const limitError = await checkPlanLimit(company?.plan || "starter", "maxCampaigns", campaignCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
@@ -108,25 +112,25 @@ export async function POST(request: Request) {
     const segType = segmentType || "all";
 
     if (segType === "all") {
-      recipientCount = await db.contact.count({ where: { companyId: session.companyId } });
+      recipientCount = await db.contact.count({ where: { companyId: realCompanyId } });
     } else if (segType === "contacts") {
-      recipientCount = await db.contact.count({ where: { companyId: session.companyId } });
+      recipientCount = await db.contact.count({ where: { companyId: realCompanyId } });
     } else if (segType === "leads") {
-      recipientCount = await db.lead.count({ where: { companyId: session.companyId } });
+      recipientCount = await db.lead.count({ where: { companyId: realCompanyId } });
     } else if (segType === "customers") {
       recipientCount = await db.contact.count({
-        where: { companyId: session.companyId, orderCount: { gt: 0 } },
+        where: { companyId: realCompanyId, orderCount: { gt: 0 } },
       });
     } else if (segType === "vip") {
       recipientCount = await db.contact.count({
-        where: { companyId: session.companyId, orderCount: { gt: 5 } },
+        where: { companyId: realCompanyId, orderCount: { gt: 5 } },
       });
     } else if (segType === "inactive") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       recipientCount = await db.contact.count({
         where: {
-          companyId: session.companyId,
+          companyId: realCompanyId,
           lastMessageAt: { lt: thirtyDaysAgo },
         },
       });
@@ -134,7 +138,7 @@ export async function POST(request: Request) {
 
     const campaign = await db.campaign.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitize(name),
         type: type || "telegram",
         message: sanitize(message),
@@ -164,6 +168,8 @@ export async function PATCH(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: edit campaigns
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
@@ -174,7 +180,7 @@ export async function PATCH(request: Request) {
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
     const existing = await db.campaign.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Campagne introuvable" }, { status: 404 });
 
@@ -214,6 +220,8 @@ export async function DELETE(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: delete campaigns
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
@@ -223,7 +231,7 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
     const existing = await db.campaign.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Campagne introuvable" }, { status: 404 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -15,8 +15,10 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const automations = await db.automation.findMany({
-      where: { companyId: session.companyId },
+      where: { companyId: realCompanyId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -31,6 +33,8 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const realCompanyId = await resolveCompanyId(session);
 
     // Admin-only: create automations
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
@@ -49,8 +53,8 @@ export async function POST(request: Request) {
     }
 
     // Check plan limit for automations
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
-    const autoCount = await db.automation.count({ where: { companyId: session.companyId } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
+    const autoCount = await db.automation.count({ where: { companyId: realCompanyId } });
     const limitError = await checkPlanLimit(company?.plan || "starter", "maxAutomations", autoCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
@@ -59,7 +63,7 @@ export async function POST(request: Request) {
 
     const automation = await db.automation.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitizedName,
         type,
         trigger: trigger || type,
@@ -81,6 +85,8 @@ export async function PATCH(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: edit automations
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
@@ -89,7 +95,7 @@ export async function PATCH(request: Request) {
     const { id, name, messageTemplate, isActive, delayMinutes } = body;
 
     const existing = await db.automation.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Automatisation introuvable" }, { status: 404 });
 
@@ -115,6 +121,8 @@ export async function DELETE(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: delete automations
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
@@ -124,7 +132,7 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
     const existing = await db.automation.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Automatisation introuvable" }, { status: 404 });
 

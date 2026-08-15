@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import {
@@ -25,10 +25,12 @@ export async function GET(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
 
     const delivery = await db.delivery.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
       include: {
         driver: {
           select: {
@@ -79,12 +81,14 @@ export async function PUT(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
     const body = await request.json();
 
     // Verify delivery belongs to company
     const existing = await db.delivery.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
       include: { driver: { select: { id: true, status: true } } },
     });
     if (!existing) {
@@ -187,7 +191,7 @@ export async function PUT(
     }
 
     const updated = await db.delivery.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
       include: {
         driver: { select: { id: true, name: true, phone: true, vehicleType: true, status: true } },
         order: { select: { id: true, orderNumber: true, total: true } },
@@ -210,6 +214,8 @@ export async function PATCH(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
     const body = await request.json();
     const action = body.action;
@@ -221,7 +227,7 @@ export async function PATCH(
     // ── search_drivers: Find available drivers near pickup ──
     if (action === "search_drivers") {
       const delivery = await db.delivery.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
       });
       if (!delivery) {
         return NextResponse.json({ error: "Livraison introuvable" }, { status: 404 });
@@ -251,7 +257,7 @@ export async function PATCH(
       // Find available drivers, ordered by rating (best first)
       const drivers = await db.driver.findMany({
         where: {
-          companyId: session.companyId,
+          companyId: realCompanyId,
           status: "available",
           isActive: true,
         },
@@ -310,7 +316,7 @@ export async function PATCH(
         const result = await db.$transaction(async (tx) => {
           // 1. Check delivery status is "searching" or "pending"
           const delivery = await tx.delivery.findFirst({
-            where: { id, companyId: session.companyId },
+            where: { id, companyId: realCompanyId },
           });
           if (!delivery) throw new Error("NOT_FOUND");
           if (!["searching", "pending"].includes(delivery.status)) {
@@ -319,7 +325,7 @@ export async function PATCH(
 
           // 2. Check driver status is "available"
           const driver = await tx.driver.findFirst({
-            where: { id: driverId, companyId: session.companyId, isActive: true },
+            where: { id: driverId, companyId: realCompanyId, isActive: true },
           });
           if (!driver) throw new Error("DRIVER_NOT_FOUND");
           if (driver.status !== "available") throw new Error("DRIVER_NOT_AVAILABLE");
@@ -413,13 +419,13 @@ export async function PATCH(
         const result = await db.$transaction(async (tx) => {
           // 1. Find delivery with status "searching"
           const delivery = await tx.delivery.findFirst({
-            where: { id, companyId: session.companyId, status: "searching" },
+            where: { id, companyId: realCompanyId, status: "searching" },
           });
           if (!delivery) throw new Error("NOT_AVAILABLE");
 
           // 2. Verify driver is available
           const driver = await tx.driver.findFirst({
-            where: { id: driverId, companyId: session.companyId, isActive: true, status: "available" },
+            where: { id: driverId, companyId: realCompanyId, isActive: true, status: "available" },
           });
           if (!driver) throw new Error("DRIVER_NOT_AVAILABLE");
 
@@ -491,7 +497,7 @@ export async function PATCH(
     // ── driver_reject: Driver rejects delivery ──
     if (action === "driver_reject") {
       const delivery = await db.delivery.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
       });
       if (!delivery) {
         return NextResponse.json({ error: "Livraison introuvable" }, { status: 404 });
@@ -504,7 +510,7 @@ export async function PATCH(
     // ── pick_up: Mark as picked up ──
     if (action === "pick_up") {
       const delivery = await db.delivery.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
       });
       if (!delivery) {
         return NextResponse.json({ error: "Livraison introuvable" }, { status: 404 });
@@ -540,7 +546,7 @@ export async function PATCH(
     // ── start_delivery: Mark as on the way ──
     if (action === "start_delivery") {
       const delivery = await db.delivery.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
       });
       if (!delivery) {
         return NextResponse.json({ error: "Livraison introuvable" }, { status: 404 });
@@ -576,7 +582,7 @@ export async function PATCH(
     // ── complete: Mark as delivered ──
     if (action === "complete") {
       const delivery = await db.delivery.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
         include: { driver: { select: { id: true, status: true } } },
       });
       if (!delivery) {

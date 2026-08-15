@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -15,11 +15,13 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status && status !== "all") where.status = status;
 
     const [conversations, total] = await Promise.all([
@@ -52,6 +54,8 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const body = await request.json();
     const { contactId, message, type } = body;
 
@@ -60,20 +64,20 @@ export async function POST(request: Request) {
     // Create or find conversation
     // Verify contact belongs to this company
     const contact = await db.contact.findFirst({
-      where: { id: contactId, companyId: session.companyId },
+      where: { id: contactId, companyId: realCompanyId },
     });
     if (!contact) {
       return NextResponse.json({ error: "Contact introuvable" }, { status: 404 });
     }
 
     let conversation = await db.conversation.findFirst({
-      where: { companyId: session.companyId, contactId },
+      where: { companyId: realCompanyId, contactId },
     });
 
     if (!conversation) {
       conversation = await db.conversation.create({
         data: {
-          companyId: session.companyId,
+          companyId: realCompanyId,
           contactId,
           status: "open",
           assignedToId: session.userId,
@@ -82,10 +86,10 @@ export async function POST(request: Request) {
     }
 
     // Check plan limit for messages
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
     if (company) {
       const messageCount = await db.message.count({
-        where: { conversation: { companyId: session.companyId } },
+        where: { conversation: { companyId: realCompanyId } },
       });
       const limitError = await checkPlanLimit(company.plan, "maxMessages", messageCount);
       if (limitError) {
@@ -127,11 +131,13 @@ export async function PATCH(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const body = await request.json();
     const { id, status, assignedToId } = body;
 
     const existing = await db.conversation.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
 

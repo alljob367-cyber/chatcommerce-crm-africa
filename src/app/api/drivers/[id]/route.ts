@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 
@@ -20,10 +20,12 @@ export async function GET(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
 
     const driver = await db.driver.findFirst({
-      where: { id, companyId: session.companyId, isActive: true },
+      where: { id, companyId: realCompanyId, isActive: true },
       include: {
         _count: {
           select: { deliveries: true },
@@ -62,12 +64,14 @@ export async function PUT(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
     const body = await request.json();
 
     // Verify driver belongs to company
     const existing = await db.driver.findFirst({
-      where: { id, companyId: session.companyId, isActive: true },
+      where: { id, companyId: realCompanyId, isActive: true },
     });
     if (!existing) {
       return NextResponse.json({ error: "Chauffeur introuvable" }, { status: 404 });
@@ -122,11 +126,13 @@ export async function DELETE(
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { id } = await params;
 
     // Verify driver belongs to company
     const existing = await db.driver.findFirst({
-      where: { id, companyId: session.companyId, isActive: true },
+      where: { id, companyId: realCompanyId, isActive: true },
       include: {
         _count: {
           select: {

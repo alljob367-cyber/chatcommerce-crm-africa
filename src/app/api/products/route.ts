@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
 import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
     const categoryId = searchParams.get("categoryId") || "";
     const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
-    const where: Record<string, unknown> = { companyId: session.companyId, isActive: true };
+    const realCompanyId = await resolveCompanyId(session);
+    const where: Record<string, unknown> = { companyId: realCompanyId, isActive: true };
     if (search) where.name = { contains: search };
     if (categoryId) where.categoryId = categoryId;
 
@@ -59,8 +60,9 @@ export async function POST(request: Request) {
     }
 
     // Check plan limit for products
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
-    const productCount = await db.product.count({ where: { companyId: session.companyId, isActive: true } });
+    const realCompanyId = await resolveCompanyId(session);
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
+    const productCount = await db.product.count({ where: { companyId: realCompanyId, isActive: true } });
     const limitError = await checkPlanLimit(company?.plan || "starter", "maxProducts", productCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
 
     const product = await db.product.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitizedName,
         description: sanitizedDesc,
         price: parseFloat(price),
@@ -106,8 +108,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Prix invalide" }, { status: 400 });
     }
 
+    const realCompanyId = await resolveCompanyId(session);
     const existing = await db.product.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
 
@@ -147,8 +150,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
 
+    const realCompanyId = await resolveCompanyId(session);
     const existing = await db.product.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Produit introuvable" }, { status: 404 });
 

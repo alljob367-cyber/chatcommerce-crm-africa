@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { safePagination, handleError } from "@/lib/security";
 import { notifyCustomerOrderStatus } from "@/lib/telegram-notifications";
@@ -16,12 +16,14 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const contactId = searchParams.get("contactId") || "";
     const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status && status !== "all") where.status = status;
     if (contactId) where.contactId = contactId;
 
@@ -52,10 +54,12 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Check plan limit for orders
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
     if (company) {
-      const orderCount = await db.order.count({ where: { companyId: session.companyId } });
+      const orderCount = await db.order.count({ where: { companyId: realCompanyId } });
       const limitError = await checkPlanLimit(company.plan, "maxOrders", orderCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Donnees d'article invalides" }, { status: 400 });
       }
       const product = await db.product.findFirst({
-        where: { id: item.productId, companyId: session.companyId, isActive: true },
+        where: { id: item.productId, companyId: realCompanyId, isActive: true },
       });
       if (!product) {
         return NextResponse.json({ error: `Produit ${item.productId} non trouve` }, { status: 404 });
@@ -99,13 +103,13 @@ export async function POST(request: Request) {
     // ── Transaction: count + create order + items + decrement stock ──
     const order = await db.$transaction(async (tx) => {
       // Generate order number INSIDE transaction to prevent race conditions
-      const orderCount = await tx.order.count({ where: { companyId: session.companyId } });
+      const orderCount = await tx.order.count({ where: { companyId: realCompanyId } });
       const orderNumber = `CMD-${String(orderCount + 1001).padStart(4, "0")}`;
 
       // 1. Create the order
       const newOrder = await tx.order.create({
         data: {
-          companyId: session.companyId,
+          companyId: realCompanyId,
           contactId,
           orderNumber,
           status: "pending",
@@ -123,7 +127,7 @@ export async function POST(request: Request) {
       // 2. Validate stock, create items, and decrement stock
       for (const item of itemData) {
         const product = await tx.product.findFirst({
-          where: { id: item.productId, companyId: session.companyId },
+          where: { id: item.productId, companyId: realCompanyId },
         });
         if (!product || product.stock < item.quantity) {
           throw new Error(
@@ -180,11 +184,13 @@ export async function PATCH(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const body = await request.json();
     const { id, status, paymentStatus, notes } = body;
 
     const existing = await db.order.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
       include: { items: true, contact: { select: { name: true, phone: true } } },
     });
     if (!existing) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 });
@@ -225,7 +231,7 @@ export async function PATCH(request: Request) {
 
       // Fetch updated order for response
       const updatedOrder = await db.order.findFirst({
-        where: { id, companyId: session.companyId },
+        where: { id, companyId: realCompanyId },
         include: {
           contact: { select: { name: true, phone: true } },
           items: true,

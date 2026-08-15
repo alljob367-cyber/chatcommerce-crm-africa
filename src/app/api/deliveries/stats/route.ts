@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 
@@ -16,6 +16,8 @@ export async function GET(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    const realCompanyId = await resolveCompanyId(session);
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "7d";
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
         break;
     }
 
-    const companyId = session.companyId;
+    const companyId = realCompanyId;
 
     // Run all queries in parallel
     const [

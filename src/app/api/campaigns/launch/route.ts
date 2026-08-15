@@ -6,7 +6,7 @@
 // ============================================================
 
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 
@@ -38,6 +38,8 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const body = await request.json();
     const { campaignId, action } = body as { campaignId: string; action: Action };
 
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
 
     // Find campaign with ownership check
     const campaign = await db.campaign.findFirst({
-      where: { id: campaignId, companyId: session.companyId },
+      where: { id: campaignId, companyId: realCompanyId },
     });
 
     if (!campaign) {
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
     // If launching, trigger the actual sending in background
     if (action === "launch") {
       // Send messages asynchronously (fire-and-forget)
-      sendCampaignMessages(campaign.id, session.companyId).catch((err) => {
+      sendCampaignMessages(campaign.id, realCompanyId).catch((err) => {
         console.error(`[Campaign ${campaign.id}] Background send error:`, err);
       });
     }

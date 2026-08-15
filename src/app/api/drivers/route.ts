@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const search = searchParams.get("search") || "";
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
 
     const VALID_STATUSES = ["available", "busy", "offline"];
 
-    const where: Record<string, unknown> = { companyId: session.companyId, isActive: true };
+    const where: Record<string, unknown> = { companyId: realCompanyId, isActive: true };
     if (status && VALID_STATUSES.includes(status)) where.status = status;
     if (search) {
       where.OR = [
@@ -63,14 +65,16 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Check plan limit for drivers
     const company = await db.company.findUnique({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       select: { plan: true },
     });
     if (company) {
       const driverCount = await db.driver.count({
-        where: { companyId: session.companyId, isActive: true },
+        where: { companyId: realCompanyId, isActive: true },
       });
       const limitError = await checkPlanLimit(company.plan, "maxDrivers", driverCount);
       if (limitError) {
@@ -92,7 +96,7 @@ export async function POST(request: Request) {
 
     const driver = await db.driver.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitize(name),
         phone: sanitize(phone),
         vehicleType: vehicleType || null,

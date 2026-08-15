@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError, sanitize } from "@/lib/security";
 
@@ -14,8 +14,9 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
     const categories = await db.category.findMany({
-      where: { companyId: session.companyId },
+      where: { companyId: realCompanyId },
       include: { _count: { select: { products: true } } },
       orderBy: { sortOrder: "asc" },
     });
@@ -36,8 +37,9 @@ export async function POST(request: Request) {
     const { name, description, image, sortOrder } = body;
     if (!name) return NextResponse.json({ error: "Nom requis" }, { status: 400 });
 
+    const realCompanyId = await resolveCompanyId(session);
     const category = await db.category.create({
-      data: { companyId: session.companyId, name: sanitize(name), description: sanitize(description || ""), image, sortOrder: sortOrder || 0 },
+      data: { companyId: realCompanyId, name: sanitize(name), description: sanitize(description || ""), image, sortOrder: sortOrder || 0 },
     });
 
     return NextResponse.json({ category }, { status: 201 });

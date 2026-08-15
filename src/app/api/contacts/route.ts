@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, safePagination, handleError } from "@/lib/security";
 
@@ -14,13 +14,15 @@ export async function GET(request: Request) {
     const session = await authenticate(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const tag = searchParams.get("tag") || "";
     const source = searchParams.get("source") || "";
     const { page, limit, skip } = safePagination(searchParams.get("page"), searchParams.get("limit"));
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (search) {
       where.OR = [
         { name: { contains: search } },
@@ -53,15 +55,17 @@ export async function POST(request: Request) {
     const session = await authenticate(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(session);
+
     // Admin-only: create contacts
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
 
     // Check plan limit for contacts
     const { checkPlanLimit } = await import("@/lib/plan-limits");
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
     if (company) {
-      const contactCount = await db.contact.count({ where: { companyId: session.companyId } });
+      const contactCount = await db.contact.count({ where: { companyId: realCompanyId } });
       const limitError = await checkPlanLimit(company.plan, "maxContacts", contactCount);
       if (limitError) {
         return NextResponse.json({ error: limitError }, { status: 403 });
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
 
     // Check if contact already exists by phone
     const existing = await db.contact.findFirst({
-      where: { companyId: session.companyId, phone },
+      where: { companyId: realCompanyId, phone },
     });
     if (existing) {
       return NextResponse.json({ error: "Ce contact existe déjà" }, { status: 409 });
@@ -93,7 +97,7 @@ export async function POST(request: Request) {
 
     const contact = await db.contact.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitizedName,
         phone,
         email,
