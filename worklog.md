@@ -45,3 +45,35 @@ Stage Summary:
 - Root cause identifié et corrigé : companyId mismatch entre JWT hardcoded et DB
 - 6 fichiers modifiés : db.ts, agents/route.ts, global-token/route.ts, webhook-setup/route.ts, setup/route.ts, activate/route.ts
 - Déploiement échoué : token Vercel expiré, l'utilisateur doit déployer manuellement
+
+---
+Task ID: 1
+Agent: main
+Task: Integrate Chariow payment for merchant clients + admin config
+
+Work Log:
+- Read existing webhook, payments-page, admin API, schema, merchant-payments-page
+- Found existing Chariow checkout API and webhook already existed for plan subscriptions
+- Modified Telegram webhook (route.ts):
+  - Added Chariow detection via company paymentSettings.chariowEnabled
+  - When Chariow enabled: show 2 inline buttons (Mobile Money / Chariow) instead of direct payment
+  - Added handleMobileMoneyPayment(): creates payment + shows step-by-step MM guide
+  - Added handleChariowPayment(): creates chariow payment record + shows complete guide with URL button
+  - Added pay_method:mm and pay_method:chariow callback handlers
+  - Updated buildContactInfo() with Chariow availability info
+- Modified payments-page.tsx:
+  - Added chariowEnabled and chariowStoreDomain state
+  - Loaded chariow settings from company paymentSettings
+  - Updated handleSaveNumbers() to include Chariow config
+  - Added Chariow Configuration Card (admin-only toggle + domain input)
+- Modified merchant-payments-page.tsx:
+  - Added chariow icon (🌐) in payMethodIcon()
+  - Added "Chariow" label in payment method display
+- TypeScript check: PASSED (0 errors)
+- Deployed to Vercel
+
+Stage Summary:
+- Merchant clients can now choose between Mobile Money and Chariow payment in Telegram bots
+- Admin can enable/disable Chariow per company from the Paiement Mobile Money tab
+- Complete payment guide included in both methods (FR + EN)
+- MerchantPayment records now support "chariow" as paymentMethod
