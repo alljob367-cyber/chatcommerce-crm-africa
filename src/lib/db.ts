@@ -6,6 +6,7 @@ import { Pool } from 'pg'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
   bootstrapped: boolean
+  adminCompanyId?: string
 }
 
 function createPrismaClient() {
@@ -117,7 +118,7 @@ export async function resolveCompanyId(session: { userId: string; companyId: str
   // For hardcoded admin, always use the real DB company ID
   if (session.userId === "admin-hardcoded-001") {
     await ensureBootstrapped();
-    const realId = (globalForPrisma as unknown as { adminCompanyId?: string }).adminCompanyId;
+    const realId = globalForPrisma.adminCompanyId;
     if (realId) return realId;
     // Fallback: look up from DB directly
     const company = await db.company.findFirst({ where: { name: "ChatCommerce CRM Africa" } });
