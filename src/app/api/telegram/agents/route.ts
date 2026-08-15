@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -17,8 +17,9 @@ export async function GET(request: Request) {
 
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
 
+    const realCompanyId = await resolveCompanyId(session);
     const agents = await db.telegramAgent.findMany({
-      where: { companyId: session.companyId },
+      where: { companyId: realCompanyId },
       select: {
         id: true,
         companyId: true,
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
 
     // Ensure DB is bootstrapped (company exists) before creating agents
     await ensureBootstrapped();
+    const realCompanyId = await resolveCompanyId(session);
 
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const body = await request.json();
@@ -85,7 +87,7 @@ export async function POST(request: Request) {
 
       // Vérifier que l'agent existe et appartient à la company
       const existing = await db.telegramAgent.findFirst({
-        where: { id: agentId, companyId: session.companyId },
+        where: { id: agentId, companyId: realCompanyId },
       });
       if (!existing) {
         return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
@@ -117,14 +119,14 @@ export async function POST(request: Request) {
     }
 
     // Check plan limit for telegram agents
-    const company = await db.company.findUnique({ where: { id: session.companyId }, select: { plan: true } });
-    const agentCount = await db.telegramAgent.count({ where: { companyId: session.companyId } });
+    const company = await db.company.findUnique({ where: { id: realCompanyId }, select: { plan: true } });
+    const agentCount = await db.telegramAgent.count({ where: { companyId: realCompanyId } });
     const limitError = await checkPlanLimit(company?.plan || "starter", "maxTelegramAgents", agentCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     const agent = await db.telegramAgent.create({
       data: {
-        companyId: session.companyId,
+        companyId: realCompanyId,
         name: sanitize(name),
         token: botToken,
         botUsername: botUsername ? sanitize(botUsername) : null,
@@ -149,7 +151,7 @@ export async function POST(request: Request) {
     });
 
     const { token: _botToken, ...safeAgent } = agent;
-    console.log("[API /telegram/agents POST] Agent créé:", safeAgent.id, "par userId:", session.userId, "companyId:", session.companyId);
+    console.log("[API /telegram/agents POST] Agent créé:", safeAgent.id, "par userId:", session.userId, "companyId:", realCompanyId);
     return NextResponse.json({ agent: safeAgent, message: "Agent créé avec succès !" }, { status: 201 });
   } catch (error: unknown) {
     console.error("[API /telegram/agents POST] Erreur:", error);

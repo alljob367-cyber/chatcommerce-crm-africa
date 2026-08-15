@@ -44,32 +44,24 @@ export async function ensureBootstrapped() {
   try {
     const bcrypt = await import("bcryptjs");
 
-    const ADMIN_COMPANY_ID = "company-admin-001";
-
-    // Create or find admin company with FIXED ID matching hardcoded JWT
-    let company = await db.company.findUnique({ where: { id: ADMIN_COMPANY_ID } });
+    // Find or create admin company — always resolve the REAL DB ID
+    let company = await db.company.findFirst({ where: { name: "ChatCommerce CRM Africa" } });
     if (!company) {
-      try {
-        company = await db.company.create({
-          data: {
-            id: ADMIN_COMPANY_ID,
-            name: "ChatCommerce CRM Africa",
-            slug: "chatcommerce-crm-africa",
-            country: "Cameroun",
-            plan: "enterprise",
-            whatsappNumber: "+237612345678",
-            maxContacts: 999999,
-            maxAgents: 999999,
-          },
-        });
-      } catch (createErr) {
-        // Company might already exist (e.g. bootstrap ran before this fix)
-        company = await db.company.findFirst({ where: { name: "ChatCommerce CRM Africa" } });
-        if (!company) throw createErr;
-      }
+      company = await db.company.create({
+        data: {
+          name: "ChatCommerce CRM Africa",
+          slug: "chatcommerce-crm-africa",
+          country: "Cameroun",
+          plan: "enterprise",
+          whatsappNumber: "+237612345678",
+          maxContacts: 999999,
+          maxAgents: 999999,
+        },
+      });
+      console.log(`[DB] Bootstrap: created company id=${company.id}`);
     }
 
-    // Ensure admin user exists
+    // Ensure admin user exists (use real company.id)
     const existingAdmin = await db.user.findFirst({ where: { email: "admin@chatcommerce.africa" } });
     if (!existingAdmin) {
       await db.user.create({
@@ -84,6 +76,14 @@ export async function ensureBootstrapped() {
           companyId: company.id,
         },
       });
+      console.log(`[DB] Bootstrap: created admin user with companyId=${company.id}`);
+    } else if (existingAdmin.companyId !== company.id) {
+      // Fix mismatch: admin user's companyId doesn't match the real company
+      await db.user.update({
+        where: { id: existingAdmin.id },
+        data: { companyId: company.id },
+      });
+      console.log(`[DB] Bootstrap: fixed admin companyId ${existingAdmin.companyId} -> ${company.id}`);
     }
 
     // Ensure admin subscription exists
@@ -100,8 +100,29 @@ export async function ensureBootstrapped() {
       });
     }
 
+    // Cache the real company ID globally so all routes can use it
+    globalForPrisma.adminCompanyId = company.id;
     console.log(`[DB] Bootstrap complete: admin company id=${company.id}`);
   } catch (error) {
     console.error("[DB] Bootstrap failed:", error);
   }
+}
+
+/**
+ * Resolve the actual companyId for the current session.
+ * For the hardcoded admin, always returns the REAL DB company ID
+ * (which may differ from the JWT companyId due to legacy mismatch).
+ */
+export async function resolveCompanyId(session: { userId: string; companyId: string }): Promise<string> {
+  // For hardcoded admin, always use the real DB company ID
+  if (session.userId === "admin-hardcoded-001") {
+    await ensureBootstrapped();
+    const realId = (globalForPrisma as unknown as { adminCompanyId?: string }).adminCompanyId;
+    if (realId) return realId;
+    // Fallback: look up from DB directly
+    const company = await db.company.findFirst({ where: { name: "ChatCommerce CRM Africa" } });
+    if (company) return company.id;
+  }
+  // For regular users, trust the JWT companyId (should match DB)
+  return session.companyId;
 }
