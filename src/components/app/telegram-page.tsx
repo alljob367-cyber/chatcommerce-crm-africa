@@ -43,6 +43,9 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  ImageIcon,
+  Upload,
+  X,
   Clock,
   UtensilsCrossed,
   Scissors,
@@ -252,9 +255,34 @@ export default function TelegramPage() {
     description: "",
     price: "",
     duration: "",
+    image: "",
     isActive: true,
   });
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [serviceSaving, setServiceSaving] = useState(false);
+
+  const uploadImage = useCallback(async (file: File) => {
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload echoue");
+      const data = await res.json();
+      setServiceForm((prev) => ({ ...prev, image: data.url }));
+      setImagePreview(data.url);
+      toast.success("Photo ajoutee");
+    } catch {
+      toast.error("Erreur lors de l'upload de la photo");
+    } finally {
+      setImageUploading(false);
+    }
+  }, [token]);
   const [servicesLoading, setServicesLoading] = useState(false);
 
   // Agent config dialog (full config panel when clicking an agent card)
@@ -608,7 +636,8 @@ export default function TelegramPage() {
 
   const openServices = async (agent: TelegramAgent) => {
     setServicesAgent(agent);
-    setServiceForm({ name: "", description: "", price: "", duration: "", isActive: true });
+    setServiceForm({ name: "", description: "", price: "", duration: "", image: "", isActive: true });
+    setImagePreview(null);
     setServicesDialogOpen(true);
     setServicesLoading(true);
     try {
@@ -654,6 +683,8 @@ export default function TelegramPage() {
     setConfigDialogOpen(true);
     // Also load services for the Services tab
     setServicesAgent(agent);
+    setServiceForm({ name: "", description: "", price: "", duration: "", image: "", isActive: true });
+    setImagePreview(null);
     setServicesLoading(true);
     try {
       const res = await fetch(`/api/telegram/agents/${agent.id}/services`, { headers });
@@ -727,7 +758,8 @@ export default function TelegramPage() {
       });
       if (!res.ok) throw new Error();
       toast.success("Service ajouté");
-      setServiceForm({ name: "", description: "", price: "", duration: "", isActive: true });
+      setServiceForm({ name: "", description: "", price: "", duration: "", image: "", isActive: true });
+      setImagePreview(null);
       const svcRes = await fetch(`/api/telegram/agents/${servicesAgent.id}/services`, { headers });
       if (svcRes.ok) {
         const data = await svcRes.json();
@@ -1624,7 +1656,13 @@ export default function TelegramPage() {
             ) : (
               services.map((svc, i) => (
                 <div key={svc.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                  <span className="text-lg font-bold text-muted-foreground w-6 text-center">{i + 1}</span>
+                  {svc.image ? (
+                    <img src={svc.image} alt={svc.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{svc.name}</p>
@@ -1653,6 +1691,51 @@ export default function TelegramPage() {
           {/* Add Service Form */}
           <div className="border-t pt-4 space-y-3">
             <p className="text-sm font-medium">Ajouter un service</p>
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label className="text-xs">Photo du produit</Label>
+              {imagePreview ? (
+                <div className="relative w-full h-32 rounded-lg border overflow-hidden group">
+                  <img src={imagePreview} alt="Apercu" className="w-full h-full object-cover" />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      setServiceForm((prev) => ({ ...prev, image: "" }));
+                      setImagePreview(null);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer transition-colors">
+                  {imageUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">
+                        Cliquer pour ajouter une photo (JPG, PNG, max 5 Mo)
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    className="hidden"
+                    disabled={imageUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadImage(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input
                 placeholder="Nom du service"
@@ -1828,7 +1911,13 @@ export default function TelegramPage() {
                     <div className="space-y-2">
                       {services.map((svc, i) => (
                         <div key={svc.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
-                          <span className="text-lg font-bold text-muted-foreground w-6 text-center">{i + 1}</span>
+                          {svc.image ? (
+                            <img src={svc.image} alt={svc.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-sm">{svc.name}</p>
@@ -1863,6 +1952,51 @@ export default function TelegramPage() {
                   {canManageAgents && (
                     <div className="border-t pt-4 space-y-3">
                       <p className="text-sm font-medium">Ajouter un service</p>
+                      {/* Image Upload */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">Photo du produit</Label>
+                        {imagePreview ? (
+                          <div className="relative w-full h-32 rounded-lg border overflow-hidden group">
+                            <img src={imagePreview} alt="Apercu" className="w-full h-full object-cover" />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setServiceForm((prev) => ({ ...prev, image: "" }));
+                                setImagePreview(null);
+                              }}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <label className="flex flex-col items-center justify-center w-full h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer transition-colors">
+                            {imageUploading ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                            ) : (
+                              <>
+                                <Upload className="w-5 h-5 text-muted-foreground mb-1" />
+                                <span className="text-xs text-muted-foreground">
+                                  Cliquer pour ajouter une photo (JPG, PNG, max 5 Mo)
+                                </span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/gif,image/webp"
+                              className="hidden"
+                              disabled={imageUploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) uploadImage(file);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <Input
                           placeholder="Nom du service"
