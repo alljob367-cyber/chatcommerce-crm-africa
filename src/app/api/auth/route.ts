@@ -99,11 +99,24 @@ export async function POST(request: Request) {
         );
       }
 
-      // ★★★ HARDCODED ADMIN LOGIN (DB-FREE) ★★★
+      // ★★★ HARDCODED ADMIN LOGIN ★★★
       for (const [, account] of Object.entries(HARDCODED_ACCOUNTS)) {
         if (email === account.email && bcrypt.compareSync(password, account.passwordHash)) {
-          const token = await createHardcodedToken(account.userId, account.companyId, account.role);
-          console.log(`[AUTH] Hardcoded login success: ${account.email}`);
+          // Resolve REAL companyId from DB (company may have CUID ID)
+          let realCompanyId = account.companyId;
+          let realPlan = account.plan;
+          try {
+            await bootstrap();
+            const company = await db.company.findFirst({ where: { name: account.companyName } });
+            if (company) {
+              realCompanyId = company.id;
+              realPlan = company.plan;
+            }
+          } catch (e) {
+            console.error("[AUTH] Could not resolve real companyId, using fallback:", e);
+          }
+          const token = await createHardcodedToken(account.userId, realCompanyId, account.role);
+          console.log(`[AUTH] Hardcoded login success: ${account.email}, companyId=${realCompanyId}`);
           return NextResponse.json({
             token,
             user: {
@@ -113,9 +126,9 @@ export async function POST(request: Request) {
               role: account.role,
             },
             company: {
-              id: account.companyId,
+              id: realCompanyId,
               name: account.companyName,
-              plan: account.plan,
+              plan: realPlan,
             },
           });
         }
@@ -433,8 +446,20 @@ export async function GET(request: Request) {
     const isHardcoded = payload.userId === HARDCODED_ACCOUNTS.admin.userId;
     
     if (isHardcoded) {
-      // Return hardcoded user data (no DB needed)
       const account = HARDCODED_ACCOUNTS.admin;
+      // Resolve REAL companyId from DB
+      let realCompanyId = account.companyId;
+      let realPlan = account.plan;
+      try {
+        await bootstrap();
+        const company = await db.company.findFirst({ where: { name: account.companyName } });
+        if (company) {
+          realCompanyId = company.id;
+          realPlan = company.plan;
+        }
+      } catch (e) {
+        console.error("[AUTH GET] Could not resolve real companyId:", e);
+      }
       return NextResponse.json({
         id: account.userId,
         name: account.name,
@@ -443,9 +468,9 @@ export async function GET(request: Request) {
         avatar: null,
         phone: "",
         company: {
-          id: account.companyId,
+          id: realCompanyId,
           name: account.companyName,
-          plan: account.plan,
+          plan: realPlan,
           country: "Cameroun",
         },
       });

@@ -48,7 +48,7 @@ const PAYMENT_CONFIG = {
     bgColor: "bg-orange-50 dark:bg-orange-500/10",
     borderColor: "border-orange-200 dark:border-orange-500/30",
     textColor: "text-orange-600 dark:text-orange-400",
-    defaultNumber: "+237 690 000 001",
+    defaultNumber: "+237 690 123 456",
     instructions: [
       "Ouvrez votre application Orange Money",
       "Allez dans Transfert / Envoyer de l'argent",
@@ -64,7 +64,7 @@ const PAYMENT_CONFIG = {
     bgColor: "bg-yellow-50 dark:bg-yellow-500/10",
     borderColor: "border-yellow-200 dark:border-yellow-500/30",
     textColor: "text-yellow-600 dark:text-yellow-400",
-    defaultNumber: "+237 670 000 001",
+    defaultNumber: "+237 670 123 456",
     instructions: [
       "Composez *126# sur votre telephone MTN",
       "Choisissez Transfert d'argent",
