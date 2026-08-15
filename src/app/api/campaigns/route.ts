@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { resolveCompanyId, db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
-import { checkPlanLimit } from "@/lib/plan-limits";
+import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
+    const includeAgents = searchParams.get("agents") === "true";
 
     const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status && status !== "all") where.status = status;
@@ -57,7 +58,16 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    // Get company plan info for limits display
+    const company = await db.company.findUnique({
+      where: { id: realCompanyId },
+      select: { plan: true },
+    });
+    const companyPlan = company?.plan || "starter";
+    const limits = PLAN_LIMITS[companyPlan] || PLAN_LIMITS.starter;
+    const currentCount = campaigns.length;
+
+    const response: Record<string, unknown> = {
       campaigns,
       stats: {
         total: stats._count,
@@ -68,12 +78,33 @@ export async function GET(request: Request) {
         clicked: (stats._sum?.clickedCount as number) || 0,
         budgetSpent: (stats._sum?.budgetSpent as number) || 0,
       },
-    });
+      plan: {
+        current: companyPlan,
+        maxCampaigns: limits.maxCampaigns,
+        currentCampaigns: currentCount,
+        canCreate: currentCount < limits.maxCampaigns,
+      },
+    };
+
+    // Include Telegram agents for the create form dropdown
+    if (includeAgents) {
+      const agents = await db.telegramAgent.findMany({
+        where: { companyId: realCompanyId, isActive: true },
+        select: { id: true, name: true, botUsername: true },
+        orderBy: { name: "asc" },
+      });
+      response.agents = agents;
+    }
+
+    return NextResponse.json(response);
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
     return NextResponse.json({ error: msg }, { status });
   }
 }
+
+// Plans autorisés pour les campagnes Telegram Ads
+const ADS_PLANS = ["pro", "business", "enterprise"];
 
 // ── POST /api/campaigns — Create campaign ──
 export async function POST(request: Request) {
@@ -83,9 +114,18 @@ export async function POST(request: Request) {
 
     const realCompanyId = await resolveCompanyId(session);
 
-    // Admin-only: create campaigns
-    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
-    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+    // Plan check: Pro, Business, Enterprise uniquement
+    const company = await db.company.findUnique({
+      where: { id: realCompanyId },
+      select: { plan: true },
+    });
+    const companyPlan = company?.plan || "starter";
+    if (!ADS_PLANS.includes(companyPlan)) {
+      return NextResponse.json(
+        { error: "Les campagnes Telegram Ads sont disponibles uniquement pour les plans Pro, Business et Enterprise. Mettez à niveau votre plan pour continuer." },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const {
@@ -98,13 +138,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nom et message requis" }, { status: 400 });
     }
 
-    // Check plan limit
-    const company = await db.company.findUnique({
-      where: { id: realCompanyId },
-      select: { plan: true },
-    });
+    // Check plan limit for campaigns
     const campaignCount = await db.campaign.count({ where: { companyId: realCompanyId } });
-    const limitError = await checkPlanLimit(company?.plan || "starter", "maxCampaigns", campaignCount);
+    const limitError = await checkPlanLimit(companyPlan, "maxCampaigns", campaignCount);
     if (limitError) return NextResponse.json({ error: limitError }, { status: 403 });
 
     // Count recipients based on segment
@@ -136,6 +172,16 @@ export async function POST(request: Request) {
       });
     }
 
+    // Verify telegram agent belongs to company if specified
+    if (telegramAgentId) {
+      const agent = await db.telegramAgent.findFirst({
+        where: { id: telegramAgentId, companyId: realCompanyId },
+      });
+      if (!agent) {
+        return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 400 });
+      }
+    }
+
     const campaign = await db.campaign.create({
       data: {
         companyId: realCompanyId,
@@ -152,6 +198,11 @@ export async function POST(request: Request) {
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         telegramAgentId: telegramAgentId || null,
         budget: budget || 0,
+      },
+      include: {
+        telegramAgent: {
+          select: { id: true, name: true, botUsername: true },
+        },
       },
     });
 
@@ -170,9 +221,18 @@ export async function PATCH(request: Request) {
 
     const realCompanyId = await resolveCompanyId(session);
 
-    // Admin-only: edit campaigns
-    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
-    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+    // Plan check: Pro, Business, Enterprise uniquement
+    const company = await db.company.findUnique({
+      where: { id: realCompanyId },
+      select: { plan: true },
+    });
+    const companyPlan = company?.plan || "starter";
+    if (!ADS_PLANS.includes(companyPlan)) {
+      return NextResponse.json(
+        { error: "Fonctionnalité réservée aux plans Pro, Business et Enterprise." },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const { id, ...updates } = body;
@@ -222,9 +282,18 @@ export async function DELETE(request: Request) {
 
     const realCompanyId = await resolveCompanyId(session);
 
-    // Admin-only: delete campaigns
-    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
-    if (!isAdmin) return NextResponse.json({ error: "Acces refuse. Admin requis." }, { status: 403 });
+    // Plan check: Pro, Business, Enterprise uniquement
+    const company = await db.company.findUnique({
+      where: { id: realCompanyId },
+      select: { plan: true },
+    });
+    const companyPlan = company?.plan || "starter";
+    if (!ADS_PLANS.includes(companyPlan)) {
+      return NextResponse.json(
+        { error: "Fonctionnalité réservée aux plans Pro, Business et Enterprise." },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

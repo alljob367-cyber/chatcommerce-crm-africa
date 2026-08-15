@@ -3,8 +3,8 @@
 // ============================================================
 // TELEGRAM ADS CAMPAIGNS PAGE
 // ============================================================
-// Complete campaign management: create, launch, pause, stats
-// Supports: Telegram, WhatsApp (future), SMS (future)
+// Disponible pour les plans: Pro, Business, Enterprise
+// Gestion complète: créer, lancer, pause, stats, image pub
 // ============================================================
 
 import { useEffect, useState, useCallback } from "react";
@@ -59,6 +59,11 @@ import {
   Copy,
   Check,
   AlertTriangle,
+  ImagePlus,
+  X,
+  Zap,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -105,6 +110,13 @@ interface CampaignStats {
   budgetSpent: number;
 }
 
+interface PlanInfo {
+  current: string;
+  maxCampaigns: number;
+  currentCampaigns: number;
+  canCreate: boolean;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   draft: { label: "Brouillon", color: "bg-gray-500/10 text-gray-500 border-gray-500/20", icon: FileText },
   scheduled: { label: "Planifiée", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: Clock },
@@ -124,6 +136,12 @@ const SEGMENT_OPTIONS = [
   { value: "inactive", label: "Inactifs", desc: "Pas d'interaction depuis 30 jours" },
 ];
 
+const PLAN_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  pro: { label: "Pro", color: "bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20", icon: Zap },
+  business: { label: "Business", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: Crown },
+  enterprise: { label: "Enterprise", color: "bg-purple-500/10 text-purple-500 border-purple-500/20", icon: Crown },
+};
+
 function FileText({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -138,6 +156,8 @@ export default function CampaignsPage() {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [stats, setStats] = useState<CampaignStats | null>(null);
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [agents, setAgents] = useState<TelegramAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -157,15 +177,18 @@ export default function CampaignsPage() {
     buttonUrl: "",
     buttonText: "",
     budget: "",
+    imageUrl: "",
   });
   const [creating, setCreating] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  // ─── Fetch campaigns ───
+  // ─── Fetch campaigns + agents ───
   const fetchCampaigns = useCallback(async () => {
     if (!token) return;
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "all") params.set("status", filterStatus);
+      params.set("agents", "true"); // Always fetch agents for the dropdown
 
       const res = await fetch(`/api/campaigns?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -174,6 +197,8 @@ export default function CampaignsPage() {
         const data = await res.json();
         setCampaigns(data.campaigns || []);
         setStats(data.stats || null);
+        if (data.plan) setPlanInfo(data.plan);
+        if (data.agents) setAgents(data.agents);
       }
     } catch {
       toast.error("Erreur de chargement");
@@ -188,6 +213,35 @@ export default function CampaignsPage() {
 
   // ─── Auth headers ───
   const authHeaders = () => ({ Authorization: `Bearer ${token}` });
+
+  // ─── Image upload (base64) ───
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Format image uniquement (JPG, PNG, GIF)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image trop volumineuse (max 5 MB)");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        setForm({ ...form, imageUrl: base64 });
+        setUploadingImage(false);
+        toast.success("Image ajoutée");
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast.error("Erreur lors du chargement de l'image");
+      setUploadingImage(false);
+    }
+  };
 
   // ─── Create campaign ───
   const handleCreate = async () => {
@@ -227,6 +281,7 @@ export default function CampaignsPage() {
           buttonUrl: "",
           buttonText: "",
           budget: "",
+          imageUrl: "",
         });
         fetchCampaigns();
       } else {
@@ -307,9 +362,104 @@ export default function CampaignsPage() {
   const openRate = (c: Campaign) =>
     c.deliveredCount > 0 ? Math.round((c.readCount / c.deliveredCount) * 100) : 0;
 
+  const currentPlan = user?.company?.plan || "starter";
+
+  // ─── Plan not allowed screen ───
+  if (currentPlan === "starter") {
+    return (
+      <div className="space-y-6">
+        <Header title="Campagnes Telegram Ads" subtitle="Créez et gérez vos campagnes de marketing via Telegram" />
+
+        <Card className="border-dashed">
+          <CardContent className="p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-amber-500" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Fonctionnalité réservée aux plans payants</h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              Les campagnes Telegram Ads sont disponibles uniquement pour les plans <strong>Pro</strong>, <strong>Business</strong> et <strong>Enterprise</strong>. 
+              Atteignez vos clients directement via Telegram avec des messages personnalisés et des boutons d'action.
+            </p>
+            
+            <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto mb-8">
+              {[
+                { plan: "pro", price: "14 900", color: "border-[#25D366]/20 bg-[#25D366]/5", badge: "bg-[#25D366]/10 text-[#25D366]" },
+                { plan: "business", price: "29 900", color: "border-blue-500/20 bg-blue-500/5", badge: "bg-blue-500/10 text-blue-500" },
+                { plan: "enterprise", price: "69 900", color: "border-purple-500/20 bg-purple-500/5", badge: "bg-purple-500/10 text-purple-500" },
+              ].map((p) => {
+                const cfg = PLAN_LABELS[p.plan];
+                return (
+                  <Card key={p.plan} className={`border ${p.color}`}>
+                    <CardContent className="p-4 text-center">
+                      <Badge className={`${p.badge} text-[10px] mb-2`}>
+                        <cfg.icon className="w-3 h-3 mr-1" />
+                        {cfg.label}
+                      </Badge>
+                      <p className="text-lg font-bold">{p.price}</p>
+                      <p className="text-[10px] text-muted-foreground">FCFA/mois</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Pro: 10 campagnes/mois | Business: 50 campagnes/mois | Enterprise: illimité</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Header title="Campagnes Telegram Ads" subtitle="Créez et gérez vos campagnes de marketing via Telegram" />
+
+      {/* ─── Plan Info Banner ─── */}
+      {planInfo && (
+        <Card className={`border-dashed ${PLAN_LABELS[planInfo.current]?.color || "border-gray-500/20"}`}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const cfg = PLAN_LABELS[planInfo.current];
+                  if (!cfg) return null;
+                  const Icon = cfg.icon;
+                  return (
+                    <Badge className={`${cfg.color} text-[10px]`}>
+                      <Icon className="w-3 h-3 mr-1" />
+                      Plan {cfg.label}
+                    </Badge>
+                  );
+                })()}
+                <span className="text-xs text-muted-foreground">
+                  {planInfo.currentCampaigns} / {planInfo.maxCampaigns >= 999999 ? "illimité" : planInfo.maxCampaigns} campagnes
+                </span>
+              </div>
+              {planInfo.maxCampaigns < 999999 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        planInfo.currentCampaigns / planInfo.maxCampaigns > 0.8 ? "bg-red-500" :
+                        planInfo.currentCampaigns / planInfo.maxCampaigns > 0.5 ? "bg-amber-500" : "bg-[#25D366]"
+                      }`}
+                      style={{ width: `${Math.min(100, (planInfo.currentCampaigns / planInfo.maxCampaigns) * 100)}%` }}
+                    />
+                  </div>
+                  {!planInfo.canCreate && (
+                    <Badge variant="outline" className="text-[9px] text-red-500 border-red-500/20">
+                      <AlertTriangle className="w-2.5 h-2.5 mr-1" />
+                      Limite atteinte
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ─── KPI Cards ─── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -393,7 +543,11 @@ export default function CampaignsPage() {
           </Badge>
         </div>
 
-        <Button onClick={() => setShowCreate(true)} className="bg-[#25D366] hover:bg-[#1fa855] text-white">
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-[#25D366] hover:bg-[#1fa855] text-white"
+          disabled={planInfo ? !planInfo.canCreate : false}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nouvelle campagne
         </Button>
@@ -419,10 +573,15 @@ export default function CampaignsPage() {
             <h3 className="font-semibold text-lg mb-2">Aucune campagne</h3>
             <p className="text-sm text-muted-foreground mb-6">
               Créez votre première campagne Telegram Ads pour atteindre vos clients.
+              Envoyez des messages publicitaires personnalisés avec images et boutons d&apos;action.
             </p>
-            <Button onClick={() => setShowCreate(true)} className="bg-[#25D366] hover:bg-[#1fa855] text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Créer une campagne
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-[#25D366] hover:bg-[#1fa855] text-white"
+              disabled={planInfo ? !planInfo.canCreate : false}
+            >
+              <Megaphone className="w-4 h-4 mr-2" />
+              Créer ma première campagne
             </Button>
           </CardContent>
         </Card>
@@ -448,6 +607,18 @@ export default function CampaignsPage() {
               </CardHeader>
 
               <CardContent className="pt-0 space-y-3">
+                {/* Image preview */}
+                {campaign.imageUrl && (
+                  <div className="relative rounded-lg overflow-hidden h-32">
+                    <img
+                      src={campaign.imageUrl}
+                      alt={campaign.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                )}
+
                 {/* Message preview */}
                 <p className="text-xs text-muted-foreground line-clamp-2 bg-muted/50 p-2 rounded-md">
                   {campaign.message}
@@ -594,10 +765,11 @@ export default function CampaignsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Megaphone className="w-5 h-5 text-[#25D366]" />
-              Nouvelle Campagne
+              Nouvelle Campagne Telegram Ads
             </DialogTitle>
             <DialogDescription>
-              Créez une campagne Telegram pour toucher vos clients cibles.
+              Créez une campagne publicitaire pour toucher vos clients via Telegram.
+              Ajoutez une image, un message personnalisé et un bouton d&apos;action.
             </DialogDescription>
           </DialogHeader>
 
@@ -612,7 +784,41 @@ export default function CampaignsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Message *</Label>
+              <Label className="text-xs">Image publicitaire (optionnel)</Label>
+              <div className="space-y-2">
+                {form.imageUrl ? (
+                  <div className="relative rounded-lg overflow-hidden h-40 border">
+                    <img src={form.imageUrl} alt="Aperçu" className="w-full h-full object-cover" />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute top-2 right-2 h-7 w-7 p-0"
+                      onClick={() => setForm({ ...form, imageUrl: "" })}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-28 border-2 border-dashed rounded-lg cursor-pointer hover:border-[#25D366]/50 hover:bg-[#25D366]/5 transition-colors">
+                    <ImagePlus className="w-6 h-6 text-muted-foreground mb-2" />
+                    <span className="text-xs text-muted-foreground">
+                      {uploadingImage ? "Chargement..." : "Cliquer pour ajouter une image"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">JPG, PNG, GIF — Max 5 MB</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Message publicitaire *</Label>
               <Textarea
                 placeholder="Votre message publicitaire... Utilisez {name} pour personnaliser."
                 rows={5}
@@ -649,8 +855,21 @@ export default function CampaignsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Aucun (simulation)</SelectItem>
+                    {agents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>
+                        {agent.name} {agent.botUsername ? `(@${agent.botUsername})` : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {agents.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Aucun bot configuré. <a href="#" className="text-[#25D366] underline" onClick={() => {
+                      const { setPage } = useAppStore.getState();
+                      setPage("telegram");
+                    }}>Créer un agent</a>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -658,7 +877,7 @@ export default function CampaignsPage() {
               <div className="space-y-2">
                 <Label className="text-xs">Texte du bouton</Label>
                 <Input
-                  placeholder="Commander"
+                  placeholder="Ex: Commander, Voir l'offre"
                   value={form.buttonText}
                   onChange={(e) => setForm({ ...form, buttonText: e.target.value })}
                 />
@@ -666,7 +885,7 @@ export default function CampaignsPage() {
               <div className="space-y-2">
                 <Label className="text-xs">URL du bouton</Label>
                 <Input
-                  placeholder="https://..."
+                  placeholder="https://votre-site.com/promo"
                   value={form.buttonUrl}
                   onChange={(e) => setForm({ ...form, buttonUrl: e.target.value })}
                 />
@@ -675,7 +894,7 @@ export default function CampaignsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs">Date d'envoi (optionnel)</Label>
+                <Label className="text-xs">Date d&apos;envoi (optionnel)</Label>
                 <Input
                   type="date"
                   value={form.scheduledDate}
@@ -683,7 +902,7 @@ export default function CampaignsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Heure d'envoi</Label>
+                <Label className="text-xs">Heure d&apos;envoi</Label>
                 <Input
                   type="time"
                   value={form.scheduledTime}
@@ -693,13 +912,14 @@ export default function CampaignsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Budget (optionnel)</Label>
+              <Label className="text-xs">Budget (optionnel, en XAF)</Label>
               <Input
                 type="number"
                 placeholder="0"
                 value={form.budget}
                 onChange={(e) => setForm({ ...form, budget: e.target.value })}
               />
+              <p className="text-[10px] text-muted-foreground">Suivi de budget pour vos analytics</p>
             </div>
           </div>
 
@@ -728,6 +948,13 @@ export default function CampaignsPage() {
 
           {selectedCampaign && (
             <div className="space-y-4">
+              {/* Image */}
+              {selectedCampaign.imageUrl && (
+                <div className="rounded-lg overflow-hidden">
+                  <img src={selectedCampaign.imageUrl} alt={selectedCampaign.name} className="w-full object-cover max-h-48" />
+                </div>
+              )}
+
               {statusBadge(selectedCampaign.status)}
 
               <div className="grid grid-cols-3 gap-3">
@@ -769,7 +996,7 @@ export default function CampaignsPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Taux d'ouverture</span>
+                  <span className="text-muted-foreground">Taux d&apos;ouverture</span>
                   <span className="font-medium">{openRate(selectedCampaign)}%</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -795,11 +1022,22 @@ export default function CampaignsPage() {
                 </div>
               )}
 
+              {/* Message preview */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-[10px] text-muted-foreground mb-1">Message envoyé :</p>
+                <p className="text-xs whitespace-pre-wrap">{selectedCampaign.message}</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-2 border-t">
                 <div>Cible: {selectedCampaign.recipientCount} contacts</div>
                 <div>Échoués: {selectedCampaign.failedCount}</div>
                 <div>Clics: {selectedCampaign.clickedCount}</div>
                 <div>Type: {selectedCampaign.type}</div>
+                {selectedCampaign.telegramAgent && (
+                  <>
+                    <div className="col-span-2">Bot: {selectedCampaign.telegramAgent.name} {selectedCampaign.telegramAgent.botUsername ? `(@${selectedCampaign.telegramAgent.botUsername})` : ""}</div>
+                  </>
+                )}
               </div>
             </div>
           )}
