@@ -164,9 +164,13 @@ function buildContactInfo(agent: AgentWithServices, lang: "fr" | "en") {
       orange_money: "Orange Money",
       mtn_money: "MTN Mobile Money",
       cash: lang === "fr" ? "Espèces" : "Cash",
+      chariow: "Chariow (Paiement en ligne)",
     };
     lines.push(`\n${lang === "fr" ? "💳 Paiement" : "💳 Payment"}: ${payLabels[agent.paymentMethod] || agent.paymentMethod}`);
   }
+
+  // Add Chariow availability info
+  lines.push(`\n🌐 ${lang === "fr" ? "Paiement en ligne disponible via Chariow" : "Online payment available via Chariow"}`);
 
   return lines.join("\n");
 }
@@ -216,33 +220,50 @@ async function createBooking(
 
   // Create merchant payment if service has a price and agent has payment method
   let paymentInfo = "";
-  if (service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash") {
-    try {
-      const merchantPhone = agent.phone || "";
-      await db.merchantPayment.create({
-        data: {
-          agentId: agent.id,
-          companyId: agent.companyId,
-          bookingId: bookingId || null,
-          chatId,
-          customerName,
-          serviceName: service.name,
-          amount: service.price,
-          currency,
-          paymentMethod: agent.paymentMethod,
-          merchantPhone: merchantPhone || null,
-          status: "pending",
-        },
-      });
+  const merchantPhone = agent.phone || "";
+  const payMethodName = agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod;
 
-      const payMethodName = agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod;
+  if (service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash") {
+    // Check if company has Chariow enabled (via paymentSettings.chariowEnabled)
+    const companyData = await db.company.findUnique({
+      where: { id: agent.companyId },
+      select: { paymentSettings: true },
+    });
+    let chariowEnabled = false;
+    try {
+      const pSettings = companyData?.paymentSettings ? (typeof companyData.paymentSettings === 'string' ? JSON.parse(companyData.paymentSettings) : companyData.paymentSettings) : {};
+      chariowEnabled = pSettings.chariowEnabled === true;
+    } catch {}
+
+    if (chariowEnabled) {
+      // Don't create payment yet — customer will choose method via buttons
+      paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>MONTANT À PAYER :</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n\n<b>Choisissez votre mode de paiement :</b>`;
+    } else {
+      // Mobile Money only — create payment immediately
+      try {
+        await db.merchantPayment.create({
+          data: {
+            agentId: agent.id,
+            companyId: agent.companyId,
+            bookingId: bookingId || null,
+            chatId,
+            customerName,
+            serviceName: service.name,
+            amount: service.price,
+            currency,
+            paymentMethod: agent.paymentMethod,
+            merchantPhone: merchantPhone || null,
+            status: "pending",
+          },
+        });
+      } catch (error) {
+        console.error("[Telegram Webhook] Failed to create merchant payment:", error);
+      }
       if (merchantPhone) {
         paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>PAYER :</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n📱 Via: <b>${payMethodName}</b>\n📞 Envoyez au: <b>${merchantPhone}</b>\n\n📋 <b>Etapes :</b>\n1️⃣ Ouvrez votre app ${payMethodName}\n2️⃣ Transférez ${service.price.toLocaleString("fr-FR")} ${currency} au ${merchantPhone}\n3️⃣ Notez votre numéro de transaction\n4️⃣ Envoyez-le ici avec: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\n⏳ Votre commande sera confirmée à la réception du paiement.`;
       } else {
         paymentInfo = `\n\n💰 <b>PRIX:</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n💳 Paiement: ${payMethodName}\n\n/contact — Pour voir les coordonnées de paiement`;
       }
-    } catch (error) {
-      console.error("[Telegram Webhook] Failed to create merchant payment:", error);
     }
   } else if (agent.paymentMethod === "cash") {
     paymentInfo = `\n\n💵 Paiement en espèces sur place.`;
@@ -272,20 +293,47 @@ async function createBooking(
     ? `✅ <b>Commande enregistrée !</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Prix: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`
     : `✅ <b>Order placed!</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Price: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`;
 
+  // Check if Chariow is enabled for this company
+  let chariowEnabledForButtons = false;
+  try {
+    const cData = await db.company.findUnique({
+      where: { id: agent.companyId },
+      select: { paymentSettings: true },
+    });
+    const ps = cData?.paymentSettings ? (typeof cData.paymentSettings === 'string' ? JSON.parse(cData.paymentSettings) : cData.paymentSettings) : {};
+    chariowEnabledForButtons = ps.chariowEnabled === true;
+  } catch {}
+
   // Add pay button if payment is mobile money
   let keyboard: Record<string, unknown> | undefined;
   if (service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash" && agent.phone) {
-    keyboard = {
-      inline_keyboard: [
-        [
-          { text: lang === "fr" ? "💳 J'ai payé — Envoyer transaction" : "💳 I paid — Send transaction", callback_data: "pay_now" },
+    if (chariowEnabledForButtons) {
+      // Show payment method choice: Mobile Money or Chariow
+      keyboard = {
+        inline_keyboard: [
+          [
+            { text: lang === "fr" ? "📱 Mobile Money" : "📱 Mobile Money", callback_data: "pay_method:mm" },
+            { text: lang === "fr" ? "🌐 Payer en ligne (Chariow)" : "🌐 Pay Online (Chariow)", callback_data: "pay_method:chariow" },
+          ],
+          [
+            { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+            { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+          ],
         ],
-        [
-          { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
-          { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+      };
+    } else {
+      keyboard = {
+        inline_keyboard: [
+          [
+            { text: lang === "fr" ? "💳 J'ai payé — Envoyer transaction" : "💳 I paid — Send transaction", callback_data: "pay_now" },
+          ],
+          [
+            { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+            { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+          ],
         ],
-      ],
-    };
+      };
+    }
   } else {
     keyboard = {
       inline_keyboard: [
@@ -469,6 +517,162 @@ async function handleAIResponse(
   return response || "";
 }
 
+// ─── Helper: Handle Mobile Money payment choice ──────────────────
+// When Chariow is enabled and customer chose Mobile Money
+
+async function handleMobileMoneyPayment(
+  agent: AgentWithServices,
+  chatId: string,
+  customerName: string,
+  lang: "fr" | "en"
+): Promise<void> {
+  const currency = agent.currency || "XAF";
+  const merchantPhone = agent.phone || "";
+  const payMethodName = agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod;
+
+  // Find pending booking for this chat
+  const pendingBooking = await db.telegramBooking.findFirst({
+    where: { agentId: agent.id, chatId, status: "pending" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Find associated service to get the price
+  let serviceAmount = 0;
+  let serviceName = "Commande";
+  if (pendingBooking?.serviceId) {
+    const svc = await db.businessService.findUnique({
+      where: { id: pendingBooking.serviceId },
+      select: { name: true, price: true },
+    });
+    if (svc) {
+      serviceAmount = svc.price;
+      serviceName = svc.name;
+    }
+  }
+
+  // Create merchant payment with correct amount
+  try {
+    await db.merchantPayment.create({
+      data: {
+        agentId: agent.id,
+        companyId: agent.companyId,
+        bookingId: pendingBooking?.id || null,
+        chatId,
+        customerName,
+        serviceName,
+        amount: serviceAmount,
+        currency,
+        paymentMethod: agent.paymentMethod || "orange_money",
+        merchantPhone: merchantPhone || null,
+        status: "pending",
+      },
+    });
+  } catch (error) {
+    console.error("[Telegram Webhook] Failed to create MM payment on choice:", error);
+  }
+
+  const amount = serviceAmount;
+  const amountStr = amount > 0 ? `${amount.toLocaleString("fr-FR")} ${currency}` : "";
+
+  const instructions = lang === "fr"
+    ? `📱 <b>Paiement par ${payMethodName}</b>\n\n${amountStr ? `💰 Montant: <b>${amountStr}</b>\n\n` : ""}📋 <b>Étapes :</b>\n\n1️⃣ Ouvrez votre application <b>${payMethodName}</b>\n2️⃣ Allez dans <b>Transfert / Envoyer de l'argent</b>\n3️⃣ Entrez le numéro: <code>${merchantPhone}</code>\n4️⃣ Saisissez le montant: <b>${amountStr}</b>\n5️⃣ Confirmez avec votre code secret\n6️⃣ Notez votre <b>numéro de transaction</b>\n\n✉️ Envoyez-le ici: <b>/payer VOTRE_NUMERO</b>\n\n⏳ Votre commande sera confirmée à réception.`
+    : `📱 <b>Payment via ${payMethodName}</b>\n\n${amountStr ? `💰 Amount: <b>${amountStr}</b>\n\n` : ""}📋 <b>Steps:</b>\n\n1️⃣ Open your <b>${payMethodName}</b> app\n2️⃣ Go to <b>Transfer / Send money</b>\n3️⃣ Enter number: <code>${merchantPhone}</code>\n4️⃣ Enter amount: <b>${amountStr}</b>\n5️⃣ Confirm with your PIN\n6️⃣ Note your <b>transaction number</b>\n\n✉️ Send it here: <b>/payer YOUR_NUMBER</b>\n\n⏳ Your order will be confirmed upon receipt.`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: lang === "fr" ? "💳 J'ai payé — Envoyer transaction" : "💳 I paid — Send transaction", callback_data: "pay_now" },
+      ],
+      [
+        { text: lang === "fr" ? "🌐 Changer pour Chariow" : "🌐 Switch to Chariow", callback_data: "pay_method:chariow" },
+      ],
+      [
+        { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+        { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+      ],
+    ],
+  };
+
+  await sendTelegramMessage(agent.token, chatId, instructions, keyboard);
+}
+
+// ─── Helper: Handle Chariow payment choice ──────────────────────
+// When customer chose to pay online via Chariow
+
+async function handleChariowPayment(
+  agent: AgentWithServices,
+  chatId: string,
+  customerName: string,
+  lang: "fr" | "en"
+): Promise<void> {
+  const currency = agent.currency || "XAF";
+
+  // Find pending booking for this chat
+  const pendingBooking = await db.telegramBooking.findFirst({
+    where: { agentId: agent.id, chatId, status: "pending" },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Find associated service to get the price
+  let serviceAmount = 0;
+  let serviceName = "Commande";
+  if (pendingBooking?.serviceId) {
+    const svc = await db.businessService.findUnique({
+      where: { id: pendingBooking.serviceId },
+      select: { name: true, price: true },
+    });
+    if (svc) {
+      serviceAmount = svc.price;
+      serviceName = svc.name;
+    }
+  }
+
+  // Create a MerchantPayment with chariow method
+  try {
+    await db.merchantPayment.create({
+      data: {
+        agentId: agent.id,
+        companyId: agent.companyId,
+        bookingId: pendingBooking?.id || null,
+        chatId,
+        customerName,
+        serviceName,
+        amount: serviceAmount,
+        currency,
+        paymentMethod: "chariow",
+        merchantPhone: null,
+        status: "pending",
+      },
+    });
+  } catch (error) {
+    console.error("[Telegram Webhook] Failed to create Chariow payment record:", error);
+  }
+
+  // Build Chariow guide message with amount
+  const amountStr = serviceAmount > 0 ? `${serviceAmount.toLocaleString("fr-FR")} ${currency}` : "";
+
+  const guide = lang === "fr"
+    ? `🌐 <b>Paiement en ligne avec Chariow</b>\n\n${amountStr ? `💰 Montant à payer: <b>${amountStr}</b>\n\n` : ""}<b>Qu'est-ce que Chariow ?</b>\nChariow est une plateforme de paiement en ligne sécurisée. Vous pouvez payer avec:\n• 💳 Carte bancaire (Visa, Mastercard)\n• 📱 Mobile Money (Orange Money, MTN)\n• 🏦 Virement bancaire\n\n<b>📋 Étapes :</b>\n\n1️⃣ Cliquez sur le bouton <b>\"Payer avec Chariow\"</b> ci-dessous\n2️⃣ Vous serez redirigé vers la page de paiement sécurisée\n3️⃣ Choisissez votre méthode de paiement préférée\n4️⃣ Suivez les instructions pour compléter le paiement\n5️⃣ Vous recevrez une confirmation immédiate\n\n✅ <b>Avantages :</b>\n• Paiement instantané et automatique\n• Confirmation en temps réel\n• Aucun numéro de transaction à envoyer\n• Historique de paiement disponible\n\n⏳ Votre commande sera confirmée automatiquement après le paiement.\n\n💡 <b>Conseil:</b> Si vous rencontrez des problèmes, vous pouvez toujours changer pour le paiement Mobile Money.`
+    : `🌐 <b>Online Payment with Chariow</b>\n\n${amountStr ? `💰 Amount to pay: <b>${amountStr}</b>\n\n` : ""}<b>What is Chariow?</b>\nChariow is a secure online payment platform. You can pay with:\n• 💳 Bank card (Visa, Mastercard)\n• 📱 Mobile Money (Orange Money, MTN)\n• 🏦 Bank transfer\n\n<b>📋 Steps:</b>\n\n1️⃣ Click the <b>\"Pay with Chariow\"</b> button below\n2️⃣ You'll be redirected to a secure payment page\n3️⃣ Choose your preferred payment method\n4️⃣ Follow the instructions to complete payment\n5️⃣ You'll receive instant confirmation\n\n✅ <b>Benefits:</b>\n• Instant and automatic payment\n• Real-time confirmation\n• No transaction number to send\n• Payment history available\n\n⏳ Your order will be automatically confirmed after payment.\n\n💡 <b>Tip:</b> If you encounter issues, you can always switch to Mobile Money payment.`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: lang === "fr" ? "🌐 Payer avec Chariow" : "🌐 Pay with Chariow", url: `https://${process.env.CHARIOW_STORE_DOMAIN || "pvgxjrjr.mychariow.shop"}?agent=${agent.id}&chat=${chatId}&company=${agent.companyId}` },
+      ],
+      [
+        { text: lang === "fr" ? "📱 Changer pour Mobile Money" : "📱 Switch to Mobile Money", callback_data: "pay_method:mm" },
+      ],
+      [
+        { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+        { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+      ],
+    ],
+  };
+
+  await sendTelegramMessage(agent.token, chatId, guide, keyboard);
+}
+
 // ─── POST /api/telegram/webhook ───────────────────────────────────
 // This is the endpoint that Telegram calls when a user sends a message to the bot.
 
@@ -540,6 +744,12 @@ export async function POST(req: NextRequest) {
         await sendTelegramMessage(botToken, chatId, userLang === "fr"
           ? "💳 <b>Envoyez votre numéro de transaction</b>\n\nTapez: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\nExemple: <code>/payer OM2024010100001</code>"
           : "💳 <b>Send your transaction number</b>\n\nType: <b>/payer YOUR_TRANSACTION_NUMBER</b>\n\nExample: <code>/payer OM2024010100001</code>");
+      } else if (callbackData === "pay_method:mm") {
+        // Customer chose Mobile Money — create payment and show instructions
+        await handleMobileMoneyPayment(agent, chatId, userName, userLang);
+      } else if (callbackData === "pay_method:chariow") {
+        // Customer chose Chariow — create Chariow checkout
+        await handleChariowPayment(agent, chatId, userName, userLang);
       } else if (callbackData === "confirm_yes") {
         await sendTelegramMessage(botToken, chatId, userLang === "fr"
           ? "✅ Commande confirmée ! Notre équipe vous contactera bientôt."

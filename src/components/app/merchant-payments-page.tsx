@@ -193,7 +193,8 @@ export default function MerchantPaymentsPage() {
   const payMethodIcon = (method: string) => {
     if (method === "orange_money") return "🟠";
     if (method === "mtn_money") return "🟡";
-    return "💵";
+    if (method === "chariow") return "🌐";
+    return "💳";
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -418,7 +419,7 @@ export default function MerchantPaymentsPage() {
                         )}
                         <span className="flex items-center gap-1">
                           {payMethodIcon(p.paymentMethod)}
-                          {p.paymentMethod === "orange_money" ? "Orange Money" : p.paymentMethod === "mtn_money" ? "MTN Mobile Money" : p.paymentMethod}
+                          {p.paymentMethod === "orange_money" ? "Orange Money" : p.paymentMethod === "mtn_money" ? "MTN Mobile Money" : p.paymentMethod === "chariow" ? "Chariow" : p.paymentMethod}
                         </span>
                       </div>
 

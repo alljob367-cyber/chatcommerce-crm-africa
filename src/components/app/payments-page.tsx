@@ -119,6 +119,10 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
   const [editingNumbers, setEditingNumbers] = useState(false);
   const [savingNumbers, setSavingNumbers] = useState(false);
 
+  // Chariow settings (admin only)
+  const [chariowEnabled, setChariowEnabled] = useState(false);
+  const [chariowStoreDomain, setChariowStoreDomain] = useState("");
+
   const currentPlan = user?.company?.plan || "starter";
 
   // Charger l'historique des paiements ET les numéros de réception
@@ -131,13 +135,15 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
       ])
         .then(([paymentsData, companyData]) => {
           if (paymentsData.payments) setPayments(paymentsData.payments);
-          // Load payment settings (phone numbers)
+          // Load payment settings (phone numbers + chariow)
           const settings = companyData.paymentSettings;
           if (settings) {
             try {
               const parsed = typeof settings === 'string' ? JSON.parse(settings) : settings;
               if (parsed.orangeNumber) setOrangeNumber(parsed.orangeNumber);
               if (parsed.mtnNumber) setMtnNumber(parsed.mtnNumber);
+              if (parsed.chariowEnabled !== undefined) setChariowEnabled(parsed.chariowEnabled);
+              if (parsed.chariowStoreDomain) setChariowStoreDomain(parsed.chariowStoreDomain);
             } catch {}
           }
         })
@@ -155,18 +161,25 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Save reception phone numbers (admin only)
+  // Save reception phone numbers and Chariow settings (admin only)
   const handleSaveNumbers = async () => {
     setSavingNumbers(true);
     try {
       const res = await fetch("/api/company", {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ paymentSettings: JSON.stringify({ orangeNumber, mtnNumber }) }),
+        body: JSON.stringify({
+          paymentSettings: JSON.stringify({
+            orangeNumber,
+            mtnNumber,
+            chariowEnabled,
+            chariowStoreDomain: chariowStoreDomain || process.env.NEXT_PUBLIC_CHARIOW_STORE_DOMAIN || "",
+          }),
+        }),
       });
       if (res.ok) {
         setEditingNumbers(false);
-        toast.success("Numeros de reception mis a jour");
+        toast.success("Parametres de paiement mis a jour");
       }
     } catch { toast.error("Erreur de sauvegarde"); }
     finally { setSavingNumbers(false); }
@@ -447,6 +460,71 @@ export default function PaymentsPage({ targetPlan }: { targetPlan?: string }) {
                   </Button>
                 )}
               </div>
+            )}
+
+            {/* Admin: Chariow Configuration Card */}
+            {isAdmin && (
+              <Card className={`border-2 transition-all ${chariowEnabled ? "border-[#ffcc00]/50 bg-[#ffcc00]/5" : "border-dashed"}`}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#ffcc00]/10 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-[#ffcc00]" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">Paiement Chariow pour les clients</p>
+                        <p className="text-xs text-muted-foreground">
+                          Activez Chariow pour offrir le paiement en ligne a vos clients via les bots Telegram
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!editingNumbers) setEditingNumbers(true);
+                        setChariowEnabled(!chariowEnabled);
+                      }}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        chariowEnabled ? "bg-[#ffcc00]" : "bg-muted"
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        chariowEnabled ? "translate-x-6" : "translate-x-0.5"
+                      }`} />
+                    </button>
+                  </div>
+
+                  {chariowEnabled && (
+                    <div className="mt-4 space-y-3">
+                      <div className="p-3 bg-[#ffcc00]/5 rounded-lg border border-[#ffcc00]/10">
+                        <p className="text-xs text-muted-foreground">
+                          <b>Chariow</b> permet a vos clients de payer en ligne via carte bancaire ou Mobile Money.
+                          Quand un client commande via votre bot Telegram, il verra 2 options :
+                        </p>
+                        <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                          <li>📱 <b>Mobile Money</b> — Paiement manuel avec envoi de numero de transaction</li>
+                          <li>🌐 <b>Chariow</b> — Paiement en ligne automatique et instantane</li>
+                        </ul>
+                      </div>
+
+                      {editingNumbers && (
+                        <div>
+                          <Label className="text-xs">Domaine boutique Chariow (optionnel)</Label>
+                          <Input
+                            value={chariowStoreDomain}
+                            onChange={(e) => setChariowStoreDomain(e.target.value)}
+                            placeholder="votre-boutique.mychariow.shop"
+                            className="mt-1 h-8 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Laissez vide pour utiliser le domaine par defaut
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Separator */}
