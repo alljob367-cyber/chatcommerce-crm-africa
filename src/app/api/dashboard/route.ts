@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 import { Prisma } from "@prisma/client";
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-    const companyId = session.companyId;
+    const companyId = await resolveCompanyId(session);
     const { searchParams } = new URL(request.url);
     const period = (searchParams.get("period") || "7d") as Period;
     const customStart = searchParams.get("start") || undefined;

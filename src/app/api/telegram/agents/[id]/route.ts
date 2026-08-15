@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 
@@ -16,11 +16,12 @@ export async function GET(
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const { id } = await params;
     const agent = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
       select: {
         id: true,
         companyId: true,
@@ -71,13 +72,14 @@ export async function PUT(
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
     const { id } = await params;
     const body = await request.json();
 
     const existing = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
 
@@ -147,6 +149,7 @@ export async function DELETE(
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     // Suppression réservée à l'admin
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
@@ -156,7 +159,7 @@ export async function DELETE(
 
     const { id } = await params;
     const existing = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -14,12 +14,13 @@ export async function GET(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "";
     const agentId = searchParams.get("agentId") || "";
 
-    const where: Record<string, unknown> = { companyId: session.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status) where.status = status;
     if (agentId) where.agentId = agentId;
 
@@ -43,6 +44,7 @@ export async function PUT(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const body = await request.json();
     const { id, status } = body;
@@ -57,7 +59,7 @@ export async function PUT(request: Request) {
     }
 
     const existing = await db.telegramBooking.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!existing) return NextResponse.json({ error: "Reservation introuvable" }, { status: 404 });
 
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const body = await request.json();
     const { agentId, customerName, customerPhone, serviceId, serviceName, bookingDate, bookingTime, notes, chatId } = body;
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
     });
     const companyPlan = user?.company?.plan || "starter";
     const bookingCount = await db.telegramBooking.count({
-      where: { companyId: session.companyId, status: { notIn: ["cancelled"] } },
+      where: { companyId: realCompanyId, status: { notIn: ["cancelled"] } },
     });
     const limitError = await checkPlanLimit(companyPlan, "maxBookings", bookingCount);
     if (limitError) {
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
 
     // Verify agent belongs to company
     const agent = await db.telegramAgent.findFirst({
-      where: { id: agentId, companyId: session.companyId },
+      where: { id: agentId, companyId: realCompanyId },
     });
     if (!agent) {
       return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
     const booking = await db.telegramBooking.create({
       data: {
         agentId,
-        companyId: session.companyId,
+        companyId: realCompanyId,
         chatId: chatId || "manual",
         customerName: sanitize(customerName),
         customerPhone: customerPhone ? sanitize(customerPhone) : null,

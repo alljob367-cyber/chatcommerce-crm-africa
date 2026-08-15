@@ -9,6 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { resolveCompanyId } from "@/lib/db";
 import { executeAutomationsForCompany, type ExecutionReport } from "@/lib/automation-engine";
 import { handleError } from "@/lib/security";
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     // Execute automations only for this company
-    const report: ExecutionReport = await executeAutomationsForCompany(session.companyId);
+    const report: ExecutionReport = await executeAutomationsForCompany(await resolveCompanyId(session));
 
     return NextResponse.json({
       success: report.success,

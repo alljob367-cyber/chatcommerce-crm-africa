@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 
@@ -18,10 +18,11 @@ export async function GET(
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
     const { id } = await params;
+    const realCompanyId = await resolveCompanyId(session);
 
     // Verify agent belongs to company
     const agent = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 
@@ -54,6 +55,7 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
     const { name, description, price, duration, image, isActive } = body;
+    const realCompanyId = await resolveCompanyId(session);
 
     if (!name || price === undefined) {
       return NextResponse.json({ error: "Nom et prix requis" }, { status: 400 });
@@ -61,7 +63,7 @@ export async function POST(
 
     // Verify agent belongs to company
     const agent = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 
@@ -109,6 +111,7 @@ export async function DELETE(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const serviceId = searchParams.get("serviceId");
+    const realCompanyId = await resolveCompanyId(session);
 
     if (!serviceId) {
       return NextResponse.json({ error: "serviceId requis" }, { status: 400 });
@@ -116,7 +119,7 @@ export async function DELETE(
 
     // Verify agent belongs to company
     const agent = await db.telegramAgent.findFirst({
-      where: { id, companyId: session.companyId },
+      where: { id, companyId: realCompanyId },
     });
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 

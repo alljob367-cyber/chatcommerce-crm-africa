@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
@@ -343,7 +343,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut creer des agents." }, { status: 403 });
     }
 
-    const companyId = session.companyId;
+    const companyId = await resolveCompanyId(session);
     const body = await request.json();
     const agentType = body.agentType; // optional: create specific type
 

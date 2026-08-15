@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 
@@ -15,6 +15,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     await ensureBootstrapped();
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 
     // Get the company's global bot token
     const company = await db.company.findUnique({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       select: { globalBotToken: true, globalBotUsername: true },
     });
 
@@ -80,6 +81,7 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     await ensureBootstrapped();
 
@@ -89,7 +91,7 @@ export async function DELETE(request: Request) {
     }
 
     const company = await db.company.findUnique({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       select: { globalBotToken: true },
     });
 

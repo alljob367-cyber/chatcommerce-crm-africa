@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     await ensureBootstrapped();
 
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
 
     // Verify the agent belongs to this company
     const agent = await db.telegramAgent.findFirst({
-      where: { id: agentId, companyId: session.companyId },
+      where: { id: agentId, companyId: realCompanyId },
     });
     if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
 

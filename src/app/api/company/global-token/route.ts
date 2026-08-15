@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, ensureBootstrapped, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
@@ -29,9 +29,10 @@ export async function GET(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     const company = await db.company.findUnique({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       select: { globalBotToken: true, globalBotUsername: true },
     });
 
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     // Ensure DB is bootstrapped before accessing company
     await ensureBootstrapped();
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
 
     // Save to company
     await db.company.update({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       data: {
         globalBotToken: botToken.trim(),
         globalBotUsername: username ? `@${username}` : null,
@@ -89,12 +91,12 @@ export async function POST(request: Request) {
     if (activateAll) {
       // ─── CHECK PLAN LIMIT ───────────────────────────────
       const company = await db.company.findUnique({
-        where: { id: session.companyId },
+        where: { id: realCompanyId },
         select: { plan: true },
       });
       const currentPlan = company?.plan || "starter";
       const currentAgentCount = await db.telegramAgent.count({
-        where: { companyId: session.companyId },
+        where: { companyId: realCompanyId },
       });
       const limitError = await checkPlanLimit(currentPlan, "maxTelegramAgents", currentAgentCount);
       if (limitError) {
@@ -105,7 +107,7 @@ export async function POST(request: Request) {
       const maxAllowed = PLAN_LIMITS[currentPlan]?.maxTelegramAgents || PLAN_LIMITS.starter.maxTelegramAgents;
 
       const agents = await db.telegramAgent.findMany({
-        where: { companyId: session.companyId },
+        where: { companyId: realCompanyId },
         orderBy: { createdAt: "asc" },
       });
 
@@ -175,6 +177,7 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
 
     await ensureBootstrapped();
 
@@ -185,13 +188,13 @@ export async function DELETE(request: Request) {
 
     // Remove global token
     await db.company.update({
-      where: { id: session.companyId },
+      where: { id: realCompanyId },
       data: { globalBotToken: null, globalBotUsername: null },
     });
 
     // Deactivate all agents that used this token
     const result = await db.telegramAgent.updateMany({
-      where: { companyId: session.companyId, token: { not: "" } },
+      where: { companyId: realCompanyId, token: { not: "" } },
       data: { isActive: false },
     });
 
