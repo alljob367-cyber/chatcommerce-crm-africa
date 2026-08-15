@@ -76,7 +76,7 @@ export async function GET(request: Request) {
         read: (stats._sum?.readCount as number) || 0,
         replied: (stats._sum?.repliedCount as number) || 0,
         clicked: (stats._sum?.clickedCount as number) || 0,
-        budgetSpent: (stats._sum?.budgetSpent as number) || 0,
+        budgetSpent: Number(stats._sum?.budgetSpent || 0),
       },
       plan: {
         current: companyPlan,

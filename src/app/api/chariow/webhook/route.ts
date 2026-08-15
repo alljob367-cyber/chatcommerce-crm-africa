@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
     if (paidAmount !== undefined && paidAmount !== null) {
       const paid = Number(paidAmount);
-      if (paid < expectedAmount * 0.95) {
+      if (paid < Number(expectedAmount) * 0.95) {
         // Tolérance de 5% pour les frais/arrondis
         console.warn(
           `[Chariow Webhook] Montant incorrect: paye=${paid}, attendu=${expectedAmount}, plan=${existingOrder.plan}`

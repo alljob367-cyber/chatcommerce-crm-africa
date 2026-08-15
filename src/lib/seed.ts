@@ -179,7 +179,7 @@ export async function seedDatabase() {
     const product2 = allProducts[(i + 3) % allProducts.length];
     const qty1 = Math.floor(Math.random() * 5) + 1;
     const qty2 = Math.floor(Math.random() * 3) + 1;
-    const subtotal = product1.price * qty1 + product2.price * qty2;
+    const subtotal = Number(product1.price) * qty1 + Number(product2.price) * qty2;
     const total = subtotal * 1.19; // 19% tax
     const status = orderStatuses[i % orderStatuses.length];
 
@@ -206,8 +206,8 @@ export async function seedDatabase() {
         productId: product1.id,
         productName: product1.name,
         quantity: qty1,
-        unitPrice: product1.price,
-        total: product1.price * qty1,
+        unitPrice: Number(product1.price),
+        total: Number(product1.price) * qty1,
       },
     });
 
@@ -217,8 +217,8 @@ export async function seedDatabase() {
         productId: product2.id,
         productName: product2.name,
         quantity: qty2,
-        unitPrice: product2.price,
-        total: product2.price * qty2,
+        unitPrice: Number(product2.price),
+        total: Number(product2.price) * qty2,
       },
     });
   }

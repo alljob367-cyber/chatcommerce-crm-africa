@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const servicesSummary = agent.services
       .map(
         (s) =>
-          `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
+          `- ${s.name} (${Number(s.price).toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
       )
       .join("\n");
 
@@ -89,13 +89,13 @@ export async function POST(req: NextRequest) {
       services: agent.services.map((s) => ({
         name: s.name,
         description: s.description,
-        price: s.price,
+        price: Number(s.price),
         isActive: s.isActive,
       })),
       products: agent.company?.products.map((p) => ({
         name: p.name,
         description: p.description,
-        price: p.price,
+        price: Number(p.price),
         stock: p.stock,
         isActive: p.isActive,
       })) ?? [],
@@ -127,15 +127,15 @@ export async function POST(req: NextRequest) {
 
     // If AI failed or is disabled, fall back to keyword matching
     if (!aiResponse) {
-      const suggestion = await suggestService(message, agent.services);
+      const suggestion = await suggestService(message, agent.services.map((s) => ({ ...s, price: Number(s.price) })));
       if (suggestion.service && suggestion.confidence >= 0.3) {
         matchedService = {
           name: suggestion.service.name,
           description: suggestion.service.description ?? null,
-          price: suggestion.service.price,
+          price: Number(suggestion.service.price),
           confidence: suggestion.confidence,
         };
-        aiResponse = `Nous avons le service "${suggestion.service.name}" au prix de ${suggestion.service.price.toLocaleString("fr-FR")} ${currency}. Souhaitez-vous commander ou réserver ?`;
+        aiResponse = `Nous avons le service "${suggestion.service.name}" au prix de ${Number(suggestion.service.price).toLocaleString("fr-FR")} ${currency}. Souhaitez-vous commander ou réserver ?`;
       } else {
         // Generic fallback response
         aiResponse = agent.welcomeMessage || null;

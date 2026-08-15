@@ -167,7 +167,7 @@ async function handleBookingsReport(companyId: string, start: Date, end: Date, d
     const priceMap = new Map(services.map((s) => [s.id, s.price]));
     let total = 0;
     for (const b of bookings) {
-      if (b.serviceId && priceMap.has(b.serviceId)) total += priceMap.get(b.serviceId)!;
+      if (b.serviceId && priceMap.has(b.serviceId)) total += Number(priceMap.get(b.serviceId)!);
     }
     if (total > 0) revenueByAgent.push({ agentName: agent.name, total });
   }
@@ -282,7 +282,7 @@ async function handleTeamReport(companyId: string, start: Date, end: Date) {
       role: m.role,
       avatar: m.avatar,
       bookingsHandled: orders.length,
-      revenue: orders.reduce((s, o) => s + o.total, 0),
+      revenue: orders.reduce((s, o) => s + Number(o.total), 0),
       deliveredOrders: orders.filter((o) => o.status === "delivered").length,
       totalConversations: m._count.assignedConversations,
     };

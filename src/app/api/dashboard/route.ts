@@ -288,7 +288,7 @@ export async function GET(request: Request) {
         ...t,
         activeConversations: t.assignedConversations.length,
         totalOrders: t.createdOrders.length,
-        totalRevenue: t.createdOrders.reduce((s, o) => s + o.total, 0),
+        totalRevenue: t.createdOrders.reduce((s, o) => s + Number(o.total), 0),
       })),
       recentOrders,
       period,

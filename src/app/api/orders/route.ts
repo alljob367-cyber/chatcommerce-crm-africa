@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       if (!product) {
         return NextResponse.json({ error: `Produit ${item.productId} non trouve` }, { status: 404 });
       }
-      const unitPrice = product.price;
+      const unitPrice = Number(product.price);
       const lineTotal = unitPrice * item.quantity;
       subtotal += lineTotal;
       itemData.push({
@@ -271,7 +271,7 @@ export async function PATCH(request: Request) {
           {
             customerName: order.contact.name,
             items: order.items.map((i) => `${i.quantity}x ${i.productName}`),
-            total: order.total,
+            total: Number(order.total),
             currency: order.currency,
           }
         ).catch(() => {

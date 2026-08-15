@@ -407,7 +407,7 @@ export async function seedDemoData(): Promise<Stats> {
   for (let i = 0; i < c1OrderSpecs.length; i++) {
     const spec = c1OrderSpecs[i];
     const contact = contacts1[spec.contactIdx];
-    const subtotal = spec.items.reduce((s, item) => s + item.prod.price * item.qty, 0);
+    const subtotal = spec.items.reduce((s, item) => s + Number(item.prod.price) * item.qty, 0);
     const tax = Math.round(subtotal * 0.1925);
     const total = subtotal + tax;
     const orderNumber = `CMD-${String(2001 + i).padStart(4, "0")}`;
@@ -429,8 +429,8 @@ export async function seedDemoData(): Promise<Stats> {
           productId: item.prod.id,
           productName: item.prod.name,
           quantity: item.qty,
-          unitPrice: item.prod.price,
-          total: item.prod.price * item.qty,
+          unitPrice: Number(item.prod.price),
+          total: Number(item.prod.price) * item.qty,
         },
       });
     }

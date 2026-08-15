@@ -76,13 +76,13 @@ export async function POST(request: Request) {
             businessType: agent.businessType,
             name: agent.name,
             services: agent.services.map((s) =>
-              `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
+              `- ${s.name} (${Number(s.price).toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
             ).join("\n"),
           };
 
           businessContext = buildContextFromBusinessData({
-            services: agent.services,
-            products: agent.company?.products || [],
+            services: agent.services.map((s) => ({ ...s, price: Number(s.price) })),
+            products: (agent.company?.products || []).map((p) => ({ ...p, price: Number(p.price) })),
             companyName: agent.company?.name || agent.name,
             businessType: agent.businessType,
             address: agent.address,
@@ -127,13 +127,13 @@ export async function POST(request: Request) {
             businessType: agent.businessType,
             name: agent.name,
             services: agent.services.map((s) =>
-              `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
+              `- ${s.name} (${Number(s.price).toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
             ).join("\n"),
           };
 
           businessContext = buildContextFromBusinessData({
-            services: agent.services,
-            products: agent.company?.products || [],
+            services: agent.services.map((s) => ({ ...s, price: Number(s.price) })),
+            products: (agent.company?.products || []).map((p) => ({ ...p, price: Number(p.price) })),
             companyName: agent.company?.name || agent.name,
             businessType: agent.businessType,
             address: agent.address,

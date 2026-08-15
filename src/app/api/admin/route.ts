@@ -199,7 +199,7 @@ export async function GET(request: Request) {
         if (!p.confirmedAt) continue;
         const key = p.confirmedAt.toISOString().slice(0, 7); // YYYY-MM
         if (!revenueByMonth[key]) revenueByMonth[key] = { month: key, revenue: 0, count: 0 };
-        revenueByMonth[key].revenue += p.amount;
+        revenueByMonth[key].revenue += Number(p.amount);
         revenueByMonth[key].count += 1;
       }
 

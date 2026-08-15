@@ -149,7 +149,7 @@ function buildServicesMenu(agent: AgentWithServices, lang: "fr" | "en") {
 
   items.forEach((item, i) => {
     const priceStr = item.price > 0
-      ? `${item.price.toLocaleString("fr-FR")} ${labels.price}`
+      ? `${Number(item.price).toLocaleString("fr-FR")} ${labels.price}`
       : lang === "fr" ? "Gratuit" : "Free";
     text += `<b>${i + 1}.</b> ${item.name} — <b>${priceStr}</b>\n`;
     if (item.description) text += `   <i>${item.description}</i>\n`;
@@ -233,7 +233,7 @@ async function createBooking(
   if (!service) return { text: lang === "fr" ? "Service introuvable." : "Service not found." };
 
   const currency = agent.currency || "XAF";
-  const priceStr = service.price > 0 ? `${service.price.toLocaleString("fr-FR")} ${currency}` : "Gratuit";
+  const priceStr = service.price > 0 ? `${Number(service.price).toLocaleString("fr-FR")} ${currency}` : "Gratuit";
 
   // Create booking in database
   let bookingId: string | undefined;
@@ -274,7 +274,7 @@ async function createBooking(
 
     if (chariowEnabled) {
       // Don't create payment yet — customer will choose method via buttons
-      paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>MONTANT À PAYER :</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n\n<b>Choisissez votre mode de paiement :</b>`;
+      paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>MONTANT À PAYER :</b> ${Number(service.price).toLocaleString("fr-FR")} ${currency}\n\n<b>Choisissez votre mode de paiement :</b>`;
     } else {
       // Mobile Money only — create payment immediately
       try {
@@ -297,9 +297,9 @@ async function createBooking(
         console.error("[Telegram Webhook] Failed to create merchant payment:", error);
       }
       if (merchantPhone) {
-        paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>PAYER :</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n📱 Via: <b>${payMethodName}</b>\n📞 Envoyez au: <b>${merchantPhone}</b>\n\n📋 <b>Etapes :</b>\n1️⃣ Ouvrez votre app ${payMethodName}\n2️⃣ Transférez ${service.price.toLocaleString("fr-FR")} ${currency} au ${merchantPhone}\n3️⃣ Notez votre numéro de transaction\n4️⃣ Envoyez-le ici avec: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\n⏳ Votre commande sera confirmée à la réception du paiement.`;
+        paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>PAYER :</b> ${Number(service.price).toLocaleString("fr-FR")} ${currency}\n📱 Via: <b>${payMethodName}</b>\n📞 Envoyez au: <b>${merchantPhone}</b>\n\n📋 <b>Etapes :</b>\n1️⃣ Ouvrez votre app ${payMethodName}\n2️⃣ Transférez ${Number(service.price).toLocaleString("fr-FR")} ${currency} au ${merchantPhone}\n3️⃣ Notez votre numéro de transaction\n4️⃣ Envoyez-le ici avec: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\n⏳ Votre commande sera confirmée à la réception du paiement.`;
       } else {
-        paymentInfo = `\n\n💰 <b>PRIX:</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n💳 Paiement: ${payMethodName}\n\n/contact — Pour voir les coordonnées de paiement`;
+        paymentInfo = `\n\n💰 <b>PRIX:</b> ${Number(service.price).toLocaleString("fr-FR")} ${currency}\n💳 Paiement: ${payMethodName}\n\n/contact — Pour voir les coordonnées de paiement`;
       }
     }
   } else if (agent.paymentMethod === "cash") {
@@ -447,7 +447,7 @@ async function handlePaymentSubmission(
       ``,
       `📋 Service: <b>${pendingPayment.serviceName || "Commande"}</b>`,
       `👤 Client: <b>${pendingPayment.customerName}</b>${pendingPayment.customerPhone ? ` (${pendingPayment.customerPhone})` : ""}`,
-      `💰 Montant: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>`,
+      `💰 Montant: <b>${Number(pendingPayment.amount).toLocaleString("fr-FR")} ${currency}</b>`,
       `📱 Via: <b>${payMethodName}</b>`,
       `🔖 Transaction: <code>${transactionRef}</code>`,
       `🕐 Date: ${new Date().toLocaleString("fr-FR")}`,
@@ -461,8 +461,8 @@ async function handlePaymentSubmission(
   }
 
   return lang === "fr"
-    ? `✅ <b>Paiement confirmé !</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Commande"}</b>\n💰 Montant: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nVotre commande est maintenant confirmée ! Le commercant a été notifié.\n\nMerci pour votre confiance ! 🙏`
-    : `✅ <b>Payment confirmed!</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Order"}</b>\n💰 Amount: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nYour order is now confirmed! The merchant has been notified.\n\nThank you! 🙏`;
+    ? `✅ <b>Paiement confirmé !</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Commande"}</b>\n💰 Montant: <b>${Number(pendingPayment.amount).toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nVotre commande est maintenant confirmée ! Le commercant a été notifié.\n\nMerci pour votre confiance ! 🙏`
+    : `✅ <b>Payment confirmed!</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Order"}</b>\n💰 Amount: <b>${Number(pendingPayment.amount).toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nYour order is now confirmed! The merchant has been notified.\n\nThank you! 🙏`;
 }
 
 // ─── Helper: Handle AI or keyword response ────────────────────────
@@ -481,7 +481,7 @@ async function handleAIResponse(
     businessType: agent.businessType,
     name: agent.name,
     services: agent.services.map((s) =>
-      `- ${s.name} (${s.price.toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
+      `- ${s.name} (${Number(s.price).toLocaleString("fr-FR")} ${currency})${s.description ? `: ${s.description}` : ""}`
     ).join("\n"),
   });
 
@@ -513,7 +513,7 @@ async function handleAIResponse(
     const suggestion = await suggestService(text, agent.services);
     if (suggestion.service && suggestion.confidence >= 0.3) {
       const priceStr = suggestion.service.price > 0
-        ? `${suggestion.service.price.toLocaleString("fr-FR")} ${currency}`
+        ? `${Number(suggestion.service.price).toLocaleString("fr-FR")} ${currency}`
         : lang === "fr" ? "Gratuit" : "Free";
       const svcId = suggestion.service ? agent.services.find(s => s.name === suggestion.service!.name)?.id || "" : "";
       response = lang === "fr"
@@ -582,7 +582,7 @@ async function handleMobileMoneyPayment(
       select: { name: true, price: true },
     });
     if (svc) {
-      serviceAmount = svc.price;
+      serviceAmount = Number(svc.price);
       serviceName = svc.name;
     }
   }
@@ -659,7 +659,7 @@ async function handleChariowPayment(
       select: { name: true, price: true },
     });
     if (svc) {
-      serviceAmount = svc.price;
+      serviceAmount = Number(svc.price);
       serviceName = svc.name;
     }
   }

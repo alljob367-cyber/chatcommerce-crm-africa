@@ -1,60 +1,83 @@
-# ChatCommerce CRM Africa — Guide de Déploiement Vercel
+# ChatCommerce CRM Africa — Guide de Configuration Production
 
-## ⚡ Variables d'Environnement Obligatoires
+## ⚡ Variables d'Environnement Obligatoires (Vercel)
 
-Ajoutez ces variables dans **Vercel Dashboard > Settings > Environment Variables** :
+Configurez dans **Vercel Dashboard > Settings > Environment Variables** pour Production, Preview ET Development :
 
-| Variable | Valeur | Description |
+| Variable | Description | Exemple |
 |---|---|---|
-| `DATABASE_URL` | `postgresql://neondb_owner:npg_Vu1EqLD0fyxl@ep-icy-bar-ayw4j64r-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require` | Neon PostgreSQL (Pooled) |
-| `JWT_SECRET` | `chatcommerce-africa-super-secret-key-2024` | Clé secrète JWT (min 16 chars) |
-| `CRON_SECRET` | `chatcommerce-cron-secret-key-2024` | Protection du endpoint cron |
+| `DATABASE_URL` | Neon PostgreSQL connection string (Pooled) | `postgresql://user:pass@ep-xxx.pooler.neon.tech/dbname?sslmode=require` |
+| `JWT_SECRET` | Clé secrète JWT (MIN 32 caractères) | `chatcommerce-africa-super-secret-jwt-key-2024-xK9mZ` |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint | `https://xxx.upstash.io` |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token | `AXkASg...` |
 
-### Optionnel
+## 📦 Étapes de Configuration
 
-| Variable | Valeur | Description |
-|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | Votre token Bot Father | Pour les bots Telegram |
-| `NODE_ENV` | `production` | Défini automatiquement par Vercel |
+### 1. Base de données Neon PostgreSQL
+1. Créer un compte sur [neon.tech](https://neon.tech)
+2. Créer un nouveau projet (Region: US East 2 recommended)
+3. Copier la **Connection String (Pooled)** dans `DATABASE_URL`
+4. La pooled connection est obligatoire pour Vercel serverless
 
-## 📋 Étapes de Déploiement
+### 2. Upstash Redis (Rate Limiting)
+1. Créer un compte sur [upstash.com](https://upstash.com)
+2. Créer une base Redis (Free tier: 10K commands/day)
+3. Copier l'**REST URL** dans `UPSTASH_REDIS_REST_URL`
+4. Copier le **REST Token** dans `UPSTASH_REDIS_REST_TOKEN`
 
-### 1. Vercel est déjà connecté via GitHub
+### 3. Générer un JWT Secret sécurisé
+```bash
+# Dans un terminal :
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+Copier le résultat dans `JWT_SECRET`
+
+### 4. Appliquer le schéma Prisma
+```bash
+# Avec le DATABASE_URL de Neon configuré localement :
+DATABASE_URL="postgresql://..." npx prisma db push
+```
+Ou via le build Vercel qui exécute automatiquement `prisma db push --skip-generate`
+
+## 🔒 Variables d'Environnement Optionnelles
+
+| Variable | Description |
+|---|---|
+| `MISTRAL_API_KEY` | Clé API Mistral pour les bots IA Telegram |
+| `CHARIOW_API_KEY` | Clé API Chariow pour les paiements |
+| `CHARIOW_WEBHOOK_SECRET` | Secret webhook Chariow |
+| `ADMIN_PASSWORD` | Mot de passe admin personnalisé (défaut: Admin@2024) |
+
+## 🚀 Déploiement
+
+### Via Git (recommandé)
 Chaque `git push` sur `main` déclenche un déploiement automatique.
 
-### 2. Vérifier le déploiement
-- Allez sur https://vercel.com/dashboard
-- Le projet devrait apparaître avec un déploiement en cours/succès
-- L'URL de production est du type `chatcommerce-crm-africa.vercel.app`
+### Via Vercel CLI
+```bash
+npm i -g vercel
+vercel login
+vercel --prod
+```
 
-### 3. Premier lancement
-Après le déploiement, visitez l'URL et :
-- Les comptes admin/demo sont créés automatiquement (seed)
+### Premier lancement
+Après le déploiement :
+- Le bootstrap automatique crée l'admin et l'entreprise
 - **Admin** : `admin@chatcommerce.africa` / `Admin@2024`
-- **Demo** : `demo@chatcommerce.africa` / `Demo@2024`
 
-## 🔧 Corrections Appliquées (Commit 6f4d48c)
+## 🔧 Rate Limiting Configuré
 
-### Bug Critique 1 — Clauses Prisma Invalides (13 fichiers)
-Les opérations `update()` et `delete()` utilisaient `{ id, companyId }` dans le `where`, mais aucun index unique n'existe sur cette combinaison. Résultat : erreur Prisma P2025/P2024.
+Les routes suivantes sont protégées par rate limiting Redis :
+- `/api/auth/login` : 5 tentatives / minute
+- `/api/auth/register` : 3 inscriptions / minute
+- `/api/auth/phone/send-otp` : 5 OTP / minute
 
-**Fix** : Vérification d'appartenance via `findFirst()` avant chaque `update/delete`.
+En développement (sans Upstash), un fallback in-memory est utilisé automatiquement.
 
-### Bug Critique 2 — SSE Timeout sur Vercel
-L'endpoint SSE `/api/notifications/stream` maintient une connexion ouverte indéfiniment. Vercel limite les fonctions serverless à 10s (Hobby) / 60s (Pro).
+## 📊 Fichiers Modifiés (Session Actuelle)
 
-**Fix** : Nouvel endpoint `/api/notifications/poll` + polling côté client toutes les 8s.
-
-### Bug Critique 3 — JWT Secret Fallback
-Le code utilisait `DATABASE_URL` comme fallback pour la clé JWT. Si cette variable changeait, tous les tokens étaient invalidés.
-
-**Fix** : Fallback dev-only, jamais `DATABASE_URL`.
-
-### Optimisation — Dashboard N+1
-Le dashboard lançait jusqu'à 90 requêtes PostgreSQL individuelles pour le graphique de revenus quotidiens.
-
-**Fix** : Requête SQL unique avec `GROUP BY DATE("createdAt")`.
-
-## 📊 Fonctionnalités Déployées (33 API Routes)
-
-Auth | Dashboard | Contacts | Conversations | Produits | Commandes | Leads | Automatisations | Telegram | Paiements | Rapports | Notifications | Sync | Cron
+- `prisma/schema.prisma` — driverEarnings : ajout @db.Decimal(19,2)
+- `src/lib/rate-limit.ts` — Nouveau : module Upstash Redis rate limiting
+- `src/middleware.ts` — Rate limiting middleware sur routes publiques sensibles
+- `src/lib/utils.ts` — Ajout helper toNum() Decimal→number
+- 15 fichiers API — Corrections TypeScript Decimal→Number

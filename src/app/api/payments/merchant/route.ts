@@ -215,7 +215,7 @@ export async function PATCH(request: Request) {
           `✅ <b>Paiement confirmé par le marchand !</b>`,
           ``,
           `📋 Service: <b>${payment.serviceName || "Commande"}</b>`,
-          `💰 Montant: <b>${payment.amount.toLocaleString("fr-FR")} ${payment.currency}</b>`,
+          `💰 Montant: <b>${Number(payment.amount).toLocaleString("fr-FR")} ${payment.currency}</b>`,
           ``,
           `Merci pour votre confiance ! 🙏`,
         ].join("\n");
@@ -247,7 +247,7 @@ export async function PATCH(request: Request) {
           `❌ <b>Paiement non confirmé</b>`,
           ``,
           `📋 Service: <b>${payment.serviceName || "Commande"}</b>`,
-          `💰 Montant: <b>${payment.amount.toLocaleString("fr-FR")} ${payment.currency}</b>`,
+          `💰 Montant: <b>${Number(payment.amount).toLocaleString("fr-FR")} ${payment.currency}</b>`,
           ``,
           `Le marchand n'a pas pu vérifier ce paiement. Veuillez vérifier votre numéro de transaction et réessayer avec /payer.`,
         ].join("\n");

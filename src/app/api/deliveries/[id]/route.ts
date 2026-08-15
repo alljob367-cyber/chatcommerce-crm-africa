@@ -369,7 +369,7 @@ export async function PATCH(
             orderNumber: fullDelivery.order?.orderNumber,
             pickupAddress: fullDelivery.pickupAddress,
             deliveryAddress: fullDelivery.deliveryAddress,
-            driverEarnings: fullDelivery.driverEarnings,
+            driverEarnings: Number(fullDelivery.driverEarnings),
             customerName: fullDelivery.customerName,
             customerPhone: fullDelivery.customerPhone,
           }).catch(() => {});
@@ -463,7 +463,7 @@ export async function PATCH(
             orderNumber: fullDelivery.order?.orderNumber,
             pickupAddress: fullDelivery.pickupAddress,
             deliveryAddress: fullDelivery.deliveryAddress,
-            driverEarnings: fullDelivery.driverEarnings,
+            driverEarnings: Number(fullDelivery.driverEarnings),
             customerName: fullDelivery.customerName,
             customerPhone: fullDelivery.customerPhone,
           }).catch(() => {});

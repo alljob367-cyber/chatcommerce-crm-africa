@@ -206,7 +206,7 @@ export async function PATCH(request: Request) {
       const syncPrice = price !== undefined ? parseFloat(price) : existing.price;
       const syncImage = image !== undefined ? image : existing.image;
       const syncAction = isActive === false ? "delete" : "update";
-      await syncProductToAgents(realCompanyId, syncName, syncDesc, syncPrice, syncImage, syncAction);
+      await syncProductToAgents(realCompanyId, syncName, syncDesc, Number(syncPrice), syncImage, syncAction);
     }
 
     return NextResponse.json({ product });
@@ -241,7 +241,7 @@ export async function DELETE(request: Request) {
     });
 
     // Auto-sync: deactivate matching services in all Telegram agents
-    await syncProductToAgents(realCompanyId, existing.name, existing.description, existing.price, existing.image, "delete");
+    await syncProductToAgents(realCompanyId, existing.name, existing.description, Number(existing.price), existing.image, "delete");
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

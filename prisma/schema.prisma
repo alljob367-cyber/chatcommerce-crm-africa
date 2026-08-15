@@ -585,7 +585,7 @@ model Delivery {
   // Status flow: pending → searching → assigned → picked_up → on_the_way → delivered → cancelled
   status         String  @default("pending")
   fee            Decimal @default(0) @db.Decimal(19, 2) // delivery fee charged to customer
-  driverEarnings Decimal @default(0) // what driver earns
+  driverEarnings Decimal @default(0) @db.Decimal(19, 2) // what driver earns
   distance       Float? // in km
   estimatedTime  Int? // in minutes
 

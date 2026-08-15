@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes publiques qui ne nécessitent PAS de token (exclusion EXACTE)
-const EXACT_PUBLIC_PATHS = ["/api/auth/register", "/api/auth/login", "/api/auth/phone/send-otp", "/api/auth/phone/verify-otp", "/api/chariow/webhook"];
+const EXACT_PUBLIC_PATHS = [
+  "/api/auth/register",
+  "/api/auth/login",
+  "/api/auth/phone/send-otp",
+  "/api/auth/phone/verify-otp",
+  "/api/chariow/webhook",
+];
 const PREFIX_PUBLIC_PATHS = ["/api/cron", "/api/telegram/webhook", "/api/seed"];
+
+// Routes sensibles nécessitant un rate limiting strict
+const RATE_LIMITED_PATHS: Array<{ path: string; limit: number; windowSec: number }> = [
+  { path: "/api/auth/login", limit: 5, windowSec: 60 },       // 5 login attempts per minute
+  { path: "/api/auth/register", limit: 3, windowSec: 60 },    // 3 registrations per minute
+  { path: "/api/auth/phone/send-otp", limit: 5, windowSec: 60 }, // 5 OTP sends per minute
+  { path: "/api/auth/phone/verify-otp", limit: 10, windowSec: 60 }, // 10 OTP verifies per minute
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -36,6 +50,44 @@ export async function middleware(request: NextRequest) {
 
   // 3. Autoriser les routes publiques par correspondance exacte
   if (EXACT_PUBLIC_PATHS.includes(pathname)) {
+    // Rate limiting pour les routes publiques sensibles
+    const rateLimitRule = RATE_LIMITED_PATHS.find((r) => r.path === pathname);
+    if (rateLimitRule) {
+      // Get client IP for rate limit key
+      const clientIp =
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        request.headers.get("x-real-ip") ||
+        "unknown";
+      const rateLimitKey = `mw:${rateLimitRule.path}:${clientIp}`;
+
+      // Dynamic import for rate limiting (Edge-compatible)
+      try {
+        const { rateLimitMiddleware } = await import("@/lib/rate-limit");
+        const result = await rateLimitMiddleware(
+          rateLimitKey,
+          rateLimitRule.limit,
+          rateLimitRule.windowSec
+        );
+
+        if (!result.allowed) {
+          return NextResponse.json(
+            {
+              error: "Trop de requetes. Reessayez dans un instant.",
+              retryAfter: Math.ceil(result.retryAfterMs / 1000),
+            },
+            {
+              status: 429,
+              headers: {
+                "Retry-After": String(Math.ceil(result.retryAfterMs / 1000)),
+                "X-RateLimit-Limit": String(rateLimitRule.limit),
+              },
+            }
+          );
+        }
+      } catch {
+        // Rate limiting unavailable — allow request (fail open)
+      }
+    }
     return NextResponse.next();
   }
 
