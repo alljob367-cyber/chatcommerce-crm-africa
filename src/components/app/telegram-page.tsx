@@ -229,7 +229,7 @@ export default function TelegramPage() {
     currency: "XAF",
     paymentMethod: "none",
     aiEnabled: false,
-    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "custom",
+    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "mistral" | "custom",
     aiApiKey: "",
     aiModel: "",
     aiBaseUrl: "",
@@ -274,7 +274,7 @@ export default function TelegramPage() {
     currency: "XAF",
     paymentMethod: "none",
     aiEnabled: false,
-    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "custom",
+    aiProvider: "openrouter" as "openai" | "anthropic" | "openrouter" | "mistral" | "custom",
     aiApiKey: "",
     aiModel: "",
     aiBaseUrl: "",
@@ -523,7 +523,7 @@ export default function TelegramPage() {
       currency: agent.currency,
       paymentMethod: agent.paymentMethod || "none",
       aiEnabled: (aiOverrides.enabled as boolean) ?? false,
-      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "custom") ?? "openrouter",
+      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "mistral" | "custom") ?? "openrouter",
       aiApiKey: (aiOverrides.apiKey as string) || "",
       aiModel: (aiOverrides.model as string) || "",
       aiBaseUrl: (aiOverrides.baseUrl as string) || "",
@@ -644,7 +644,7 @@ export default function TelegramPage() {
       currency: agent.currency,
       paymentMethod: agent.paymentMethod || "none",
       aiEnabled: (aiOverrides.enabled as boolean) ?? false,
-      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "custom") ?? "openrouter",
+      aiProvider: (aiOverrides.provider as "openai" | "anthropic" | "openrouter" | "mistral" | "custom") ?? "openrouter",
       aiApiKey: (aiOverrides.apiKey as string) || "",
       aiModel: (aiOverrides.model as string) || "",
       aiBaseUrl: (aiOverrides.baseUrl as string) || "",
@@ -1468,12 +1468,13 @@ export default function TelegramPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>Fournisseur IA</Label>
-                      <Select value={agentForm.aiProvider} onValueChange={(v) => setAgentForm({ ...agentForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "custom" })}>
+                      <Select value={agentForm.aiProvider} onValueChange={(v) => setAgentForm({ ...agentForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "mistral" | "custom" })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="openrouter">OpenRouter (Multi-modal)</SelectItem>
                           <SelectItem value="openai">OpenAI</SelectItem>
                           <SelectItem value="anthropic">Anthropic</SelectItem>
+                          <SelectItem value="mistral">Mistral AI</SelectItem>
                           <SelectItem value="custom">Personnalisé</SelectItem>
                         </SelectContent>
                       </Select>
@@ -1481,7 +1482,7 @@ export default function TelegramPage() {
                     <div className="space-y-2">
                       <Label>Modele</Label>
                       <Input
-                        placeholder={agentForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : agentForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-4o-mini"}
+                        placeholder={agentForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : agentForm.aiProvider === "anthropic" ? "claude-3-haiku" : agentForm.aiProvider === "mistral" ? "mistral-small-latest" : "gpt-4o-mini"}
                         value={agentForm.aiModel}
                         onChange={(e) => setAgentForm({ ...agentForm, aiModel: e.target.value })}
                       />
@@ -1913,12 +1914,13 @@ export default function TelegramPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-2">
                             <Label>Fournisseur IA</Label>
-                            <Select value={configForm.aiProvider} onValueChange={(v) => setConfigForm({ ...configForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "custom" })}>
+                            <Select value={configForm.aiProvider} onValueChange={(v) => setConfigForm({ ...configForm, aiProvider: v as "openai" | "anthropic" | "openrouter" | "mistral" | "custom" })}>
                               <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="openrouter">OpenRouter (Multi-modal)</SelectItem>
                                 <SelectItem value="openai">OpenAI</SelectItem>
                                 <SelectItem value="anthropic">Anthropic</SelectItem>
+                                <SelectItem value="mistral">Mistral AI</SelectItem>
                                 <SelectItem value="custom">Personnalise</SelectItem>
                               </SelectContent>
                             </Select>
@@ -1926,7 +1928,7 @@ export default function TelegramPage() {
                           <div className="space-y-2">
                             <Label>Modele</Label>
                             <Input
-                              placeholder={configForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : configForm.aiProvider === "anthropic" ? "claude-3-haiku" : "gpt-4o-mini"}
+                              placeholder={configForm.aiProvider === "openrouter" ? "google/gemini-2.0-flash-001" : configForm.aiProvider === "anthropic" ? "claude-3-haiku" : configForm.aiProvider === "mistral" ? "mistral-small-latest" : "gpt-4o-mini"}
                               value={configForm.aiModel}
                               onChange={(e) => setConfigForm({ ...configForm, aiModel: e.target.value })}
                             />
