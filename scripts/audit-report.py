@@ -789,7 +789,7 @@ for item in perf_items:
 story.append(Paragraph("9.2 Deploiement", style_h2))
 deploy_items = [
     "Le deploiement est fait via Vercel CLI avec un token personnel encode en dur dans la commande de deploiement. "
-    "Le token Vercel '(token supprime)' est visible dans l'historique "
+    "Le token Vercel est visible dans l'historique "
     "des commandes et les logs. Il devrait etre stocke dans les secrets du CI/CD ou dans un fichier .env non versionne.",
     "Le fichier .env local pointe vers SQLite (file:./db/custom.db) au lieu de PostgreSQL Neon, ce qui signifie que "
     "le developpement local ne reflete pas l'environnement de production. JWT_SECRET et toutes les autres variables "
