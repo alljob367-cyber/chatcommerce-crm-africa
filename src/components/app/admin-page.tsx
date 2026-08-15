@@ -71,6 +71,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
+  Wallet,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -133,6 +134,32 @@ interface AdminMetrics {
   }>;
   telegramBotsByType: Array<{ businessType: string; _count: { id: number } }>;
   telegramBookingsByStatus: Array<{ status: string; _count: { id: number } }>;
+  merchantPayments: {
+    total: number;
+    confirmed: number;
+    pending: number;
+    rejected: number;
+    totalRevenue: number;
+    todayRevenue: number;
+    weekRevenue: number;
+    monthRevenue: number;
+    topCompanies: Array<{ companyId: string; companyName: string; revenue: number; paymentCount: number }>;
+    byMethod: Array<{ paymentMethod: string; _count: { id: number }; _sum: { amount: number | null } }>;
+    recent: Array<{
+      id: string;
+      customerName: string;
+      amount: number;
+      currency: string;
+      paymentMethod: string;
+      status: string;
+      transactionRef?: string;
+      serviceName?: string;
+      createdAt: string;
+      confirmedAt?: string | null;
+      agent: { name: string; botUsername?: string } | null;
+      company: { name: string } | null;
+    }>;
+  };
 }
 
 interface AdminCompany {
@@ -744,6 +771,141 @@ export default function AdminPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-6">Aucun paiement recent</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ─── MERCHANT PAYMENTS (All Companies) ─── */}
+          <Card className="border-2 border-[#25D366]/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-[#25D366]" />
+                Paiements Marchands (Toutes les Entreprises)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Paiements des clients vers les commercants via les bots Telegram
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Merchant Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50">
+                  <p className="text-[10px] text-muted-foreground">Revenus Totaux</p>
+                  <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatFCFA(metrics?.merchantPayments?.totalRevenue ?? 0)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50">
+                  <p className="text-[10px] text-muted-foreground">Aujourd&apos;hui</p>
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{formatFCFA(metrics?.merchantPayments?.todayRevenue ?? 0)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/50">
+                  <p className="text-[10px] text-muted-foreground">En Attente</p>
+                  <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{metrics?.merchantPayments?.pending ?? 0}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50">
+                  <p className="text-[10px] text-muted-foreground">Ce Mois</p>
+                  <p className="text-lg font-bold text-purple-700 dark:text-purple-400">{formatFCFA(metrics?.merchantPayments?.monthRevenue ?? 0)}</p>
+                </div>
+              </div>
+
+              {/* Merchant Revenue by Company */}
+              {metrics?.merchantPayments?.topCompanies && metrics.merchantPayments.topCompanies.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium">Top Entreprises par Revenus Marchands</p>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Entreprise</TableHead>
+                          <TableHead className="text-right">Paiements</TableHead>
+                          <TableHead className="text-right">Revenus</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {metrics.merchantPayments.topCompanies.slice(0, 5).map((c) => (
+                          <TableRow key={c.companyId}>
+                            <TableCell className="text-xs font-medium flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              {c.companyName}
+                            </TableCell>
+                            <TableCell className="text-xs text-right">{c.paymentCount}</TableCell>
+                            <TableCell className="text-xs font-bold text-right text-green-600 dark:text-green-400">{formatFCFA(c.revenue)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Methods */}
+              {metrics?.merchantPayments?.byMethod && metrics.merchantPayments.byMethod.length > 0 && (
+                <div className="flex gap-3 flex-wrap">
+                  {metrics.merchantPayments.byMethod.map((m) => (
+                    <div key={m.paymentMethod} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 text-xs">
+                      <div className={`w-3 h-3 rounded-full ${m.paymentMethod === "orange_money" ? "bg-orange-500" : m.paymentMethod === "mtn_money" ? "bg-yellow-500" : "bg-gray-400"}`} />
+                      <span>{m.paymentMethod === "orange_money" ? "Orange Money" : m.paymentMethod === "mtn_money" ? "MTN" : m.paymentMethod}</span>
+                      <span className="font-bold">{m._count.id}</span>
+                      <span className="text-muted-foreground">({formatFCFA(m._sum.amount || 0)})</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recent Merchant Payments */}
+              {metrics?.merchantPayments?.recent && metrics.merchantPayments.recent.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium">Derniers Paiements Marchands</p>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Client</TableHead>
+                          <TableHead>Entreprise</TableHead>
+                          <TableHead>Service</TableHead>
+                          <TableHead className="text-right">Montant</TableHead>
+                          <TableHead>Methode</TableHead>
+                          <TableHead>Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {metrics.merchantPayments.recent.slice(0, 8).map((p) => {
+                          const sc = STATUS_CONFIG[p.status] || STATUS_CONFIG.pending;
+                          const StatusIcon = sc.icon;
+                          return (
+                            <TableRow key={p.id}>
+                              <TableCell className="text-[10px] text-muted-foreground">
+                                {new Date(p.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                              </TableCell>
+                              <TableCell className="text-xs font-medium">{p.customerName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{p.company?.name || "—"}</TableCell>
+                              <TableCell className="text-xs">{p.serviceName || "—"}</TableCell>
+                              <TableCell className="text-xs font-bold">{formatFCFA(p.amount)}</TableCell>
+                              <TableCell>
+                                <span className="text-[10px] flex items-center gap-1">
+                                  <div className={`w-2 h-2 rounded-full ${p.paymentMethod === "orange_money" ? "bg-orange-500" : "bg-yellow-500"}`} />
+                                  {p.paymentMethod === "orange_money" ? "OM" : "MTN"}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`${sc.className} text-[10px]`}>
+                                  <StatusIcon className="w-2.5 h-2.5 mr-0.5" />
+                                  {sc.label}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {(!metrics?.merchantPayments?.recent || metrics.merchantPayments.recent.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Aucun paiement marchand pour le moment
+                </p>
               )}
             </CardContent>
           </Card>

@@ -74,6 +74,84 @@ export async function GET(request: Request) {
       });
       const totalRevenue = revenueResult._sum.amount || 0;
 
+      // ─── Merchant Payments Metrics (all companies) ───
+      const [
+        merchantTotalPayments,
+        merchantConfirmedPayments,
+        merchantPendingPayments,
+        merchantRejectedPayments,
+        merchantTotalRevenueResult,
+        merchantTodayRevenueResult,
+        merchantWeekRevenueResult,
+        merchantMonthRevenueResult,
+      ] = await Promise.all([
+        db.merchantPayment.count(),
+        db.merchantPayment.count({ where: { status: "confirmed" } }),
+        db.merchantPayment.count({ where: { status: "pending" } }),
+        db.merchantPayment.count({ where: { status: "rejected" } }),
+        db.merchantPayment.aggregate({ where: { status: "confirmed" }, _sum: { amount: true } }),
+        (() => {
+          const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+          return db.merchantPayment.aggregate({ where: { status: "confirmed", confirmedAt: { gte: startOfDay } }, _sum: { amount: true } });
+        })(),
+        (() => {
+          const startOfWeek = new Date(); startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1); startOfWeek.setHours(0, 0, 0, 0);
+          return db.merchantPayment.aggregate({ where: { status: "confirmed", confirmedAt: { gte: startOfWeek } }, _sum: { amount: true } });
+        })(),
+        (() => {
+          const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+          return db.merchantPayment.aggregate({ where: { status: "confirmed", confirmedAt: { gte: startOfMonth } }, _sum: { amount: true } });
+        })(),
+      ]);
+
+      const merchantTotalRevenue = merchantTotalRevenueResult._sum.amount || 0;
+      const merchantTodayRevenue = merchantTodayRevenueResult._sum.amount || 0;
+      const merchantWeekRevenue = merchantWeekRevenueResult._sum.amount || 0;
+      const merchantMonthRevenue = merchantMonthRevenueResult._sum.amount || 0;
+
+      // Merchant revenue by company (top 10)
+      const merchantRevenueByCompany = await db.merchantPayment.groupBy({
+        by: ["companyId"],
+        where: { status: "confirmed" },
+        _sum: { amount: true },
+        _count: { id: true },
+        orderBy: { _sum: { amount: "desc" } },
+        take: 10,
+      });
+
+      // Get company names for the breakdown
+      const merchantCompanyIds = merchantRevenueByCompany.map((m) => m.companyId);
+      const merchantCompanyNames = merchantCompanyIds.length > 0
+        ? await db.company.findMany({
+            where: { id: { in: merchantCompanyIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+      const merchantTopCompanies = merchantRevenueByCompany.map((m) => ({
+        companyId: m.companyId,
+        companyName: merchantCompanyNames.find((c) => c.id === m.companyId)?.name || "Inconnu",
+        revenue: m._sum.amount || 0,
+        paymentCount: m._count.id,
+      }));
+
+      // Merchant payments by method
+      const merchantPaymentsByMethod = await db.merchantPayment.groupBy({
+        by: ["paymentMethod"],
+        _count: { id: true },
+        _sum: { amount: true },
+      });
+
+      // Recent merchant payments (last 20)
+      const recentMerchantPayments = await db.merchantPayment.findMany({
+        take: 20,
+        orderBy: { createdAt: "desc" },
+        include: {
+          agent: { select: { name: true, botUsername: true } },
+          company: { select: { name: true } },
+        },
+      });
+
       // Companies by plan
       const companiesByPlan = await db.company.groupBy({
         by: ["plan"],
@@ -229,6 +307,20 @@ export async function GET(request: Request) {
         recentPayments: recentPaymentsList,
         telegramBotsByType,
         telegramBookingsByStatus,
+        // Merchant payments metrics (all companies)
+        merchantPayments: {
+          total: merchantTotalPayments,
+          confirmed: merchantConfirmedPayments,
+          pending: merchantPendingPayments,
+          rejected: merchantRejectedPayments,
+          totalRevenue: merchantTotalRevenue,
+          todayRevenue: merchantTodayRevenue,
+          weekRevenue: merchantWeekRevenue,
+          monthRevenue: merchantMonthRevenue,
+          topCompanies: merchantTopCompanies,
+          byMethod: merchantPaymentsByMethod,
+          recent: recentMerchantPayments,
+        },
       });
     }
 

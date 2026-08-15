@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/store/app";
 import Header from "./header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,9 @@ import {
   Eye,
   Shield,
   Filter,
+  Phone,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface AdminPayment {
   id: string;
@@ -77,6 +79,15 @@ export default function AdminPaymentsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+
+  // Payment settings (Mobile Money numbers)
+  const [paymentSettings, setPaymentSettings] = useState({
+    orange_money: "",
+    mtn_money: "",
+  });
+  const [paymentSettingsLoading, setPaymentSettingsLoading] = useState(true);
+  const [paymentSettingsSaving, setPaymentSettingsSaving] = useState(false);
+  const [paymentSettingsSaved, setPaymentSettingsSaved] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     if (!token) return;
@@ -153,6 +164,49 @@ export default function AdminPaymentsPage() {
     );
   };
 
+  // ─── Fetch payment settings (Mobile Money numbers) ───
+  const fetchPaymentSettings = useCallback(async () => {
+    if (!token) return;
+    setPaymentSettingsLoading(true);
+    try {
+      const res = await fetch("/api/company", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.company?.paymentSettings) {
+          setPaymentSettings({
+            orange_money: data.company.paymentSettings.orange_money || "",
+            mtn_money: data.company.paymentSettings.mtn_money || "",
+          });
+        }
+      }
+    } catch { /* ignore */ }
+    finally { setPaymentSettingsLoading(false); }
+  }, [token]);
+
+  const savePaymentSettings = async () => {
+    if (!token) return;
+    setPaymentSettingsSaving(true);
+    try {
+      const res = await fetch("/api/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ paymentSettings }),
+      });
+      if (res.ok) {
+        toast.success("Numeros de paiement mis a jour");
+        setPaymentSettingsSaved(true);
+        setTimeout(() => setPaymentSettingsSaved(false), 3000);
+      } else {
+        toast.error("Erreur lors de la mise a jour");
+      }
+    } catch { toast.error("Erreur"); }
+    finally { setPaymentSettingsSaving(false); }
+  };
+
+  useEffect(() => { fetchPaymentSettings(); }, [fetchPaymentSettings]);
+
   const pendingCount = payments.filter((p) => p.status === "pending").length;
 
   // Filtrer par recherche
@@ -180,6 +234,86 @@ export default function AdminPaymentsPage() {
       <Header title="Gestion des Paiements" subtitle="Validation des paiements Mobile Money" />
 
       <div className="p-6 animate-fade-in space-y-6">
+        {/* ─── SECTION: Numeros de reception Mobile Money ─── */}
+        <Card className="border-2 border-[#25D366]/20">
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-[#25D366]" />
+              Numeros de Reception Mobile Money
+              {paymentSettingsSaved && (
+                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px]">
+                  <CheckCircle2 className="w-3 h-3 mr-1" /> Enregistre
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Configurez les numeros sur lesquels les commercants envoient leurs paiements d'abonnement.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paymentSettingsLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Orange Money */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+                      <Smartphone className="w-3.5 h-3.5 text-orange-500" />
+                    </div>
+                    Orange Money
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Ex: 237 6XX XXX XXX"
+                      value={paymentSettings.orange_money}
+                      onChange={(e) => setPaymentSettings((s) => ({ ...s, orange_money: e.target.value }))}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                {/* MTN Mobile Money */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-yellow-100 dark:bg-yellow-500/20 flex items-center justify-center">
+                      <Smartphone className="w-3.5 h-3.5 text-yellow-600" />
+                    </div>
+                    MTN Mobile Money
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Ex: 237 6XX XXX XXX"
+                      value={paymentSettings.mtn_money}
+                      onChange={(e) => setPaymentSettings((s) => ({ ...s, mtn_money: e.target.value }))}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                {/* Save button */}
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    onClick={savePaymentSettings}
+                    disabled={paymentSettingsSaving}
+                    className="bg-[#25D366] hover:bg-[#25D366]/90 text-white gap-2"
+                  >
+                    {paymentSettingsSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Shield className="w-4 h-4" />
+                    )}
+                    Enregistrer les numeros
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Separator />
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((s) => (
