@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
 
@@ -15,6 +15,8 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+
+    await ensureBootstrapped();
 
     const isAdmin = session.role === "super_admin" || session.userId === "admin-hardcoded-001";
     if (!isAdmin) {
@@ -78,6 +80,8 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+
+    await ensureBootstrapped();
 
     const isAdmin = session.role === "super_admin" || session.userId === "admin-hardcoded-001";
     if (!isAdmin) {

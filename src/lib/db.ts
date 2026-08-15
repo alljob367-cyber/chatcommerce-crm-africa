@@ -42,50 +42,65 @@ export async function ensureBootstrapped() {
   globalForPrisma.bootstrapped = true;
 
   try {
-    const userCount = await db.user.count();
-    if (userCount > 0) return; // DB already has data
-
     const bcrypt = await import("bcryptjs");
 
-    // Create admin company
-    const company = await db.company.create({
-      data: {
-        name: "ChatCommerce CRM Africa",
-        slug: "chatcommerce-crm-africa",
-        country: "Cameroun",
-        plan: "enterprise",
-        whatsappNumber: "+237612345678",
-        maxContacts: 999999,
-        maxAgents: 999999,
-      },
-    });
+    const ADMIN_COMPANY_ID = "company-admin-001";
 
-    // Create admin user
-    await db.user.create({
-      data: {
-        email: "admin@chatcommerce.africa",
-        passwordHash: bcrypt.hashSync("Admin@2024", 12),
-        name: "Administrateur Principal",
-        phone: "+237612345678",
-        role: "company_admin",
-        emailVerified: true,
-        isActive: true,
-        companyId: company.id,
-      },
-    });
+    // Create or find admin company with FIXED ID matching hardcoded JWT
+    let company = await db.company.findUnique({ where: { id: ADMIN_COMPANY_ID } });
+    if (!company) {
+      try {
+        company = await db.company.create({
+          data: {
+            id: ADMIN_COMPANY_ID,
+            name: "ChatCommerce CRM Africa",
+            slug: "chatcommerce-crm-africa",
+            country: "Cameroun",
+            plan: "enterprise",
+            whatsappNumber: "+237612345678",
+            maxContacts: 999999,
+            maxAgents: 999999,
+          },
+        });
+      } catch (createErr) {
+        // Company might already exist (e.g. bootstrap ran before this fix)
+        company = await db.company.findFirst({ where: { name: "ChatCommerce CRM Africa" } });
+        if (!company) throw createErr;
+      }
+    }
 
-    // Create admin subscription
-    await db.subscription.create({
-      data: {
-        companyId: company.id,
-        plan: "enterprise",
-        status: "active",
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 365 * 86400000),
-      },
-    });
+    // Ensure admin user exists
+    const existingAdmin = await db.user.findFirst({ where: { email: "admin@chatcommerce.africa" } });
+    if (!existingAdmin) {
+      await db.user.create({
+        data: {
+          email: "admin@chatcommerce.africa",
+          passwordHash: bcrypt.hashSync("Admin@2024", 12),
+          name: "Administrateur Principal",
+          phone: "+237612345678",
+          role: "company_admin",
+          emailVerified: true,
+          isActive: true,
+          companyId: company.id,
+        },
+      });
+    }
 
-    console.log("[DB] Bootstrap complete: admin account created on PostgreSQL");
+    // Ensure admin subscription exists
+    const existingSub = await db.subscription.findFirst({ where: { companyId: company.id } });
+    if (!existingSub) {
+      await db.subscription.create({
+        data: {
+          companyId: company.id,
+          plan: "enterprise",
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 365 * 86400000),
+        },
+      });
+    }
+
+    console.log(`[DB] Bootstrap complete: admin company id=${company.id}`);
   } catch (error) {
     console.error("[DB] Bootstrap failed:", error);
   }

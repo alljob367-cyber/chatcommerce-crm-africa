@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit, PLAN_LIMITS } from "@/lib/plan-limits";
@@ -334,6 +334,8 @@ export async function POST(request: Request) {
   try {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+    await ensureBootstrapped();
 
     // Setup réservé à l'admin
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";

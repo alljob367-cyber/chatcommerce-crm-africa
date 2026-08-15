@@ -18,3 +18,30 @@ Stage Summary:
 - 0 faille critique ouverte restante
 - App déployée: https://my-project-eight-xi-94.vercel.app
 - Rapport PPTX: /home/z/my-project/download/ChatCommerce_CRM_Audit_Securite.pptx
+---
+Task ID: 1
+Agent: main
+Task: Correction immédiate - Bug création d'agent Telegram
+
+Work Log:
+- Analysé le code complet : API agents, frontend telegram-page, webhook, auth, db bootstrap
+- Identifié le BUG CRITIQUE ROOT CAUSE : companyId mismatch
+  - Le hardcoded admin JWT utilise companyId: "company-admin-001"
+  - ensureBootstrapped() créait la company avec un CUID auto-généré (ex: clxxxx...)
+  - Résultat : Prisma foreign key constraint échoue → agent jamais créé
+- Corrigé ensureBootstrapped() dans src/lib/db.ts :
+  - Utilise maintenant id fixe "company-admin-001" pour la company admin
+  - Ajouté logique upsert (findOrCreate) pour gérer le cas où la company existe déjà
+  - Supprimé le check "userCount > 0" qui empêchait le bootstrap si d'autres users existaient
+- Ajouté ensureBootstrapped() dans 6 routes API :
+  - POST /api/telegram/agents (création agent)
+  - POST/DELETE /api/company/global-token
+  - POST/DELETE /api/telegram/webhook-setup
+  - POST /api/telegram/setup
+  - POST /api/telegram/activate
+- Supprimé les console.log de debug dans POST /api/telegram/agents
+
+Stage Summary:
+- Root cause identifié et corrigé : companyId mismatch entre JWT hardcoded et DB
+- 6 fichiers modifiés : db.ts, agents/route.ts, global-token/route.ts, webhook-setup/route.ts, setup/route.ts, activate/route.ts
+- Déploiement échoué : token Vercel expiré, l'utilisateur doit déployer manuellement

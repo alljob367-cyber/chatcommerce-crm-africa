@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, ensureBootstrapped } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { sanitize, handleError } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -70,10 +70,11 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
+    // Ensure DB is bootstrapped (company exists) before creating agents
+    await ensureBootstrapped();
+
     const isAdmin = session.role === "company_admin" || session.role === "super_admin";
-    console.log("[API /telegram/agents POST] session:", JSON.stringify({ userId: session.userId, companyId: session.companyId, role: session.role, isAdmin }));
     const body = await request.json();
-    console.log("[API /telegram/agents POST] body keys:", Object.keys(body));
 
     if (!isAdmin) {
       // ── Agent / Viewer : ne peut fournir que le token pour activer un agent existant ──
