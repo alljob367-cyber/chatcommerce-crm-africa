@@ -187,16 +187,17 @@ async function createBooking(
   serviceId: string,
   customerName: string,
   lang: "fr" | "en"
-): Promise<string> {
+): Promise<{ text: string; keyboard?: Record<string, unknown> }> {
   const service = agent.services.find(s => s.id === serviceId);
-  if (!service) return lang === "fr" ? "Service introuvable." : "Service not found.";
+  if (!service) return { text: lang === "fr" ? "Service introuvable." : "Service not found." };
 
   const currency = agent.currency || "XAF";
   const priceStr = service.price > 0 ? `${service.price.toLocaleString("fr-FR")} ${currency}` : "Gratuit";
 
   // Create booking in database
+  let bookingId: string | undefined;
   try {
-    await db.telegramBooking.create({
+    const booking = await db.telegramBooking.create({
       data: {
         agentId: agent.id,
         companyId: agent.companyId,
@@ -207,19 +208,136 @@ async function createBooking(
         status: "pending",
       },
     });
+    bookingId = booking.id;
     console.log(`[Telegram Webhook] Booking created: ${service.name} for ${customerName} (chatId: ${chatId})`);
   } catch (error) {
     console.error("[Telegram Webhook] Failed to create booking:", error);
   }
 
-  // Build confirmation message
-  const payInfo = agent.paymentMethod
-    ? `\n\n💳 ${lang === "fr" ? "Paiement" : "Payment"}: ${agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod === "cash" ? (lang === "fr" ? "Espèces" : "Cash") : agent.paymentMethod}`
-    : "";
+  // Create merchant payment if service has a price and agent has payment method
+  let paymentInfo = "";
+  if (service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash") {
+    try {
+      const merchantPhone = agent.phone || "";
+      await db.merchantPayment.create({
+        data: {
+          agentId: agent.id,
+          companyId: agent.companyId,
+          bookingId: bookingId || null,
+          chatId,
+          customerName,
+          serviceName: service.name,
+          amount: service.price,
+          currency,
+          paymentMethod: agent.paymentMethod,
+          merchantPhone: merchantPhone || null,
+          status: "pending",
+        },
+      });
+
+      const payMethodName = agent.paymentMethod === "orange_money" ? "Orange Money" : agent.paymentMethod === "mtn_money" ? "MTN Mobile Money" : agent.paymentMethod;
+      if (merchantPhone) {
+        paymentInfo = `\n\n${"─".repeat(20)}\n💰 <b>PAYER :</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n📱 Via: <b>${payMethodName}</b>\n📞 Envoyez au: <b>${merchantPhone}</b>\n\n📋 <b>Etapes :</b>\n1️⃣ Ouvrez votre app ${payMethodName}\n2️⃣ Transférez ${service.price.toLocaleString("fr-FR")} ${currency} au ${merchantPhone}\n3️⃣ Notez votre numéro de transaction\n4️⃣ Envoyez-le ici avec: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\n⏳ Votre commande sera confirmée à la réception du paiement.`;
+      } else {
+        paymentInfo = `\n\n💰 <b>PRIX:</b> ${service.price.toLocaleString("fr-FR")} ${currency}\n💳 Paiement: ${payMethodName}\n\n/contact — Pour voir les coordonnées de paiement`;
+      }
+    } catch (error) {
+      console.error("[Telegram Webhook] Failed to create merchant payment:", error);
+    }
+  } else if (agent.paymentMethod === "cash") {
+    paymentInfo = `\n\n💵 Paiement en espèces sur place.`;
+  }
+
+  const baseText = lang === "fr"
+    ? `✅ <b>Commande enregistrée !</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Prix: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`
+    : `✅ <b>Order placed!</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Price: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}`;
+
+  // Add pay button if payment is mobile money
+  let keyboard: Record<string, unknown> | undefined;
+  if (service.price > 0 && agent.paymentMethod && agent.paymentMethod !== "cash" && agent.phone) {
+    keyboard = {
+      inline_keyboard: [
+        [
+          { text: lang === "fr" ? "💳 J'ai payé — Envoyer transaction" : "💳 I paid — Send transaction", callback_data: "pay_now" },
+        ],
+        [
+          { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+          { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+        ],
+      ],
+    };
+  } else {
+    keyboard = {
+      inline_keyboard: [
+        [
+          { text: lang === "fr" ? "📋 Menu" : "📋 Menu", callback_data: "menu" },
+          { text: lang === "fr" ? "📞 Contact" : "📞 Contact", callback_data: "contact" },
+        ],
+      ],
+    };
+  }
+
+  const statusText = lang === "fr"
+    ? `📝 Votre commande est en attente de confirmation.`
+    : `📝 Your order is pending confirmation.`;
+
+  return {
+    text: `${baseText}${paymentInfo}\n\n${statusText}\n\nTapez /menu pour voir d'autres services.`,
+    keyboard,
+  };
+}
+
+// ─── Helper: Handle payment submission ───────────────────────────
+
+async function handlePaymentSubmission(
+  agent: AgentWithServices,
+  chatId: string,
+  transactionRef: string,
+  customerName: string,
+  lang: "fr" | "en"
+): Promise<string> {
+  // Find pending payment for this chat
+  const pendingPayment = await db.merchantPayment.findFirst({
+    where: {
+      agentId: agent.id,
+      chatId,
+      status: "pending",
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!pendingPayment) {
+    return lang === "fr"
+      ? "❌ Aucune commande en attente de paiement. Tapez /menu pour commander d'abord."
+      : "❌ No pending orders. Type /menu to order first.";
+  }
+
+  const currency = pendingPayment.currency || "XAF";
+  const payMethodName = pendingPayment.paymentMethod === "orange_money" ? "Orange Money" : pendingPayment.paymentMethod === "mtn_money" ? "MTN Mobile Money" : pendingPayment.paymentMethod;
+
+  // Update payment with transaction ref
+  await db.merchantPayment.update({
+    where: { id: pendingPayment.id },
+    data: {
+      transactionRef,
+      status: "confirmed",
+      confirmedAt: new Date(),
+    },
+  });
+
+  // Also update linked booking if exists
+  if (pendingPayment.bookingId) {
+    try {
+      await db.telegramBooking.update({
+        where: { id: pendingPayment.bookingId },
+        data: { status: "confirmed" },
+      });
+    } catch { /* ignore */ }
+  }
 
   return lang === "fr"
-    ? `✅ <b>Commande enregistrée !</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Prix: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}${payInfo}\n\n📝 ${lang === "fr" ? "Votre commande est en attente de confirmation." : "Your order is pending confirmation."}\n\nTapez /menu pour voir d'autres services.`
-    : `✅ <b>Order placed!</b>\n\n📋 Service: <b>${service.name}</b>\n💰 Price: <b>${priceStr}</b>\n👤 Client: ${customerName}\n🏪 ${agent.name}${payInfo}\n\n📝 Your order is pending confirmation.\n\nType /menu to see more services.`;
+    ? `✅ <b>Paiement confirmé !</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Commande"}</b>\n💰 Montant: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nVotre commande est maintenant confirmée ! Le commercant a été notifié.\n\nMerci pour votre confiance ! 🙏`
+    : `✅ <b>Payment confirmed!</b>\n\n📋 Service: <b>${pendingPayment.serviceName || "Order"}</b>\n💰 Amount: <b>${pendingPayment.amount.toLocaleString("fr-FR")} ${currency}</b>\n📱 Via: ${payMethodName}\n 🔖 Transaction: <code>${transactionRef}</code>\n\nYour order is now confirmed! The merchant has been notified.\n\nThank you! 🙏`;
 }
 
 // ─── Helper: Handle AI or keyword response ────────────────────────
@@ -375,8 +493,13 @@ export async function POST(req: NextRequest) {
       } else if (callbackData.startsWith("order:")) {
         // Service order from inline button
         const serviceId = callbackData.replace("order:", "");
-        const confirmation = await createBooking(agent, chatId, serviceId, userName, userLang);
-        await sendTelegramMessage(botToken, chatId, confirmation);
+        const { text: confirmText, keyboard: confirmKeyboard } = await createBooking(agent, chatId, serviceId, userName, userLang);
+        await sendTelegramMessage(botToken, chatId, confirmText, confirmKeyboard);
+      } else if (callbackData === "pay_now") {
+        // Customer clicked "I paid" button — prompt for transaction number
+        await sendTelegramMessage(botToken, chatId, userLang === "fr"
+          ? "💳 <b>Envoyez votre numéro de transaction</b>\n\nTapez: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\nExemple: <code>/payer OM2024010100001</code>"
+          : "💳 <b>Send your transaction number</b>\n\nType: <b>/payer YOUR_TRANSACTION_NUMBER</b>\n\nExample: <code>/payer OM2024010100001</code>");
       } else if (callbackData === "confirm_yes") {
         await sendTelegramMessage(botToken, chatId, userLang === "fr"
           ? "✅ Commande confirmée ! Notre équipe vous contactera bientôt."
@@ -490,6 +613,21 @@ export async function POST(req: NextRequest) {
         ? `<b>🛒 Passer une commande</b>\n\nChoisissez un service :\n\n`
         : `<b>🛒 Place an order</b>\n\nChoose a service:\n\n`;
       await sendTelegramMessage(botToken, chatId, header + menuText, keyboard);
+      return NextResponse.json({ ok: true });
+    }
+
+    // /payer — submit payment transaction number
+    if (text.startsWith("/payer")) {
+      const parts = text.split(/\s+/);
+      const txRef = parts.slice(1).join(" ").trim();
+      if (!txRef) {
+        await sendTelegramMessage(botToken, chatId, userLang === "fr"
+          ? "❌ Veuillez inclure votre numéro de transaction.\n\nUtilisez: <b>/payer VOTRE_NUMERO_TRANSACTION</b>\n\nExemple: <code>/payer OM2024010100001</code>"
+          : "❌ Please include your transaction number.\n\nUse: <b>/payer YOUR_TRANSACTION_NUMBER</b>\n\nExample: <code>/payer OM2024010100001</code>");
+      } else {
+        const paymentResponse = await handlePaymentSubmission(agent, chatId, txRef, userName, userLang);
+        await sendTelegramMessage(botToken, chatId, paymentResponse);
+      }
       return NextResponse.json({ ok: true });
     }
 

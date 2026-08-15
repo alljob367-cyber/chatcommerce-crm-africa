@@ -84,6 +84,114 @@ import { toast } from "sonner";
 import BookingCalendar from "@/components/app/booking-calendar";
 import { formatCurrency } from "@/lib/currencies";
 
+// ─── Merchant Payments Panel ──────────────────────────────────
+
+function MerchantPaymentsPanel({ agentId, currency }: { agentId: string; currency: string }) {
+  const { token } = useAppStore();
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({ totalRevenue: 0, pendingCount: 0 });
+
+  const fetchPayments = useCallback(async () => {
+    if (!token || !agentId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/payments/merchant?agentId=${agentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPayments(data.payments || []);
+        setStats(data.stats || { totalRevenue: 0, pendingCount: 0 });
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  }, [token, agentId]);
+
+  useEffect(() => { fetchPayments(); }, [fetchPayments]);
+
+  const handleAction = async (paymentId: string, action: string) => {
+    try {
+      const res = await fetch("/api/payments/merchant", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: paymentId, action }),
+      });
+      if (res.ok) {
+        toast.success(action === "confirm" ? "Paiement confirme" : "Paiement rejete");
+        fetchPayments();
+      }
+    } catch { toast.error("Erreur"); }
+  };
+
+  const statusBadge = (status: string) => {
+    if (status === "confirmed") return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-[10px]">Confirme</Badge>;
+    if (status === "rejected") return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-[10px]">Rejete</Badge>;
+    return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px]">En attente</Badge>;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">Paiements recus des clients</p>
+        <button onClick={fetchPayments} className="text-xs text-muted-foreground hover:text-foreground">
+          <RefreshCw className="w-3 h-3 inline mr-1" />Actualiser
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50">
+          <p className="text-[10px] text-muted-foreground">Revenus confirmes</p>
+          <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatCurrency(stats.totalRevenue, currency)}</p>
+        </div>
+        <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/50">
+          <p className="text-[10px] text-muted-foreground">En attente</p>
+          <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">{stats.pendingCount}</p>
+        </div>
+      </div>
+
+      {/* Payment list */}
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin" /></div>
+      ) : payments.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-4">Aucun paiement pour le moment</p>
+      ) : (
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {payments.map((p) => (
+            <div key={p.id} className="p-3 rounded-lg border space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {statusBadge(p.status)}
+                  <span className="text-xs font-medium">{p.serviceName || "Commande"}</span>
+                </div>
+                <span className="text-sm font-bold">{formatCurrency(p.amount, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Client: {p.customerName}{p.customerPhone ? ` (${p.customerPhone})` : ""}</span>
+                <span>{p.createdAt ? new Date(p.createdAt).toLocaleDateString("fr-FR") : ""}</span>
+              </div>
+              {p.transactionRef && (
+                <p className="text-[10px] font-mono bg-muted px-2 py-0.5 rounded">Transaction: {p.transactionRef}</p>
+              )}
+              {p.status === "pending" && (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 text-green-600 border-green-300 hover:bg-green-50" onClick={() => handleAction(p.id, "confirm")}>
+                    <CheckCircle className="w-3 h-3" /> Confirmer
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 text-red-600 border-red-300 hover:bg-red-50" onClick={() => handleAction(p.id, "reject")}>
+                    <XCircle className="w-3 h-3" /> Rejeter
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Types ───────────────────────────────────────────────────────
 
 interface TelegramAgent {
@@ -2156,9 +2264,14 @@ export default function TelegramPage() {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Les clients pourront payer directement via {configForm.paymentMethod === "orange_money" ? "Orange Money" : "MTN Mobile Money"} lorsqu&apos;ils passent commande sur le bot.
-                        Assurez-vous que votre numero de paiement est configure dans les parametres du bot Telegram.
+                        Assurez-vous que votre numero de telephone est configure ci-dessus pour recevoir les paiements.
                       </p>
                     </div>
+                  )}
+
+                  {/* ── Received Payments Section ── */}
+                  {isAdmin && (
+                    <MerchantPaymentsPanel agentId={selectedAgent.id} currency={configForm.currency} />
                   )}
 
                   {/* Summary */}

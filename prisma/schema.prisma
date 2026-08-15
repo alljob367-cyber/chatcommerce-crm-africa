@@ -52,7 +52,8 @@ model Company {
   telegramBookings TelegramBooking[]
   drivers     Driver[]
   deliveries   Delivery[]
-  chariowOrders ChariowOrder[]
+  chariowOrders      ChariowOrder[]
+  merchantPayments  MerchantPayment[]
 
   @@index([slug])
 }
@@ -479,6 +480,7 @@ model TelegramAgent {
   company       Company         @relation(fields: [companyId], references: [id])
   services      BusinessService[]
   bookings      TelegramBooking[]
+  payments      MerchantPayment[]
   deliveries    Delivery[]
   campaigns     Campaign[]
 
@@ -642,6 +644,39 @@ model ChariowOrder {
 }
 
 // Rate limiting log (serverless-durable rate limiter)
+// ═══════════════════════════════════════════
+// MERCHANT PAYMENTS — Client -> Merchant via Telegram
+// ═══════════════════════════════════════════
+
+model MerchantPayment {
+  id              String   @id @default(cuid())
+  agentId         String
+  companyId       String
+  bookingId       String?  @unique // Linked booking (optional)
+  chatId          String   // Telegram chat ID du client
+  customerName    String
+  customerPhone   String?
+  serviceName     String?
+  amount          Float    // Montant en FCFA
+  currency        String   @default("XAF")
+  paymentMethod   String   // "orange_money" or "mtn_money"
+  transactionRef  String?  // Numero de transaction du client
+  status          String   @default("pending") // pending, confirmed, rejected, expired
+  merchantPhone   String?  // Numero du commercant a qui payer
+  confirmedAt     DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  agent           TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  company         Company         @relation(fields: [companyId], references: [id])
+
+  @@index([agentId])
+  @@index([companyId])
+  @@index([status])
+  @@index([chatId])
+}
+
 model RateLimitLog {
   id        String   @id @default(cuid())
   key       String   // Rate limit key (e.g., "login:user@x.com")
