@@ -164,7 +164,14 @@ export async function generateAIResponse(
   conversationHistory: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: { url: string } }> }>,
   businessContext?: string | null
 ): Promise<string | null> {
-  if (!config.enabled || !config.apiKey) {
+  if (!config.enabled) {
+    return null;
+  }
+
+  // Use global MISTRAL_API_KEY if no agent-specific key is configured
+  const apiKey = config.apiKey || process.env.MISTRAL_API_KEY || "";
+  if (!apiKey) {
+    console.error("[AI Engine] No API key available — set agent aiConfig.apiKey or MISTRAL_API_KEY env var");
     return null;
   }
 
@@ -215,7 +222,7 @@ export async function generateAIResponse(
     // Build headers per provider
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     };
 
     // OpenRouter: add optional HTTP-Referer and X-Title for better analytics
@@ -375,7 +382,7 @@ export function buildAIBotConfig(agentData: {
   return {
     enabled: overrides.enabled ?? false,
     provider: overrides.provider ?? "mistral",
-    apiKey: overrides.apiKey || "",
+    apiKey: overrides.apiKey || process.env.MISTRAL_API_KEY || "",
     model: overrides.model || "mistral-small-latest",
     systemPrompt,
     temperature: overrides.temperature ?? 0.7,
