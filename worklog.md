@@ -77,3 +77,24 @@ Stage Summary:
 - Admin can enable/disable Chariow per company from the Paiement Mobile Money tab
 - Complete payment guide included in both methods (FR + EN)
 - MerchantPayment records now support "chariow" as paymentMethod
+
+---
+Task ID: 1
+Agent: main
+Task: Vérifier les agents Telegram + Configurer clé Mistral AI
+
+Work Log:
+- Analysé le codebase : webhook, ai-bot-engine, agents API
+- Modifié ai-bot-engine.ts : ajout de MISTRAL_API_KEY comme fallback global
+- Créé /api/telegram/agents/setup-ai endpoint admin (diagnostic + activation IA + webhooks)
+- Testé la clé Mistral : VALIDE (modèle mistral-small-latest répond "Bonjour !")
+- Activé Mistral IA sur l'agent "ALLJOB BATACONNECT IA" (était désactivé)
+- Agent "Bot Test Mistral" avait déjà l'IA activée
+- Webhooks NON configurés : les 2 tokens Telegram ne sont PAS valides
+
+Stage Summary:
+- Clé Mistral AI configurée et validée
+- IA Mistral activée sur tous les agents existants (2 agents)
+- Les webhooks ne peuvent pas être configurés car les tokens de bots Telegram ne sont pas valides
+- L'utilisateur doit fournir des vrais tokens Telegram Bot (via @BotFather)
+- Endpoint /api/telegram/agents/setup-ai disponible pour re-lancer la config quand les tokens seront valides
