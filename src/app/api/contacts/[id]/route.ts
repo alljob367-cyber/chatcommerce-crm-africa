@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
-import { sanitize, handleError } from "@/lib/security";
+import { sanitize, sanitizeText, handleError } from "@/lib/security";
 
 async function authenticate(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -18,10 +18,11 @@ export async function GET(
     const payload = await authenticate(request);
     if (!payload) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(payload);
     const { id } = await params;
 
     const contact = await db.contact.findFirst({
-      where: { id, companyId: payload.companyId },
+      where: { id, companyId: realCompanyId },
     });
 
     if (!contact) {
@@ -44,12 +45,13 @@ export async function PATCH(
     const payload = await authenticate(request);
     if (!payload) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(payload);
     const { id } = await params;
     const body = await request.json();
 
     // Verify contact belongs to company
     const existing = await db.contact.findFirst({
-      where: { id, companyId: payload.companyId },
+      where: { id, companyId: realCompanyId },
     });
 
     if (!existing) {
@@ -57,13 +59,13 @@ export async function PATCH(
     }
 
     const updateData: Record<string, unknown> = {};
-    if (body.name !== undefined) updateData.name = sanitize(body.name);
-    if (body.email !== undefined) updateData.email = body.email ? sanitize(body.email) : null;
-    if (body.phone !== undefined) updateData.phone = sanitize(body.phone);
-    if (body.tags !== undefined) updateData.tags = sanitize(body.tags);
-    if (body.notes !== undefined) updateData.notes = body.notes ? sanitize(body.notes) : null;
-    if (body.city !== undefined) updateData.city = body.city ? sanitize(body.city) : null;
-    if (body.country !== undefined) updateData.country = body.country ? sanitize(body.country) : null;
+    if (body.name !== undefined) updateData.name = sanitizeText(body.name);
+    if (body.email !== undefined) updateData.email = body.email ? sanitizeText(body.email) : null;
+    if (body.phone !== undefined) updateData.phone = sanitizeText(body.phone); // No HTML encoding for phones
+    if (body.tags !== undefined) updateData.tags = sanitizeText(body.tags);
+    if (body.notes !== undefined) updateData.notes = body.notes ? sanitizeText(body.notes) : null;
+    if (body.city !== undefined) updateData.city = body.city ? sanitizeText(body.city) : null;
+    if (body.country !== undefined) updateData.country = body.country ? sanitizeText(body.country) : null;
     if (body.isLead !== undefined) updateData.isLead = Boolean(body.isLead);
 
     if (Object.keys(updateData).length === 0) {
@@ -91,11 +93,12 @@ export async function DELETE(
     const payload = await authenticate(request);
     if (!payload) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
+    const realCompanyId = await resolveCompanyId(payload);
     const { id } = await params;
 
     // Verify contact belongs to company
     const existing = await db.contact.findFirst({
-      where: { id, companyId: payload.companyId },
+      where: { id, companyId: realCompanyId },
       include: {
         _count: {
           select: {

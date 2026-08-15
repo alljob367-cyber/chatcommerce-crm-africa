@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
 
-  const companyId = payload.companyId;
+  const companyId = await resolveCompanyId(payload);
   const userId = payload.userId || "";
 
   // Get "since" parameter (last poll timestamp)

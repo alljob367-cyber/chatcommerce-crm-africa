@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { rateLimit, handleError } from "@/lib/security";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { generateAIResponse, buildAIBotConfig, buildContextFromBusinessData } from "@/lib/ai-bot-engine";
 
 // AI endpoint — uses real LLM engine connected to business data
@@ -17,6 +17,8 @@ export async function POST(request: Request) {
     if (!payload) {
       return NextResponse.json({ error: "Token invalide" }, { status: 401 });
     }
+
+    const realCompanyId = await resolveCompanyId(payload);
 
     // Rate limit: 20 requests per minute per user
     const rl = await rateLimit(`ai:${payload.userId}`, 20, 60 * 1000);
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
     if (agentId) {
       try {
         const agent = await db.telegramAgent.findFirst({
-          where: { id: agentId, companyId: payload.companyId },
+          where: { id: agentId, companyId: realCompanyId },
           include: {
             services: {
               where: { isActive: true },
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
       // No agent specified — try to find any active agent for the company
       try {
         const agent = await db.telegramAgent.findFirst({
-          where: { companyId: payload.companyId, isActive: true },
+          where: { companyId: realCompanyId, isActive: true },
           include: {
             services: {
               where: { isActive: true },

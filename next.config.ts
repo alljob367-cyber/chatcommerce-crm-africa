@@ -16,6 +16,13 @@ const allowedOrigins = getAllowedOrigins();
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**.telegram.org" },
+      { protocol: "https", hostname: "**" },
+    ],
+  },
   // L2 FIX: Do NOT ignore build errors
   typescript: {
     ignoreBuildErrors: false,
@@ -71,6 +78,18 @@ const nextConfig: NextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.telegram.org https://api.mistral.ai wss:; frame-ancestors 'none';",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "same-origin",
           },
         ],
       },

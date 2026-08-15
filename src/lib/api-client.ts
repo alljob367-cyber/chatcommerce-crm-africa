@@ -36,10 +36,11 @@ export async function apiClient<T = unknown>(
 
   const res = await fetch(url, { ...restOptions, headers });
 
-  // Handle 401/403 → auto logout
-  if (res.status === 401 || res.status === 403) {
+  // Handle 401 → auto logout (session expired)
+  // 403 → insufficient permissions, do NOT logout (plan limit, etc.)
+  if (res.status === 401) {
     logout();
-    throw new Error(res.status === 401 ? "Session expiree" : "Acces refuse");
+    throw new Error("Session expiree");
   }
 
   // Handle other HTTP errors

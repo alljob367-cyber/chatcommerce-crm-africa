@@ -1,24 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Routes publiques (pas besoin de token)
-const PUBLIC_PATHS = ["/api/auth", "/api/seed", "/api/cron", "/api/chariow/webhook", "/api/telegram/webhook"];
+// Routes publiques qui ne nécessitent PAS de token (exclusion EXACTE)
+const EXACT_PUBLIC_PATHS = ["/api/auth/register", "/api/auth/login", "/api/auth/phone/send-otp", "/api/auth/phone/verify-otp", "/api/chariow/webhook"];
+const PREFIX_PUBLIC_PATHS = ["/api/cron", "/api/telegram/webhook", "/api/seed"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Autoriser les routes publiques
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
-  }
-
-  // Autoriser les fichiers statiques et pages Next.js
+  // 1. Autoriser les fichiers statiques et assets Next.js
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
     pathname.startsWith("/logo") ||
     pathname.startsWith("/hero-bg") ||
     pathname.startsWith("/phone-mockup") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/sw.js") ||
     pathname === "/" ||
     pathname.startsWith("/sitemap") ||
     pathname.startsWith("/robots")
@@ -26,7 +25,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Vérifier l'auth pour toutes les routes /api/*
+  // 2. Autoriser les routes publiques par préfixe
+  if (PREFIX_PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    // /api/seed-demo N'EST PAS public — seul /api/seed est public
+    if (pathname.startsWith("/api/seed-demo")) {
+      return NextResponse.json({ error: "Non autorise" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Autoriser les routes publiques par correspondance exacte
+  if (EXACT_PUBLIC_PATHS.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 4. Vérifier l'auth pour toutes les autres routes /api/*
   if (pathname.startsWith("/api/")) {
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
@@ -51,7 +64,7 @@ export async function middleware(request: NextRequest) {
     try {
       const secret = process.env.JWT_SECRET;
       let jwtSecret: Uint8Array;
-      if (secret && secret.length > 10) {
+      if (secret && secret.length >= 32) {
         jwtSecret = new TextEncoder().encode(secret);
       } else if (process.env.NODE_ENV === "production") {
         return NextResponse.json({ error: "Configuration serveur" }, { status: 500 });
@@ -75,7 +88,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Toutes les routes API sauf les publiques
-    "/api/((?!auth|seed).*)",
+    // Toutes les routes sauf les fichiers statiques internes
+    "/((?!_next/static|_next/image|favicon|logo|hero-bg|phone-mockup|manifest|icons|sw\\.js).*)",
   ],
 };

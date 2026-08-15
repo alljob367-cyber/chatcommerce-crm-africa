@@ -4,7 +4,7 @@ import crypto from "crypto";
 // SECURITY UTILITIES — ChatCommerce Africa
 // ============================================================
 
-// Sanitize string: remove HTML/script tags, trim
+// Sanitize text fields (names, notes, emails) — HTML encode to prevent XSS
 export function sanitize(str: unknown): string {
   if (typeof str !== "string") return "";
   return str
@@ -14,6 +14,19 @@ export function sanitize(str: unknown): string {
     .replace(/'/g, "&#x27;")
     .trim()
     .slice(0, 5000); // Max 5000 chars per field
+}
+
+// Sanitize non-text fields (phones, numbers, coordinates) — NO HTML encoding
+// Only trims whitespace and limits length
+export function sanitizeText(str: unknown): string {
+  if (typeof str !== "string") return "";
+  return str.trim().slice(0, 500);
+}
+
+// Validate phone number format (basic international format)
+export function isValidPhone(phone: string): boolean {
+  const cleaned = phone.replace(/[^+0-9]/g, "");
+  return /^\+?[0-9]{8,15}$/.test(cleaned);
 }
 
 // Validate email format

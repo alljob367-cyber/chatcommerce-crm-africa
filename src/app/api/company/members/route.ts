@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, ensureBootstrapped } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken, hashPassword } from "@/lib/auth";
 import { sanitize, isValidEmail, handleError, rateLimit, secureRandom } from "@/lib/security";
 import { checkPlanLimit } from "@/lib/plan-limits";
@@ -16,23 +16,14 @@ async function authenticate(request: Request) {
   const payload = await verifyToken(token);
   if (!payload) return null;
 
-  const hardcoded = HARDCODED_ACCOUNTS[payload.userId];
-  if (hardcoded) {
-    return {
-      user: { id: hardcoded.userId, name: "Admin", email: "", role: hardcoded.role },
-      company: { id: hardcoded.companyId, maxAgents: 999 },
-      payload,
-    };
-  }
-
   try {
-    await ensureBootstrapped();
+    const realCompanyId = await resolveCompanyId(payload);
     const user = await db.user.findUnique({
       where: { id: payload.userId },
       include: { company: true },
     });
     if (!user || !user.company) return null;
-    return { user, company: user.company, payload };
+    return { user, company: user.company, payload, realCompanyId };
   } catch {
     return null;
   }
@@ -46,9 +37,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }
 
+    const realCompanyId = await resolveCompanyId(auth.payload);
     const members = await db.user.findMany({
       where: {
-        companyId: auth.company.id,
+        companyId: realCompanyId,
         isActive: true,
       },
       select: {

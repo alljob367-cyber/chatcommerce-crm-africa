@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, resolveCompanyId } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { secureRandom, handleError } from "@/lib/security";
 
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Token invalide" }, { status: 401 });
     }
 
+    const realCompanyId = await resolveCompanyId(payload);
     const body = await request.json();
     const { plan, paymentMethod, transactionRef, senderPhone, senderName } = body;
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     // Vérifier qu'il n'y a pas de paiement en cours pour ce plan
     const existingPending = await db.payment.findFirst({
       where: {
-        companyId: payload.companyId,
+        companyId: realCompanyId,
         plan,
         status: "pending",
         expiresAt: { gt: new Date() },
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
 
     const payment = await db.payment.create({
       data: {
-        companyId: payload.companyId,
+        companyId: realCompanyId,
         userId: payload.userId,
         amount,
         currency: "XAF",
@@ -124,10 +125,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Token invalide" }, { status: 401 });
     }
 
+    const realCompanyId = await resolveCompanyId(payload);
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
-    const where: Record<string, unknown> = { companyId: payload.companyId };
+    const where: Record<string, unknown> = { companyId: realCompanyId };
     if (status) where.status = status;
 
     const payments = await db.payment.findMany({
