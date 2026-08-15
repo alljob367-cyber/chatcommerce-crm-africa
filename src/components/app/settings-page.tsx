@@ -237,10 +237,7 @@ const PLAN_ORDER = ["starter", "pro", "business", "enterprise"];
 // ─────────────────────────────────────────────────────
 
 function authHeaders() {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cc_token")
-      : null;
+  const { token } = useAppStore.getState();
   return {
     "Content-Type": "application/json",
     Authorization: token ? `Bearer ${token}` : "",

@@ -44,7 +44,7 @@ export default function LeadsPage() {
     fetch(`/api/leads${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setLeads(d.leads || []))
-      .catch(console.error)
+      .catch(() => setLeads([]))
       .finally(() => setLoading(false));
   }, [token, statusFilter]);
 
@@ -52,12 +52,14 @@ export default function LeadsPage() {
 
   const handleStatus = async (leadId: string, status: string) => {
     if (!token) return;
-    await fetch("/api/leads", {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ id: leadId, status }),
-    });
-    fetchLeads();
+    try {
+      const res = await fetch("/api/leads", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: leadId, status }),
+      });
+      if (res.ok) fetchLeads();
+    } catch {}
   };
 
   const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";

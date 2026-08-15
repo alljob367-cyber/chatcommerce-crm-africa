@@ -54,7 +54,7 @@ export default function AutomationsPage() {
     fetch("/api/automations", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setAutomations(d.automations || []))
-      .catch(console.error)
+      .catch(() => setAutomations([]))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -62,44 +62,47 @@ export default function AutomationsPage() {
 
   const handleAdd = async () => {
     if (!token || !form.name || !form.messageTemplate) return;
-    if (editingId) {
-      // Update existing automation
-      await fetch("/api/automations", {
-        method: "PATCH",
+    try {
+      const url = editingId ? "/api/automations" : "/api/automations";
+      const res = await fetch(url, {
+        method: editingId ? "PATCH" : "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
+        body: JSON.stringify(editingId ? { id: editingId, ...form, delayMinutes: parseInt(form.delayMinutes) || 0 } : { ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
       });
+      if (!res.ok) return;
       setEditingId(null);
-    } else {
-      // Create new automation
-      await fetch("/api/automations", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, delayMinutes: parseInt(form.delayMinutes) || 0 }),
-      });
+      setShowAdd(false);
+      setForm({ name: "", type: "welcome", messageTemplate: "", delayMinutes: "0" });
+      fetchAutomations();
+    } catch {
+      // silent fail
     }
-    setShowAdd(false);
-    setForm({ name: "", type: "welcome", messageTemplate: "", delayMinutes: "0" });
-    fetchAutomations();
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
     if (!token) return;
-    await fetch("/api/automations", {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ id, isActive: !isActive }),
-    });
-    fetchAutomations();
+    try {
+      const res = await fetch("/api/automations", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isActive: !isActive }),
+      });
+      if (!res.ok) return;
+      fetchAutomations();
+    } catch {}
   };
 
   const deleteAutomation = async (id: string) => {
     if (!token) return;
-    await fetch(`/api/automations?id=${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchAutomations();
+    if (!confirm("Supprimer cette automation ?")) return;
+    try {
+      const res = await fetch(`/api/automations?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      fetchAutomations();
+    } catch {}
   };
 
   const handleEditAutomation = (auto: Automation) => {

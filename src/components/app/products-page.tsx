@@ -36,6 +36,7 @@ import {
   FileImage,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currencies";
+import { toast } from "sonner";
 
 interface Category { id: string; name: string; _count: { products: number } }
 interface Product {
@@ -84,7 +85,7 @@ export default function ProductsPage() {
         setProducts(pd.products || []);
         setCategories(cd.categories || []);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [token, search]);
 
@@ -116,11 +117,11 @@ export default function ProductsPage() {
     try {
       const validFiles = Array.from(files).filter((f) => {
         if (f.size > 5 * 1024 * 1024) {
-          alert(`"${f.name}" est trop volumineux (max 5 MB)`);
+          toast.error(`"${f.name}" est trop volumineux (max 5 MB)`);
           return false;
         }
         if (!f.type.startsWith("image/")) {
-          alert(`"${f.name}" n'est pas une image`);
+          toast.error(`"${f.name}" n'est pas une image`);
           return false;
         }
         return true;
@@ -141,15 +142,14 @@ export default function ProductsPage() {
           fetchData();
         } else {
           const err = await res.json();
-          alert(err.error || "Erreur upload");
+          toast.error(err.error || "Erreur upload");
         }
       } else {
         // Add to form images
         setFormImages((prev) => [...prev, ...base64Array].slice(0, 10));
       }
-    } catch (err) {
-      console.error("File handling error:", err);
-      alert("Erreur lors du traitement des fichiers");
+    } catch {
+      toast.error("Erreur lors du traitement des fichiers");
     } finally {
       setProcessingFiles(false);
       setDragOver(false);
@@ -207,18 +207,20 @@ export default function ProductsPage() {
       };
 
       if (editingId) {
-        await fetch("/api/products", {
+        const res = await fetch("/api/products", {
           method: "PATCH",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ id: editingId, ...payload }),
         });
+        if (!res.ok) { toast.error("Erreur lors de la modification"); return; }
         setEditingId(null);
       } else {
-        await fetch("/api/products", {
+        const res = await fetch("/api/products", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) { toast.error("Erreur lors de l'ajout"); return; }
       }
       setShowAdd(false);
       setForm({ name: "", description: "", price: "", sku: "", stock: "", categoryId: "" });
@@ -258,11 +260,15 @@ export default function ProductsPage() {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Supprimer ce produit ?")) return;
     if (!token) return;
-    await fetch(`/api/products?id=${id}`, {
+    const res = await fetch(`/api/products?id=${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
-    fetchData();
+    if (res.ok) {
+      fetchData();
+    } else {
+      toast.error("Erreur lors de la suppression");
+    }
   };
 
   const formatXAF = (n: number) => formatCurrency(n, "XAF");
@@ -507,16 +513,6 @@ export default function ProductsPage() {
               })}
         </div>
       </div>
-
-      {/* Hidden file input for direct upload to product */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ""; }}
-      />
 
       {/* ===== GALLERY VIEWER DIALOG ===== */}
       <Dialog open={!!viewProduct} onOpenChange={(open) => { if (!open) setViewProduct(null); }}>

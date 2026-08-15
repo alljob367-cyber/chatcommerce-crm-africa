@@ -134,7 +134,6 @@ export default function DashboardPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        console.error("[Dashboard] API error:", res.status);
         return;
       }
       const data = await res.json();
@@ -155,7 +154,7 @@ export default function DashboardPage() {
         setTelegramAvailable(false);
       }
     } catch (err) {
-      console.error(err);
+      // silently fail
     } finally {
       setLoading(false);
     }
@@ -184,48 +183,42 @@ export default function DashboardPage() {
         {
           label: "Total Clients",
           value: kpis.totalContacts.toString(),
-          change: "+12%",
-          up: true,
+          change: null,
           icon: Users,
           color: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
         },
         {
           label: "Commandes",
           value: kpis.totalOrders.toString(),
-          change: "+8%",
-          up: true,
+          change: null,
           icon: ShoppingCart,
           color: "bg-green-50 text-green-600 dark:bg-green-500/15 dark:text-green-400",
         },
         {
           label: "Chiffre d'affaires",
           value: formatXAF(kpis.totalRevenue),
-          change: "+23%",
-          up: true,
+          change: null,
           icon: DollarSign,
           color: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
         },
         {
           label: "Taux de conversion",
           value: kpis.conversionRate + "%",
-          change: "-2%",
-          up: false,
+          change: null,
           icon: TrendingUp,
           color: "bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400",
         },
         {
           label: "Conversations",
           value: kpis.newConversations.toString(),
-          change: "+5",
-          up: true,
+          change: null,
           icon: MessageSquare,
           color: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400",
         },
         {
           label: "Temps rép. moy.",
           value: kpis.avgResponseTime + " min",
-          change: "-3 min",
-          up: true,
+          change: null,
           icon: Clock,
           color: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-400",
         },
@@ -415,18 +408,12 @@ export default function DashboardPage() {
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${kpi.color}`}>
                     <kpi.icon className="w-5 h-5" />
                   </div>
-                  <span
-                    className={`text-[11px] font-medium flex items-center gap-0.5 ${
-                      kpi.up ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {kpi.up ? (
-                      <ArrowUpRight className="w-3 h-3" />
-                    ) : (
-                      <ArrowDownRight className="w-3 h-3" />
-                    )}
-                    {kpi.change}
-                  </span>
+                  {/* Change indicator — only shown when real data is available */}
+                  {kpi.change && (
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {kpi.change}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xl font-bold text-foreground">{kpi.value}</p>
                 <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>

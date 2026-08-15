@@ -64,7 +64,7 @@ export default function OrdersPage() {
     fetch(`/api/orders${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setOrders(d.orders || []))
-      .catch(console.error)
+      .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, [token, statusFilter]);
 
@@ -72,12 +72,14 @@ export default function OrdersPage() {
 
   const handleStatus = async (orderId: string, status: string) => {
     if (!token) return;
-    await fetch("/api/orders", {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ id: orderId, status }),
-    });
-    fetchOrders();
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: orderId, status }),
+      });
+      if (res.ok) fetchOrders();
+    } catch {}
   };
 
   const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n));

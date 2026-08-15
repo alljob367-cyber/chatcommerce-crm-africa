@@ -12,81 +12,81 @@ datasource db {
 // ============================================
 
 model Company {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  logo        String?
-  country     String
-  plan        String   @default("starter") // starter, business, enterprise
-  phone        String?
-  address      String?
-  whatsappNumber String?
-  whatsappToken  String?
-  whatsappPhoneId String?
-  currency        String?  @default("XAF")
+  id                   String   @id @default(cuid())
+  name                 String
+  slug                 String   @unique
+  logo                 String?
+  country              String
+  plan                 String   @default("starter") // starter, business, enterprise
+  phone                String?
+  address              String?
+  whatsappNumber       String?
+  whatsappToken        String?
+  whatsappPhoneId      String?
+  currency             String?  @default("XAF")
   notificationSettings String? // JSON: { newOrders, newMessages, paymentConfirmations, dailyReports }
-  paymentSettings    String? // JSON: { orangeNumber, mtnNumber }
-  globalBotToken String?  // Token Telegram unique pour tous les agents
-  globalBotUsername String? // @username du bot global
-  isActive    Boolean  @default(true)
-  maxContacts Int     @default(500)
-  maxAgents   Int     @default(3)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  paymentSettings      String? // JSON: { orangeNumber, mtnNumber }
+  globalBotToken       String? // Token Telegram unique pour tous les agents
+  globalBotUsername    String? // @username du bot global
+  isActive             Boolean  @default(true)
+  maxContacts          Int      @default(500)
+  maxAgents            Int      @default(3)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  users       User[]
-  contacts    Contact[]
-  leads       Lead[]
-  conversations Conversation[]
-  products    Product[]
-  categories  Category[]
-  orders      Order[]
-  invoices    Invoice[]
-  automations Automation[]
-  campaigns   Campaign[]
-  activityLogs ActivityLog[]
-  notifications Notification[]
-  subscriptions Subscription[]
-  payments     Payment[]
-  telegramAgents TelegramAgent[]
+  users            User[]
+  contacts         Contact[]
+  leads            Lead[]
+  conversations    Conversation[]
+  products         Product[]
+  categories       Category[]
+  orders           Order[]
+  invoices         Invoice[]
+  automations      Automation[]
+  campaigns        Campaign[]
+  activityLogs     ActivityLog[]
+  notifications    Notification[]
+  subscriptions    Subscription[]
+  payments         Payment[]
+  telegramAgents   TelegramAgent[]
   telegramBookings TelegramBooking[]
-  drivers     Driver[]
-  deliveries   Delivery[]
-  chariowOrders      ChariowOrder[]
-  merchantPayments  MerchantPayment[]
+  drivers          Driver[]
+  deliveries       Delivery[]
+  chariowOrders    ChariowOrder[]
+  merchantPayments MerchantPayment[]
 
   @@index([slug])
 }
 
 model User {
-  id                String    @id @default(cuid())
-  email             String
-  passwordHash      String
-  name              String
-  avatar            String?
-  phone             String?
-  role              String    @default("agent") // super_admin, company_admin, manager, agent
-  isActive          Boolean   @default(true)
-  emailVerified     Boolean   @default(false)
-  twoFactorEnabled  Boolean   @default(false)
-  twoFactorSecret   String?   // TOTP secret (base32 encoded)
+  id                   String    @id @default(cuid())
+  email                String
+  passwordHash         String
+  name                 String
+  avatar               String?
+  phone                String?
+  role                 String    @default("agent") // super_admin, company_admin, manager, agent
+  isActive             Boolean   @default(true)
+  emailVerified        Boolean   @default(false)
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecret      String? // TOTP secret (base32 encoded)
   twoFactorBackupCodes String? // JSON array of backup codes
-  phoneOtpCode      String?   // Current phone OTP code
-  phoneOtpExp       DateTime? // OTP expiration timestamp
-  phoneVerified     Boolean   @default(false)
-  resetToken        String?
-  resetTokenExp     DateTime?
-  verifyToken       String?
-  companyId         String
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  phoneOtpCode         String? // Current phone OTP code
+  phoneOtpExp          DateTime? // OTP expiration timestamp
+  phoneVerified        Boolean   @default(false)
+  resetToken           String?
+  resetTokenExp        DateTime?
+  verifyToken          String?
+  companyId            String
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  company               Company        @relation(fields: [companyId], references: [id])
   assignedConversations Conversation[] @relation("AssignedAgent")
-  assignedLeads  Lead[]    @relation("LeadAssignee")
-  createdOrders  Order[]   @relation("OrderCreator")
-  confirmedPayments Payment[] @relation("PaymentConfirmer")
-  activityLogs  ActivityLog[]
+  assignedLeads         Lead[]         @relation("LeadAssignee")
+  createdOrders         Order[]        @relation("OrderCreator")
+  confirmedPayments     Payment[]      @relation("PaymentConfirmer")
+  activityLogs          ActivityLog[]
 
   @@unique([email, companyId])
   @@index([companyId])
@@ -94,26 +94,26 @@ model User {
 }
 
 model Contact {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   companyId     String
   name          String
   phone         String
   email         String?
   avatar        String?
-  tags          String   @default("") // comma-separated tags
+  tags          String    @default("") // comma-separated tags
   notes         String?
-  source        String   @default("whatsapp") // whatsapp, manual, import, website
+  source        String    @default("whatsapp") // whatsapp, manual, import, website
   city          String?
   country       String?
-  isLead        Boolean  @default(false)
-  totalSpent    Float    @default(0)
-  orderCount    Int      @default(0)
+  isLead        Boolean   @default(false)
+  totalSpent    Decimal   @default(0) @db.Decimal(19, 2)
+  orderCount    Int       @default(0)
   lastMessageAt DateTime?
   lastSeenAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  company       Company        @relation(fields: [companyId], references: [id])
   conversations Conversation[]
   orders        Order[]
   leads         Lead[]
@@ -124,42 +124,42 @@ model Contact {
 }
 
 model Lead {
-  id            String   @id @default(cuid())
-  companyId     String
-  contactId     String?
-  status        String   @default("new") // new, contacted, qualified, converted, lost
-  source        String   @default("whatsapp")
-  value         Float    @default(0)
-  notes         String?
-  assignedToId  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  companyId    String
+  contactId    String?
+  status       String   @default("new") // new, contacted, qualified, converted, lost
+  source       String   @default("whatsapp")
+  value        Decimal  @default(0) @db.Decimal(19, 2)
+  notes        String?
+  assignedToId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
-  contact       Contact? @relation(fields: [contactId], references: [id])
-  assignedTo    User?    @relation("LeadAssignee", fields: [assignedToId], references: [id])
-  activityLogs  ActivityLog[]
+  company      Company       @relation(fields: [companyId], references: [id])
+  contact      Contact?      @relation(fields: [contactId], references: [id])
+  assignedTo   User?         @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  activityLogs ActivityLog[]
 
   @@index([companyId])
   @@index([status])
 }
 
 model Conversation {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   companyId     String
   contactId     String
-  status        String   @default("new") // new, open, waiting, closed
+  status        String    @default("new") // new, open, waiting, closed
   assignedToId  String?
   lastMessage   String?
   lastMessageAt DateTime?
-  unreadCount   Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  unreadCount   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
-  contact       Contact  @relation(fields: [contactId], references: [id])
-  assignedTo    User?    @relation("AssignedAgent", fields: [assignedToId], references: [id])
-  messages      Message[]
+  company    Company   @relation(fields: [companyId], references: [id])
+  contact    Contact   @relation(fields: [contactId], references: [id])
+  assignedTo User?     @relation("AssignedAgent", fields: [assignedToId], references: [id])
+  messages   Message[]
 
   @@index([companyId])
   @@index([contactId])
@@ -167,43 +167,43 @@ model Conversation {
 }
 
 model Message {
-  id              String   @id @default(cuid())
-  conversationId  String
-  body            String
-  direction       String   // inbound, outbound
-  type            String   @default("text") // text, image, document, audio, video
-  senderType      String   @default("customer") // customer, agent, system, bot
-  senderId        String?
-  waMessageId     String?  // WhatsApp message ID
-  isRead          Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  conversationId String
+  body           String
+  direction      String // inbound, outbound
+  type           String   @default("text") // text, image, document, audio, video
+  senderType     String   @default("customer") // customer, agent, system, bot
+  senderId       String?
+  waMessageId    String? // WhatsApp message ID
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([createdAt])
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  companyId   String
-  categoryId  String?
-  name        String
-  description String?
-  price       Float  // TODO: Migrate to Decimal for financial accuracy
-  compareAtPrice Float?  // TODO: Migrate to Decimal
-  sku         String?
-  barcode     String?
-  image       String?
-  images      String?  // JSON array of image URLs
-  stock       Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  companyId      String
+  categoryId     String?
+  name           String
+  description    String?
+  price          Decimal  @default(0) @db.Decimal(19, 2)
+  compareAtPrice Decimal? @db.Decimal(19, 2)
+  sku            String?
+  barcode        String?
+  image          String?
+  images         String? // JSON array of image URLs
+  stock          Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  company     Company   @relation(fields: [companyId], references: [id])
-  category    Category? @relation(fields: [categoryId], references: [id])
-  orderItems  OrderItem[]
+  company    Company     @relation(fields: [companyId], references: [id])
+  category   Category?   @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
 
   @@index([companyId])
   @@index([categoryId])
@@ -219,8 +219,8 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  company     Company   @relation(fields: [companyId], references: [id])
-  products    Product[]
+  company  Company   @relation(fields: [companyId], references: [id])
+  products Product[]
 
   @@index([companyId])
 }
@@ -231,9 +231,9 @@ model Order {
   contactId     String
   orderNumber   String
   status        String   @default("pending") // pending, confirmed, preparing, ready, delivered, cancelled
-  subtotal      Float
-  tax           Float    @default(0)
-  total         Float
+  subtotal      Decimal  @default(0) @db.Decimal(19, 2)
+  tax           Decimal  @default(0) @db.Decimal(19, 2)
+  total         Decimal  @default(0) @db.Decimal(19, 2)
   currency      String   @default("XAF")
   paymentMethod String?
   paymentStatus String   @default("pending") // pending, paid, failed, refunded
@@ -242,13 +242,13 @@ model Order {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
-  contact       Contact  @relation(fields: [contactId], references: [id])
-  createdBy     User?    @relation("OrderCreator", fields: [createdById], references: [id])
-  items         OrderItem[]
-  invoices      Invoice[]
-  activityLogs  ActivityLog[]
-  delivery    Delivery?
+  company      Company       @relation(fields: [companyId], references: [id])
+  contact      Contact       @relation(fields: [contactId], references: [id])
+  createdBy    User?         @relation("OrderCreator", fields: [createdById], references: [id])
+  items        OrderItem[]
+  invoices     Invoice[]
+  activityLogs ActivityLog[]
+  delivery     Delivery?
 
   @@unique([companyId, orderNumber])
   @@index([companyId])
@@ -263,134 +263,136 @@ model OrderItem {
   productId   String
   productName String
   quantity    Int
-  unitPrice   Float
-  total       Float
+  unitPrice   Decimal  @default(0) @db.Decimal(19, 2)
+  total       Decimal  @default(0) @db.Decimal(19, 2)
   createdAt   DateTime @default(now())
 
-  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@index([orderId])
 }
 
 model Invoice {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   companyId     String
   orderId       String
   invoiceNumber String
-  status        String   @default("draft") // draft, sent, paid, overdue, cancelled
-  subtotal      Float
-  tax           Float    @default(0)
-  total         Float
+  status        String    @default("draft") // draft, sent, paid, overdue, cancelled
+  subtotal      Decimal   @default(0) @db.Decimal(19, 2)
+  tax           Decimal   @default(0) @db.Decimal(19, 2)
+  total         Decimal   @default(0) @db.Decimal(19, 2)
   dueDate       DateTime?
   paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
-  order         Order    @relation(fields: [orderId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
 
   @@unique([companyId, invoiceNumber])
   @@index([companyId])
 }
 
 model Subscription {
-  id            String   @id @default(cuid())
-  companyId     String
-  plan          String   // starter, business, enterprise
-  status        String   @default("active") // active, past_due, cancelled, trialing
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime
+  id                   String   @id @default(cuid())
+  companyId            String
+  plan                 String // starter, business, enterprise
+  status               String   @default("active") // active, past_due, cancelled, trialing
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
   stripeSubscriptionId String?
-  stripeCustomerId    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  stripeCustomerId     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
+  @@index([companyId, status])
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-  companyId   String
-  userId      String?
-  title       String
-  message     String
-  type        String   @default("info") // info, success, warning, error
-  isRead      Boolean  @default(false)
-  link        String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String?
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
 
-  company     Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([userId])
+  @@index([companyId, isRead])
 }
 
 model Automation {
-  id            String   @id @default(cuid())
-  companyId     String
-  name          String
-  type          String   // welcome, abandoned_order, reactivation, scheduled
-  trigger       String   // conversation_created, order_abandoned, etc.
+  id              String   @id @default(cuid())
+  companyId       String
+  name            String
+  type            String // welcome, abandoned_order, reactivation, scheduled
+  trigger         String // conversation_created, order_abandoned, etc.
   messageTemplate String
-  isActive      Boolean  @default(true)
-  delayMinutes  Int      @default(0)
-  filter        String?  // JSON filter conditions
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isActive        Boolean  @default(true)
+  delayMinutes    Int      @default(0)
+  filter          String? // JSON filter conditions
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  company       Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([type])
 }
 
 model Campaign {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   companyId       String
   name            String
-  type            String   @default("telegram") // telegram, whatsapp, sms, email
-  status          String   @default("draft") // draft, scheduled, running, paused, completed, failed, cancelled
+  type            String  @default("telegram") // telegram, whatsapp, sms, email
+  status          String  @default("draft") // draft, scheduled, running, paused, completed, failed, cancelled
   message         String
-  messageTemplate String?  // JSON template with variables {name}, {company}, etc.
+  messageTemplate String? // JSON template with variables {name}, {company}, etc.
   imageUrl        String?
   buttonUrl       String?
   buttonText      String?
 
   // Targeting
-  targetAudience  String?  // JSON: { businessType?, city?, country?, tags?, minOrders?, isActive? }
-  segmentType     String   @default("all") // all, contacts, leads, customers, vip, inactive
-  recipientCount  Int      @default(0)
+  targetAudience String? // JSON: { businessType?, city?, country?, tags?, minOrders?, isActive? }
+  segmentType    String  @default("all") // all, contacts, leads, customers, vip, inactive
+  recipientCount Int     @default(0)
 
   // Execution stats
-  sentCount       Int      @default(0)
-  deliveredCount  Int      @default(0)
-  readCount       Int      @default(0)
-  repliedCount    Int      @default(0)
-  clickedCount    Int      @default(0)
-  failedCount     Int      @default(0)
+  sentCount      Int @default(0)
+  deliveredCount Int @default(0)
+  readCount      Int @default(0)
+  repliedCount   Int @default(0)
+  clickedCount   Int @default(0)
+  failedCount    Int @default(0)
 
   // Budget (for Telegram Ads)
-  budget          Float    @default(0)
-  budgetSpent     Float    @default(0)
-  costPerMessage  Float    @default(0)
+  budget         Decimal @default(0) @db.Decimal(19, 2)
+  budgetSpent    Decimal @default(0) @db.Decimal(19, 2)
+  costPerMessage Decimal @default(0) @db.Decimal(19, 2)
 
   // Scheduling
-  scheduledAt     DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
 
   // Telegram-specific
   telegramAgentId String?
   telegramAgent   TelegramAgent? @relation(fields: [telegramAgentId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  company         Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([status])
@@ -398,23 +400,23 @@ model Campaign {
 }
 
 model ActivityLog {
-  id          String   @id @default(cuid())
-  companyId   String
-  userId      String?
-  contactId   String?
-  leadId      String?
-  orderId     String?
-  deliveryId  String?
-  action      String
-  details     String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  companyId  String
+  userId     String?
+  contactId  String?
+  leadId     String?
+  orderId    String?
+  deliveryId String?
+  action     String
+  details    String?
+  createdAt  DateTime @default(now())
 
-  company     Company  @relation(fields: [companyId], references: [id])
-  user        User?    @relation(fields: [userId], references: [id])
-  contact     Contact? @relation(fields: [contactId], references: [id])
-  lead        Lead?    @relation(fields: [leadId], references: [id])
-  order       Order?   @relation(fields: [orderId], references: [id])
-  delivery    Delivery? @relation(fields: [deliveryId], references: [id])
+  company  Company   @relation(fields: [companyId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
+  contact  Contact?  @relation(fields: [contactId], references: [id])
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
+  delivery Delivery? @relation(fields: [deliveryId], references: [id])
 
   @@index([companyId])
   @@index([userId])
@@ -426,27 +428,27 @@ model ActivityLog {
 // ============================================
 
 model Payment {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   companyId       String
   userId          String
-  amount          Float
-  currency        String   @default("XAF")
-  paymentMethod   String   // orange_money, mtn_money
-  status          String   @default("pending") // pending, confirmed, rejected, expired
-  transactionRef  String   // Numéro de transaction fourni par le client
-  senderPhone     String   // Numéro qui a effectué le paiement
-  senderName      String?  // Nom de l'expéditeur
-  plan            String   // starter, business, enterprise
-  reference       String   @unique // Référence unique de paiement (PAY-XXXXX)
-  confirmedById   String?  // Admin qui a validé
+  amount          Decimal   @db.Decimal(19, 2)
+  currency        String    @default("XAF")
+  paymentMethod   String // orange_money, mtn_money
+  status          String    @default("pending") // pending, confirmed, rejected, expired
+  transactionRef  String // Numéro de transaction fourni par le client
+  senderPhone     String // Numéro qui a effectué le paiement
+  senderName      String? // Nom de l'expéditeur
+  plan            String // starter, business, enterprise
+  reference       String    @unique // Référence unique de paiement (PAY-XXXXX)
+  confirmedById   String? // Admin qui a validé
   confirmedAt     DateTime?
   rejectionReason String?
   expiresAt       DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  company         Company  @relation(fields: [companyId], references: [id])
-  confirmedBy     User?    @relation("PaymentConfirmer", fields: [confirmedById], references: [id])
+  company     Company @relation(fields: [companyId], references: [id])
+  confirmedBy User?   @relation("PaymentConfirmer", fields: [confirmedById], references: [id])
 
   @@index([companyId])
   @@index([userId])
@@ -460,70 +462,70 @@ model Payment {
 // ============================================
 
 model TelegramAgent {
-  id            String   @id @default(cuid())
-  companyId     String
-  name          String   // Nom affiché (ex: "Bot Restaurant Le Paradis")
-  token         String   // Telegram Bot Token
-  botUsername   String?  // @username_du_bot
-  businessType  String   // restaurant, salon_coiffure
-  isActive      Boolean  @default(true)
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String // Nom affiché (ex: "Bot Restaurant Le Paradis")
+  token          String // Telegram Bot Token
+  botUsername    String? // @username_du_bot
+  businessType   String // restaurant, salon_coiffure
+  isActive       Boolean  @default(true)
   welcomeMessage String? // Message d'accueil personnalisé
-  address       String?  // Adresse de l'entreprise
-  phone         String?  // Numéro de téléphone
-  openHours     String?  // JSON: {"mon":"09:00-22:00","tue":"09:00-22:00",...}
-  currency      String   @default("XAF")
-  paymentMethod String?  // orange_money, mtn_money, cash, null
-  aiConfig      String?  // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  address        String? // Adresse de l'entreprise
+  phone          String? // Numéro de téléphone
+  openHours      String? // JSON: {"mon":"09:00-22:00","tue":"09:00-22:00",...}
+  currency       String   @default("XAF")
+  paymentMethod  String? // orange_money, mtn_money, cash, null
+  aiConfig       String? // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  company       Company         @relation(fields: [companyId], references: [id])
-  services      BusinessService[]
-  bookings      TelegramBooking[]
-  payments      MerchantPayment[]
-  deliveries    Delivery[]
-  campaigns     Campaign[]
+  company    Company           @relation(fields: [companyId], references: [id])
+  services   BusinessService[]
+  bookings   TelegramBooking[]
+  payments   MerchantPayment[]
+  deliveries Delivery[]
+  campaigns  Campaign[]
 
   @@index([companyId])
 }
 
 model BusinessService {
-  id            String   @id @default(cuid())
-  agentId       String
-  name          String   // ex: " Coupe homme", " Döner poulet"
-  description   String?
-  price         Float
-  duration      Int?     // Durée en minutes (pour salons)
-  image         String?
-  isActive      Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  agentId     String
+  name        String // ex: " Coupe homme", " Döner poulet"
+  description String?
+  price       Decimal  @db.Decimal(19, 2)
+  duration    Int? // Durée en minutes (pour salons)
+  image       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  agent         TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
 }
 
 model TelegramBooking {
-  id            String   @id @default(cuid())
-  agentId       String
-  companyId     String
-  chatId        String   // Telegram chat ID du client
-  customerName  String   // Nom du client sur Telegram
-  customerPhone String?  // Téléphone (si fourni)
-  serviceId     String?  // Service choisi
-  serviceName   String?  // Nom du service (denormalisé)
-  bookingDate   String?  // Date demandée (YYYY-MM-DD)
-  bookingTime   String?  // Heure demandée (HH:mm)
-  notes         String?  // Notes / commandes spéciales
-  status        String   @default("pending") // pending, confirmed, completed, cancelled
+  id                String   @id @default(cuid())
+  agentId           String
+  companyId         String
+  chatId            String // Telegram chat ID du client
+  customerName      String // Nom du client sur Telegram
+  customerPhone     String? // Téléphone (si fourni)
+  serviceId         String? // Service choisi
+  serviceName       String? // Nom du service (denormalisé)
+  bookingDate       String? // Date demandée (YYYY-MM-DD)
+  bookingTime       String? // Heure demandée (HH:mm)
+  notes             String? // Notes / commandes spéciales
+  status            String   @default("pending") // pending, confirmed, completed, cancelled
   telegramMessageId String? // ID du message Telegram
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  agent         TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  company       Company         @relation(fields: [companyId], references: [id])
+  agent   TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  company Company       @relation(fields: [companyId], references: [id])
 
   @@index([agentId])
   @@index([companyId])
@@ -536,23 +538,23 @@ model TelegramBooking {
 // ═══════════════════════════════════════════
 
 model Driver {
-  id          String   @id @default(cuid())
-  companyId   String
-  name        String
-  phone       String
-  avatar      String?
-  vehicleType String?  // motorcycle, car, bicycle, foot
-  vehiclePlate String?
-  status      String   @default("available") // available, busy, offline
-  rating      Float    @default(0)
-  totalDeliveries Int  @default(0)
-  totalEarnings Float @default(0)
-  location    Json?    // { lat, lng, address } — last known location
-  telegramId  String?  // Telegram chat ID for bot notifications
+  id               String   @id @default(cuid())
+  companyId        String
+  name             String
+  phone            String
+  avatar           String?
+  vehicleType      String? // motorcycle, car, bicycle, foot
+  vehiclePlate     String?
+  status           String   @default("available") // available, busy, offline
+  rating           Float    @default(0)
+  totalDeliveries  Int      @default(0)
+  totalEarnings    Decimal  @default(0)
+  location         Json? // { lat, lng, address } — last known location
+  telegramId       String? // Telegram chat ID for bot notifications
   telegramUsername String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   company    Company    @relation(fields: [companyId], references: [id])
   deliveries Delivery[]
@@ -561,14 +563,14 @@ model Driver {
 }
 
 model Delivery {
-  id          String   @id @default(cuid())
-  companyId   String
-  orderId     String?  @unique
-  order       Order?   @relation(fields: [orderId], references: [id])
-  driverId    String?
-  driver      Driver?  @relation(fields: [driverId], references: [id])
-  agentId     String?  // TelegramAgent that originated the order
-  agent       TelegramAgent? @relation(fields: [agentId], references: [id])
+  id        String         @id @default(cuid())
+  companyId String
+  orderId   String?        @unique
+  order     Order?         @relation(fields: [orderId], references: [id])
+  driverId  String?
+  driver    Driver?        @relation(fields: [driverId], references: [id])
+  agentId   String? // TelegramAgent that originated the order
+  agent     TelegramAgent? @relation(fields: [agentId], references: [id])
 
   // Addresses
   pickupAddress   String
@@ -581,26 +583,26 @@ model Delivery {
   customerName    String
 
   // Status flow: pending → searching → assigned → picked_up → on_the_way → delivered → cancelled
-  status      String   @default("pending")
-  fee         Float    @default(0) // delivery fee charged to customer
-  driverEarnings Float @default(0) // what driver earns
-  distance    Float?   // in km
-  estimatedTime Int?   // in minutes
+  status         String  @default("pending")
+  fee            Decimal @default(0) @db.Decimal(19, 2) // delivery fee charged to customer
+  driverEarnings Decimal @default(0) // what driver earns
+  distance       Float? // in km
+  estimatedTime  Int? // in minutes
 
   // Tracking
-  pickedUpAt     DateTime?
-  deliveredAt    DateTime?
-  cancelledAt    DateTime?
-  cancelReason   String?
-  notes          String?
+  pickedUpAt   DateTime?
+  deliveredAt  DateTime?
+  cancelledAt  DateTime?
+  cancelReason String?
+  notes        String?
 
   // Telegram integration
   telegramChatId String? // customer Telegram chat ID
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  company    Company          @relation(fields: [companyId], references: [id])
+  company    Company       @relation(fields: [companyId], references: [id])
   activities ActivityLog[]
 
   @@index([companyId, status])
@@ -613,29 +615,29 @@ model Delivery {
 // ============================================
 
 model ChariowOrder {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   companyId       String
   userId          String
-  plan            String   // starter, pro, business, enterprise
-  amount          Float
-  currency        String   @default("XAF")
-  status          String   @default("pending") // pending, completed, failed, refunded
-  chariowSaleId   String?  @unique // ID de vente Chariow (sal_xxx)
-  chariowTxnId     String?  // ID de transaction Chariow
-  checkoutUrl     String?  // URL de paiement Chariow
-  productId       String?  // ID du produit Chariow (prd_xxx)
+  plan            String // starter, pro, business, enterprise
+  amount          Decimal   @db.Decimal(19, 2)
+  currency        String    @default("XAF")
+  status          String    @default("pending") // pending, completed, failed, refunded
+  chariowSaleId   String?   @unique // ID de vente Chariow (sal_xxx)
+  chariowTxnId    String? // ID de transaction Chariow
+  checkoutUrl     String? // URL de paiement Chariow
+  productId       String? // ID du produit Chariow (prd_xxx)
   customerEmail   String
   customerPhone   String?
   customerName    String?
-  paymentCurrency String?  // Devise réelle du paiement
-  discountCode    String?  // Code promo utilisé
-  metadata        String?  // JSON metadata
+  paymentCurrency String? // Devise réelle du paiement
+  discountCode    String? // Code promo utilisé
+  metadata        String? // JSON metadata
   paidAt          DateTime?
   expiresAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  company         Company  @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@index([userId])
@@ -649,27 +651,27 @@ model ChariowOrder {
 // ═══════════════════════════════════════════
 
 model MerchantPayment {
-  id              String   @id @default(cuid())
-  agentId         String
-  companyId       String
-  bookingId       String?  @unique // Linked booking (optional)
-  chatId          String   // Telegram chat ID du client
-  customerName    String
-  customerPhone   String?
-  serviceName     String?
-  amount          Float    // Montant en FCFA
-  currency        String   @default("XAF")
-  paymentMethod   String   // "orange_money" or "mtn_money"
-  transactionRef  String?  // Numero de transaction du client
-  status          String   @default("pending") // pending, confirmed, rejected, expired
-  merchantPhone   String?  // Numero du commercant a qui payer
-  confirmedAt     DateTime?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(cuid())
+  agentId        String
+  companyId      String
+  bookingId      String?   @unique // Linked booking (optional)
+  chatId         String // Telegram chat ID du client
+  customerName   String
+  customerPhone  String?
+  serviceName    String?
+  amount         Decimal   @db.Decimal(19, 2) // Montant en FCFA
+  currency       String    @default("XAF")
+  paymentMethod  String // "orange_money" or "mtn_money"
+  transactionRef String? // Numero de transaction du client
+  status         String    @default("pending") // pending, confirmed, rejected, expired
+  merchantPhone  String? // Numero du commercant a qui payer
+  confirmedAt    DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  agent           TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  company         Company         @relation(fields: [companyId], references: [id])
+  agent   TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  company Company       @relation(fields: [companyId], references: [id])
 
   @@index([agentId])
   @@index([companyId])
@@ -679,7 +681,7 @@ model MerchantPayment {
 
 model RateLimitLog {
   id        String   @id @default(cuid())
-  key       String   // Rate limit key (e.g., "login:user@x.com")
+  key       String // Rate limit key (e.g., "login:user@x.com")
   expiresAt DateTime // When this entry can be cleaned up
   createdAt DateTime @default(now())
 

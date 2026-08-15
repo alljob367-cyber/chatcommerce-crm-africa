@@ -221,22 +221,30 @@ async function sendCampaignMessages(campaignId: string, companyId: string) {
             disable_web_page_preview: !campaign.buttonUrl,
           };
 
-          // Try to find a real Telegram chatId for this contact
-          // Strategy 1: Look up by phone (Telegram chatIds sometimes match phone numbers)
-          // Strategy 2: Look in bookings history
-          let chatId = contact.phone; // fallback to phone
+          // Find a real Telegram chatId for this contact
+          // Strategy: Match by phone digits in the chatId or by customer name
+          let chatId: string | null = null;
 
-          // Try to find chatId from bookings - match by phone suffix or name
+          const phoneDigits = contact.phone ? contact.phone.replace(/[^0-9]/g, "") : "";
           for (const [bid, bname] of chatIdMap.entries()) {
-            if (
-              contact.phone && bid.includes(contact.phone.replace(/[^0-9]/g, ""))
-            ) {
+            // Match by phone digits contained in chatId
+            if (phoneDigits && phoneDigits.length >= 8 && bid.includes(phoneDigits)) {
               chatId = bid;
               break;
             }
+            // Match by name similarity
+            if (bname && contact.name && bname.toLowerCase().includes(contact.name.toLowerCase().split(" ")[0])) {
+              chatId = bid;
+            }
           }
 
-          payload.chat_id = chatId;
+          // Only send if we found a real chatId
+          if (!chatId) {
+            failedCount++;
+            continue;
+          }
+
+          payload.chat_id = chatId!;
 
           if (campaign.buttonUrl && campaign.buttonText) {
             payload.reply_markup = JSON.stringify({

@@ -40,23 +40,28 @@ export function PwaRegister() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+
     async function registerSW() {
       try {
         const registration = await navigator.serviceWorker.register("/sw.js", {
           scope: "/",
         });
-        console.log("[PWA] Service Worker enregistré", registration.scope);
 
         // Check for updates periodically
-        setInterval(() => {
+        intervalId = setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000); // Every hour
-      } catch (err) {
-        console.warn("[PWA] Erreur d'enregistrement du Service Worker", err);
+      } catch {
+        // Registration failed
       }
     }
 
     registerSW();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   // ── Listen for beforeinstallprompt ──
@@ -82,7 +87,6 @@ export function PwaRegister() {
     function handleAppInstalled() {
       setShowBanner(false);
       setDeferredPrompt(null);
-      console.log("[PWA] Application installée");
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -101,7 +105,6 @@ export function PwaRegister() {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      console.log(`[PWA] Choix utilisateur: ${outcome}`);
       if (outcome === "accepted") {
         setShowBanner(false);
       }

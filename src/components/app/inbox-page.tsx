@@ -70,7 +70,7 @@ export default function InboxPage() {
           selectedRef.current = first;
         }
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [token, statusFilter]);
 
@@ -85,7 +85,7 @@ export default function InboxPage() {
     })
       .then((r) => r.json())
       .then((d) => setMessages(d.messages || []))
-      .catch(console.error);
+      .catch(() => {});
   }, [selected, token]);
 
   useEffect(() => {
@@ -101,26 +101,28 @@ export default function InboxPage() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ contactId: selected.contact.id, message: reply }),
       });
-      const data = await res.json();
-      if (data.message) {
-        setMessages((prev) => [...prev, data.message]);
-        setReply("");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.message) {
+          setMessages((prev) => [...prev, data.message]);
+          setReply("");
+        }
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
     setSending(false);
   };
 
   const handleStatusChange = async (convId: string, status: string) => {
     if (!token) return;
-    await fetch("/api/conversations", {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ id: convId, status }),
-    });
-    setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, status } : c));
-    if (selected?.id === convId) setSelected((prev) => prev ? { ...prev, status } : prev);
+    try {
+      await fetch("/api/conversations", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: convId, status }),
+      });
+      setConversations((prev) => prev.map((c) => c.id === convId ? { ...c, status } : c));
+      if (selected?.id === convId) setSelected((prev) => prev ? { ...prev, status } : prev);
+    } catch {}
   };
 
   const formatTime = (dateStr: string) => {

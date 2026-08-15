@@ -60,7 +60,7 @@ export default function ContactsPage() {
     fetch(`/api/contacts?${params}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setContacts(d.contacts || []))
-      .catch(console.error)
+      .catch(() => setContacts([]))
       .finally(() => setLoading(false));
   }, [token, search, selectedTag]);
 
@@ -68,16 +68,32 @@ export default function ContactsPage() {
     fetchContacts();
   }, [fetchContacts]);
 
+  const [addError, setAddError] = useState("");
+
   const handleAdd = async () => {
     if (!token) return;
-    await fetch("/api/contacts", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(newContact),
-    });
-    setShowAdd(false);
-    setNewContact({ name: "", phone: "", email: "", tags: "", notes: "", city: "" });
-    fetchContacts();
+    if (!newContact.name.trim() || !newContact.phone.trim()) {
+      setAddError("Nom et téléphone sont obligatoires");
+      return;
+    }
+    setAddError("");
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(newContact),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setAddError(d.error || "Erreur lors de l'ajout");
+        return;
+      }
+      setShowAdd(false);
+      setNewContact({ name: "", phone: "", email: "", tags: "", notes: "", city: "" });
+      fetchContacts();
+    } catch {
+      setAddError("Erreur réseau");
+    }
   };
 
   const formatXAF = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA";
@@ -105,6 +121,7 @@ export default function ContactsPage() {
               <div><Label>Tags (séparés par virgule)</Label><Input placeholder="vip, régulier" value={newContact.tags} onChange={(e) => setNewContact({ ...newContact, tags: e.target.value })} /></div>
               <div><Label>Notes</Label><Textarea placeholder="Notes internes..." value={newContact.notes} onChange={(e) => setNewContact({ ...newContact, notes: e.target.value })} /></div>
               <Button className="w-full bg-primary" onClick={handleAdd}>Ajouter le contact</Button>
+              {addError && <p className="text-sm text-red-500 text-center">{addError}</p>}
             </div>
           </DialogContent>
         </Dialog>
@@ -167,9 +184,14 @@ export default function ContactsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Voir le profil</DropdownMenuItem>
-                          <DropdownMenuItem>Envoyer un message</DropdownMenuItem>
-                          <DropdownMenuItem>Créer une commande</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onClick={() => {
+                            if (confirm("Supprimer ce contact ?")) {
+                              fetch(`/api/contacts/${c.id}`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${token}` },
+                              }).then((r) => { if (r.ok) fetchContacts(); });
+                            }
+                          }}>Supprimer</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

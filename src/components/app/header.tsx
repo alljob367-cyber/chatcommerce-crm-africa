@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useState, FormEvent } from "react";
 import { useTheme } from "next-themes";
 import { useAppStore } from "@/store/app";
 import { Search, Sun, Moon } from "lucide-react";
@@ -32,6 +32,15 @@ export default function Header({ title, subtitle, children }: HeaderProps) {
 
   const isDark = mounted ? (resolvedTheme || theme) === "dark" : false;
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const handleSearch = (e: FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      const store = useAppStore.getState();
+      store.setPage("contacts");
+    }
+  };
+
   return (
     <header className="h-16 border-b border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
       <div>
@@ -40,13 +49,15 @@ export default function Header({ title, subtitle, children }: HeaderProps) {
       </div>
       <div className="flex items-center gap-3">
         {children}
-        <div className="relative hidden md:block">
+        <form className="relative hidden md:block" onSubmit={handleSearch}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher..."
             className="w-64 pl-9 h-9 bg-muted border-0 text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
         {/* Theme Toggle */}
         <Button
           variant="ghost"

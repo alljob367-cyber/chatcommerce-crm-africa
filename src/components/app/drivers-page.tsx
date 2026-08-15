@@ -131,7 +131,7 @@ export default function DriversPage() {
     fetch("/api/drivers", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d) => setDrivers(Array.isArray(d.drivers) ? d.drivers : Array.isArray(d) ? d : []))
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -197,19 +197,27 @@ export default function DriversPage() {
 
       if (editingDriver) {
         // Update
-        await fetch(`/api/drivers/${editingDriver.id}`, {
+        const res = await fetch(`/api/drivers/${editingDriver.id}`, {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        if (!res.ok) {
+          toast.error("Erreur lors de la mise à jour");
+          return;
+        }
         toast.success("Livreur mis à jour avec succès");
       } else {
         // Create
-        await fetch("/api/drivers", {
+        const res = await fetch("/api/drivers", {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
+        if (!res.ok) {
+          toast.error("Erreur lors de l'ajout");
+          return;
+        }
         toast.success("Livreur ajouté avec succès");
       }
       setDialogOpen(false);
@@ -224,16 +232,21 @@ export default function DriversPage() {
   // ── Delete ──
   const handleDelete = async (id: string) => {
     if (!token) return;
+    if (!confirm("Supprimer ce livreur ? Cette action est irréversible.")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/drivers/${id}`, {
+      const res = await fetch(`/api/drivers/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success("Livreur supprimé");
-      fetchDrivers();
+      if (res.ok) {
+        toast.success("Livreur supprimé");
+        fetchDrivers();
+      } else {
+        toast.error("Erreur lors de la suppression");
+      }
     } catch {
-      toast.error("Erreur lors de la suppression");
+      toast.error("Erreur réseau");
     } finally {
       setDeleting(null);
     }

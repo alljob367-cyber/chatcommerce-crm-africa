@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         total: lineTotal,
       });
     }
-    const tax = subtotal * 0.19;
+    const tax = subtotal * 0.1925; // Cameroon VAT 19.25%
     const total = subtotal + tax;
 
     // ── Transaction: count + create order + items + decrement stock ──

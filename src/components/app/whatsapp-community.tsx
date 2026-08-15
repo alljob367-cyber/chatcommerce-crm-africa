@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, Users, ExternalLink, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,22 +27,22 @@ const COMMUNITY_BENEFITS = [
 export default function WhatsAppCommunity({ variant = "header" }: { variant?: "header" | "dashboard" }) {
   const [open, setOpen] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
+
+  useEffect(() => {
+    setHasJoined(localStorage.getItem("cc_whatsapp_joined") === "true");
+  }, []);
 
   const handleJoin = () => {
     // Open WhatsApp community link
     window.open(WHATSAPP_COMMUNITY_URL, "_blank", "noopener,noreferrer");
     setJoined(true);
     // Save to localStorage so we don't show the dialog again
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cc_whatsapp_joined", "true");
-    }
+    localStorage.setItem("cc_whatsapp_joined", "true");
+    setHasJoined(true);
   };
 
-  // Check if user already joined
-  if (typeof window !== "undefined") {
-    const alreadyJoined = localStorage.getItem("cc_whatsapp_joined");
-    if (alreadyJoined && variant === "header") return null;
-  }
+  if (hasJoined && variant === "header") return null;
 
   if (variant === "header") {
     return (

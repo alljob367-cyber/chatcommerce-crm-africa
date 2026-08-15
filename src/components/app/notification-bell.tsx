@@ -7,10 +7,18 @@ import { useAppStore } from "@/store/app";
 import { useNotificationStore, type NotificationItem } from "@/lib/notification-store";
 import { cn } from "@/lib/utils";
 
-// ─── Web Audio API beep for new notifications ───
+// ─── Web Audio API beep for new notifications (lazy singleton) ───
+let audioCtx: AudioContext | null = null;
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new AudioContext();
+  }
+  return audioCtx;
+}
+
 function playBeep() {
   try {
-    const ctx = new AudioContext();
+    const ctx = getAudioContext();
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
     oscillator.connect(gain);
