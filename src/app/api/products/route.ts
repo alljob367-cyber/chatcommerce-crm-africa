@@ -10,6 +10,72 @@ async function auth(request: Request) {
   return verifyToken(token);
 }
 
+// ─── Helper: Auto-sync product to all company Telegram agents ────
+async function syncProductToAgents(
+  companyId: string,
+  productName: string,
+  productDescription: string | null,
+  productPrice: number,
+  productImage: string | null,
+  action: "create" | "update" | "delete"
+) {
+  try {
+    const agents = await db.telegramAgent.findMany({
+      where: { companyId, isActive: true },
+      select: { id: true },
+    });
+
+    for (const agent of agents) {
+      try {
+        const existingService = await db.businessService.findFirst({
+          where: { agentId: agent.id, name: { equals: productName, mode: "insensitive" } },
+        });
+
+        if (action === "delete") {
+          if (existingService) {
+            await db.businessService.update({
+              where: { id: existingService.id },
+              data: { isActive: false },
+            });
+          }
+        } else if (action === "create") {
+          if (!existingService) {
+            const maxSort = await db.businessService.count({ where: { agentId: agent.id } });
+            await db.businessService.create({
+              data: {
+                agentId: agent.id,
+                name: productName,
+                description: productDescription,
+                price: productPrice,
+                duration: null,
+                image: productImage,
+                isActive: true,
+                sortOrder: maxSort + 1,
+              },
+            });
+          }
+        } else if (action === "update" && existingService) {
+          await db.businessService.update({
+            where: { id: existingService.id },
+            data: {
+              name: productName,
+              description: productDescription,
+              price: productPrice,
+              image: productImage,
+            },
+          });
+        }
+      } catch (err) {
+        console.error(`[AutoSync] Agent ${agent.id} error:`, err);
+      }
+    }
+
+    console.log(`[AutoSync] Product "${productName}" ${action}d → synced to ${agents.length} agents`);
+  } catch (err) {
+    console.error("[AutoSync] Error syncing product to agents:", err);
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const session = await auth(request);
@@ -84,6 +150,9 @@ export async function POST(request: Request) {
       },
     });
 
+    // Auto-sync to all Telegram agents
+    await syncProductToAgents(realCompanyId, sanitizedName, sanitizedDesc, parseFloat(price), image || null, "create");
+
     return NextResponse.json({ product }, { status: 201 });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
@@ -130,6 +199,16 @@ export async function PATCH(request: Request) {
       },
     });
 
+    // Auto-sync update to all Telegram agents
+    if (name !== undefined || price !== undefined || description !== undefined || image !== undefined) {
+      const syncName = name !== undefined ? sanitize(name) : existing.name;
+      const syncDesc = description !== undefined ? sanitize(description) : existing.description;
+      const syncPrice = price !== undefined ? parseFloat(price) : existing.price;
+      const syncImage = image !== undefined ? image : existing.image;
+      const syncAction = isActive === false ? "delete" : "update";
+      await syncProductToAgents(realCompanyId, syncName, syncDesc, syncPrice, syncImage, syncAction);
+    }
+
     return NextResponse.json({ product });
   } catch (error: unknown) {
     const { error: msg, status } = handleError(error);
@@ -160,6 +239,9 @@ export async function DELETE(request: Request) {
       where: { id },
       data: { isActive: false },
     });
+
+    // Auto-sync: deactivate matching services in all Telegram agents
+    await syncProductToAgents(realCompanyId, existing.name, existing.description, existing.price, existing.image, "delete");
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

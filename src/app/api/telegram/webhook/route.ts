@@ -111,6 +111,7 @@ async function findAgentByToken(botToken: string): Promise<AgentWithServices | n
 }
 
 // ─── Helper: Build services menu with inline buttons ──────────────
+// Shows BOTH BusinessService records AND company products (deduped by name)
 
 function buildServicesMenu(agent: AgentWithServices, lang: "fr" | "en") {
   const currency = agent.currency || "XAF";
@@ -119,18 +120,40 @@ function buildServicesMenu(agent: AgentWithServices, lang: "fr" | "en") {
     en: { title: "Our Services", empty: "No services available", price: "FCFA", order: "Order" },
   }[lang];
 
-  if (!agent.services.length) return { text: labels.empty, keyboard: undefined };
+  // Merge services + products (dedupe by name, case-insensitive)
+  const items: Array<{ id: string; name: string; description: string | null; price: number; isProduct: boolean }> = [];
+  const seenNames = new Set<string>();
+
+  // Add BusinessService records first
+  for (const svc of agent.services) {
+    if (!seenNames.has(svc.name.toLowerCase())) {
+      items.push({ id: svc.id, name: svc.name, description: svc.description, price: svc.price, isProduct: false });
+      seenNames.add(svc.name.toLowerCase());
+    }
+  }
+
+  // Add company products that aren't already in services (as fallback)
+  if (agent.company?.products) {
+    for (const prod of agent.company.products) {
+      if (!seenNames.has(prod.name.toLowerCase())) {
+        items.push({ id: `prod:${prod.name}`, name: prod.name, description: prod.description, price: prod.price, isProduct: true });
+        seenNames.add(prod.name.toLowerCase());
+      }
+    }
+  }
+
+  if (items.length === 0) return { text: labels.empty, keyboard: undefined };
 
   let text = `<b>${labels.title}</b> — ${agent.name}\n\n`;
   const buttons: Array<Array<{ text: string; callback_data: string }>> = [];
 
-  agent.services.forEach((svc, i) => {
-    const priceStr = svc.price > 0
-      ? `${svc.price.toLocaleString("fr-FR")} ${labels.price}`
+  items.forEach((item, i) => {
+    const priceStr = item.price > 0
+      ? `${item.price.toLocaleString("fr-FR")} ${labels.price}`
       : lang === "fr" ? "Gratuit" : "Free";
-    text += `<b>${i + 1}.</b> ${svc.name} — <b>${priceStr}</b>\n`;
-    if (svc.description) text += `   <i>${svc.description}</i>\n`;
-    buttons.push([{ text: `${svc.name} — ${priceStr}`, callback_data: `order:${svc.id}` }]);
+    text += `<b>${i + 1}.</b> ${item.name} — <b>${priceStr}</b>\n`;
+    if (item.description) text += `   <i>${item.description}</i>\n`;
+    buttons.push([{ text: `${item.name} — ${priceStr}`, callback_data: `order:${item.id}` }]);
   });
 
   text += `\n<i>${lang === "fr" ? "Cliquez sur un service pour commander" : "Click a service to order"}</i>`;
@@ -192,7 +215,21 @@ async function createBooking(
   customerName: string,
   lang: "fr" | "en"
 ): Promise<{ text: string; keyboard?: Record<string, unknown> }> {
-  const service = agent.services.find(s => s.id === serviceId);
+  // Check if it's a product fallback ID (prod:ProductName)
+  let service: { id: string; name: string; description: string | null; price: number } | undefined;
+  let isProduct = false;
+
+  if (serviceId.startsWith("prod:")) {
+    const productName = serviceId.replace("prod:", "");
+    const product = agent.company?.products?.find(p => p.name.toLowerCase() === productName.toLowerCase());
+    if (product) {
+      service = { id: serviceId, name: product.name, description: product.description, price: product.price };
+      isProduct = true;
+    }
+  } else {
+    service = agent.services.find(s => s.id === serviceId);
+  }
+
   if (!service) return { text: lang === "fr" ? "Service introuvable." : "Service not found." };
 
   const currency = agent.currency || "XAF";
