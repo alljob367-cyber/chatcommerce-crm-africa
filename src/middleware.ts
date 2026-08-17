@@ -3,8 +3,11 @@ import type { NextRequest } from "next/server";
 
 // Routes publiques qui ne nécessitent PAS de token (exclusion EXACTE)
 const EXACT_PUBLIC_PATHS = [
+  "/api/auth",
   "/api/auth/register",
   "/api/auth/login",
+  "/api/auth/2fa",
+  "/api/auth/phone",
   "/api/auth/phone/send-otp",
   "/api/auth/phone/verify-otp",
   "/api/chariow/webhook",
