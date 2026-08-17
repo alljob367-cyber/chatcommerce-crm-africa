@@ -29,6 +29,7 @@ import {
   Settings2,
   Menu,
   X,
+  AudioLines,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -51,6 +52,7 @@ const navItems: { page: Page; label: string; icon: React.ElementType; badge?: st
   { page: "ai", label: "Assistant IA", icon: Bot },
   { page: "telegram", label: "Agents Telegram", icon: Bot },
   { page: "whatsapp", label: "Agents WhatsApp", icon: MessageCircle },
+  { page: "elevenlabs", label: "Agents Vocaux IA", icon: AudioLines },
   { page: "drivers", label: "Livreurs", icon: Bike },
   { page: "deliveries", label: "Livraisons", icon: Truck },
   { page: "payments", label: "Paiement Mobile Money", icon: CreditCard },

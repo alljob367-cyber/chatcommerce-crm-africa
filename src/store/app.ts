@@ -21,7 +21,8 @@ export type Page =
   | "campaigns"
   | "reports"
   | "api-docs"
-  | "admin";
+  | "admin"
+  | "elevenlabs";
 
 export interface User {
   id: string;

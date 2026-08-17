@@ -50,6 +50,7 @@ model Company {
   payments         Payment[]
   telegramAgents   TelegramAgent[]
   whatsappAgents  WhatsAppAgent[]
+  elevenLabsAgents ElevenLabsAgent[]
   telegramBookings TelegramBooking[]
   whatsappBookings WhatsAppBooking[]
   drivers          Driver[]
@@ -495,6 +496,7 @@ model BusinessService {
   id          String   @id @default(cuid())
   agentId         String?
   whatsappAgentId String?
+  elevenLabsAgentId String?
   name        String // ex: " Coupe homme", " Döner poulet"
   description String?
   price       Decimal  @db.Decimal(19, 2)
@@ -507,9 +509,11 @@ model BusinessService {
 
   agent       TelegramAgent? @relation(fields: [agentId], references: [id], onDelete: Cascade)
   whatsappAgent WhatsAppAgent? @relation(fields: [whatsappAgentId], references: [id], onDelete: Cascade)
+  elevenLabsAgent ElevenLabsAgent? @relation(fields: [elevenLabsAgentId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
   @@index([whatsappAgentId])
+  @@index([elevenLabsAgentId])
 }
 
 model TelegramBooking {
@@ -748,4 +752,47 @@ model WhatsAppBooking {
   @@index([companyId])
   @@index([status])
   @@index([bookingDate])
+}
+
+// ============================================
+// ELEVENLABS AGENTS - CONVERSATIONAL AI SYSTEM
+// ============================================
+
+model ElevenLabsAgent {
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String             // Nom de l'agent (ex: "Assistant Restaurant")
+  elevenAgentId  String?            // ID de l'agent sur ElevenLabs Conversational AI
+  businessType   String   @default("default") // restaurant, salon_coiffure, pharmacie, taxi, braiseuse_poisson, default
+  isActive       Boolean  @default(true)
+
+  // Agent ElevenLabs Config
+  agentConfig    String?            // JSON: { agentId, firstMessage, prompt, voiceId, model, language, temperature }
+  webhookSecret  String?            // Secret pour valider les webhooks ElevenLabs
+  welcomeMessage String?            // Message d'accueil personnalise
+
+  // Business info
+  address        String?
+  phone          String?
+  openHours      String?            // JSON: {"mon":"09:00-22:00",...}
+  currency       String   @default("XAF")
+  paymentMethod  String?
+
+  // AI Config (fallback si pas d'agent ElevenLabs)
+  aiConfig       String?            // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
+
+  // Stats
+  totalConversations Int @default(0)
+  totalMessages      Int @default(0)
+  lastActivityAt     DateTime?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company    Company           @relation(fields: [companyId], references: [id])
+  services   BusinessService[]
+
+  @@index([companyId])
+  @@index([elevenAgentId])
+  @@index([businessType])
 }

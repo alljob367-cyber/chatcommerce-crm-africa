@@ -19,6 +19,7 @@ import AdminPaymentsPage from "@/components/app/admin-payments-page";
 import AdminPage from "@/components/app/admin-page";
 import TelegramPage from "@/components/app/telegram-page";
 import WhatsAppPage from "@/components/app/whatsapp-page";
+import ElevenLabsPage from "@/components/app/elevenlabs-page";
 import DriversPage from "@/components/app/drivers-page";
 import DeliveriesPage from "@/components/app/deliveries-page";
 import SyncPage from "@/components/app/sync-page";
@@ -54,6 +55,7 @@ function PageRenderer({ page }: { page: string }) {
     case "admin": return <AdminPage />;
     case "telegram": return <TelegramPage />;
     case "whatsapp": return <WhatsAppPage />;
+    case "elevenlabs": return <ElevenLabsPage />;
     case "drivers": return <DriversPage />;
     case "deliveries": return <DeliveriesPage />;
     case "sync": return <SyncPage />;
