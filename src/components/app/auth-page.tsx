@@ -63,26 +63,26 @@ import Image from "next/image";
 /* ─── DATA ─────────────────────────────────────────── */
 
 const AGENT_TYPES = [
-  { icon: Store, label: "Restaurant", type: "restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire" },
-  { icon: Scissors, label: "Salon Coiffure", type: "salon_coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "" },
-  { icon: Pill, label: "Pharmacie", type: "pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "" },
-  { icon: Car, label: "Taxi / Transport", type: "taxi_transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "" },
-  { icon: Shirt, label: "Pressing / Laverie", type: "pressing_laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "" },
-  { icon: GraduationCap, label: "Ecole / Formation", type: "ecole_formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "" },
-  { icon: ShoppingBag, label: "Supermarché", type: "supermarche", desc: "Courses en ligne, livraison domicile, pack famille", color: "from-lime-500 to-green-500", badge: "Nouveau" },
-  { icon: Bot, label: "Clinique", type: "clinique", desc: "RDV médecin, analyses, vaccination, suivi", color: "from-red-500 to-pink-500", badge: "Nouveau" },
-  { icon: Globe, label: "Agence de Voyage", type: "agence_voyage", desc: "Billets avion, hôtels, excursions, visa", color: "from-violet-500 to-purple-500", badge: "Nouveau" },
-  { icon: Sparkles, label: "Boulangerie", type: "boulangerie", desc: "Commande pain, pâtisseries, gâteaux anniversaire", color: "from-yellow-500 to-amber-500", badge: "Nouveau" },
-  { icon: Zap, label: "Garage Auto", type: "garage_auto", desc: "Vidange, révision, pneus, diagnostic, dépannage", color: "from-zinc-500 to-gray-600", badge: "Nouveau" },
-  { icon: Users, label: "Salle de Sport", type: "salle_sport", desc: "Abonnements, coaching, yoga, zumba, boxe", color: "from-emerald-500 to-teal-500", badge: "Nouveau" },
+  { icon: Store, label: "Restaurant", type: "restaurant", desc: "Commandes automatiques, livraison, menu interactif", color: "from-orange-500 to-red-500", badge: "Populaire", channels: ["telegram", "whatsapp"] },
+  { icon: Scissors, label: "Salon Coiffure", type: "salon_coiffure", desc: "Prise de RDV, pack mariée, soins cheveux", color: "from-pink-500 to-purple-500", badge: "", channels: ["telegram", "whatsapp"] },
+  { icon: Pill, label: "Pharmacie", type: "pharmacie", desc: "Rappel médicaments, commande en ligne, disponibilité", color: "from-green-500 to-teal-500", badge: "", channels: ["telegram", "whatsapp"] },
+  { icon: Car, label: "Taxi / Transport", type: "taxi_transport", desc: "Réservation course, devis instantané, suivi course", color: "from-blue-500 to-indigo-500", badge: "", channels: ["telegram", "whatsapp"] },
+  { icon: MessageCircle, label: "Braiseuse Poisson", type: "braiseuse_poisson", desc: "Poisson braisé, macho grillé, alloco, commandes WhatsApp", color: "from-red-600 to-orange-600", badge: "Exclusif", channels: ["whatsapp", "telegram"] },
+  { icon: Shirt, label: "Pressing / Laverie", type: "pressing_laverie", desc: "Dépôt/retrait vêtements, suivi linge, tarif", color: "from-cyan-500 to-blue-500", badge: "", channels: ["telegram", "whatsapp"] },
+  { icon: GraduationCap, label: "Ecole / Formation", type: "ecole_formation", desc: "Inscriptions en ligne, emploi du temps, paiements", color: "from-amber-500 to-orange-500", badge: "", channels: ["telegram", "whatsapp"] },
+  { icon: ShoppingBag, label: "Supermarché", type: "supermarche", desc: "Courses en ligne, livraison domicile, pack famille", color: "from-lime-500 to-green-500", badge: "Nouveau", channels: ["whatsapp", "telegram"] },
+  { icon: Bot, label: "Clinique", type: "clinique", desc: "RDV médecin, analyses, vaccination, suivi", color: "from-red-500 to-pink-500", badge: "Nouveau", channels: ["whatsapp", "telegram"] },
+  { icon: Globe, label: "Agence de Voyage", type: "agence_voyage", desc: "Billets avion, hôtels, excursions, visa", color: "from-violet-500 to-purple-500", badge: "Nouveau", channels: ["whatsapp", "telegram"] },
+  { icon: Sparkles, label: "Boulangerie", type: "boulangerie", desc: "Commande pain, pâtisseries, gâteaux anniversaire", color: "from-yellow-500 to-amber-500", badge: "Nouveau", channels: ["whatsapp", "telegram"] },
+  { icon: Users, label: "Salle de Sport", type: "salle_sport", desc: "Abonnements, coaching, yoga, zumba, boxe", color: "from-emerald-500 to-teal-500", badge: "Nouveau", channels: ["whatsapp", "telegram"] },
 ];
 
 const FEATURES = [
-  { icon: Bot, title: "Bots Telegram Prêts", desc: "12 types d'agents pré-configurés. Aucune compétence technique requise. Activez en 2 minutes." },
-  { icon: ShoppingBag, title: "Commandes Automatiques", desc: "Vos clients commandent 24h/24 via Telegram. Panier, checkout, confirmation tout automatique." },
+  { icon: MessageCircle, title: "Agents WhatsApp + Telegram", desc: "12 types d'agents pré-configurés sur WhatsApp ET Telegram. Vos clients utilisent le canal qu'ils préfèrent." },
+  { icon: ShoppingBag, title: "Commandes Automatiques", desc: "Vos clients commandent 24h/24 via WhatsApp ou Telegram. Panier, checkout, confirmation tout automatique." },
   { icon: BarChart3, title: "Dashboard CRM", desc: "KPI en temps réel, revenus, commandes, taux de conversion. Export CSV et rapports." },
   { icon: Users, title: "Gestion Clients", desc: "CRM complet : contacts, conversations historique, suivi des leads et prospects." },
-  { icon: Zap, title: "Zero Configuration", desc: "Un clic pour créer un bot. Collez votre token BotFather. C'est tout. Pas de code." },
+  { icon: Zap, title: "Zero Configuration", desc: "Un clic pour créer un bot. Collez votre token BotFather ou connectez WhatsApp. C'est tout. Pas de code." },
   { icon: Globe, title: "Made for Africa", desc: "Paiement Mobile Money (Orange Money, MTN MoMo), FCFA, multilingue FR/EN." },
 ];
 
@@ -99,7 +99,7 @@ const PRICING = [
     price: "5 000",
     period: "FCFA/mois",
     desc: "Pour demarrer votre activite en ligne",
-    features: ["2 agents Telegram", "CRM complet", "Dashboard KPI", "500 contacts", "Commandes automatiques", "Communaute WhatsApp"],
+    features: ["2 agents (WhatsApp ou Telegram)", "CRM complet", "Dashboard KPI", "500 contacts", "Commandes automatiques", "Communaute WhatsApp"],
     cta: "Commencer a 5 000 FCFA",
     popular: false,
   },
@@ -108,7 +108,7 @@ const PRICING = [
     price: "14 900",
     period: "FCFA/mois",
     desc: "Pour les auto-entrepreneurs ambitieux",
-    features: ["5 agents Telegram", "CRM complet", "Dashboard avance", "2 000 contacts", "Campagnes Telegram Ads (10)", "Livraisons avec livreurs (3)", "IA Assistant", "Communaute WhatsApp"],
+    features: ["5 agents (WhatsApp + Telegram)", "CRM complet", "Dashboard avance", "2 000 contacts", "Campagnes Ads (10)", "Livraisons avec livreurs (3)", "IA Assistant Mistral", "Agents Vocaux ElevenLabs (2)", "Communaute WhatsApp"],
     cta: "Commencer a 14 900 FCFA",
     popular: true,
   },
@@ -117,7 +117,7 @@ const PRICING = [
     price: "29 900",
     period: "FCFA/mois",
     desc: "Pour les PME qui veulent grandir",
-    features: ["12 agents Telegram", "CRM complet", "Dashboard avance", "5 000 contacts", "Campagnes Telegram Ads (50)", "Livraisons avec livreurs (10)", "IA Assistant", "Rapports PDF", "Paiement Mobile Money", "Support prioritaire"],
+    features: ["12 agents (WhatsApp + Telegram)", "CRM complet", "Dashboard avance", "5 000 contacts", "Campagnes Ads (50)", "Livraisons avec livreurs (10)", "IA Assistant Mistral", "Agents Vocaux ElevenLabs (5)", "Rapports PDF", "Paiement Mobile Money", "Support prioritaire"],
     cta: "Commencer a 29 900 FCFA",
     popular: false,
   },
@@ -126,7 +126,7 @@ const PRICING = [
     price: "Sur devis",
     period: "",
     desc: "Pour les grandes structures et franchises",
-    features: ["Bots illimites", "CRM multi-sites", "Campagnes illimitees", "Livraisons illimitees", "API complete", "White-label", "Formation dediee", "SLA garanti", "Support 24/7", "Integration sur mesure"],
+    features: ["Agents illimites (tous canaux)", "CRM multi-sites", "Campagnes illimitees", "Livraisons illimitees", "Agents Vocaux illimites", "API complete", "White-label", "Formation dediee", "SLA garanti", "Support 24/7", "Integration sur mesure"],
     cta: "Contacter les ventes",
     popular: false,
   },
@@ -766,7 +766,7 @@ export default function AuthPage() {
               <div className="animate-fade-up">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00E676]/10 rounded-full border border-[#00E676]/20 backdrop-blur-sm">
                   <Rocket className="w-4 h-4 text-[#00E676]" />
-                  <span className="text-sm font-medium text-[#00E676] font-heading">La 1ère plateforme CRM Telegram pour l'Afrique</span>
+                  <span className="text-sm font-medium text-[#00E676] font-heading">Le CRM WhatsApp + Telegram #1 en Afrique</span>
                 </div>
               </div>
 
@@ -778,11 +778,11 @@ export default function AuthPage() {
                   </span>
                   <span className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-[#00E676] to-transparent rounded-full" />
                 </span>
-                {" "}avec des Bots Telegram
+                {" "}avec WhatsApp & Telegram
               </h1>
 
               <p className="animate-fade-up delay-200 text-lg md:text-xl text-zinc-400 max-w-lg leading-relaxed text-balance">
-                Créez votre bot en <span className="text-white font-semibold font-heading">1 clic</span>. Recevez des commandes, prenez des rendez-vous et gérez vos clients depuis Telegram. <span className="text-[#00E676] font-semibold font-heading">Zero code. Zero config.</span>
+                Créez votre bot en <span className="text-white font-semibold font-heading">1 clic</span>. Recevez des commandes, prenez des rendez-vous et gérez vos clients depuis <span className="text-[#25D366] font-semibold font-heading">WhatsApp</span> et <span className="text-[#00E676] font-semibold font-heading">Telegram</span>. <span className="text-white font-semibold font-heading">Zero code. Zero config.</span>
               </p>
 
               <div className="animate-fade-up delay-300 flex flex-col sm:flex-row items-start gap-4">
@@ -859,13 +859,13 @@ export default function AuthPage() {
         <div className="relative max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-[#00E676]/10 text-[#00E676] border-[#00E676]/20 hover:bg-[#00E676]/20">
-              <Layers className="w-3 h-3 mr-1" /> 12 Agents Telegram
+              <Layers className="w-3 h-3 mr-1" /> 12 Agents WhatsApp + Telegram
             </Badge>
             <h2 className="section-heading text-3xl md:text-5xl font-black text-white mb-4">
-              Un bot pour chaque <span className="text-[#00E676]">activite</span>
+              Un agent pour chaque <span className="text-[#00E676]">activite</span>, sur <span className="text-[#25D366]">WhatsApp</span> & <span className="text-[#00E676]">Telegram</span>
             </h2>
             <p className="text-zinc-400 max-w-2xl mx-auto text-lg text-balance">
-              Choisissez votre type d&apos;activité. Tout est pré-configuré : services, tarifs, horaires. Il suffit d&apos;activer.
+              Choisissez votre type d&apos;activité. Tout est pré-configuré sur les deux canaux : services, tarifs, horaires. Il suffit d&apos;activer.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -886,7 +886,12 @@ export default function AuthPage() {
                     )}
                   </div>
                   <p className="text-sm text-zinc-400 leading-relaxed">{agent.desc}</p>
-                  <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-[#00E676] group-hover:gap-3 transition-all">
+                  <div className="mt-3 flex items-center gap-2">
+                    {agent.channels?.map((ch) => (
+                      <span key={ch} className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ch === "whatsapp" ? "bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20" : "bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/20"}`}>{ch === "whatsapp" ? "WhatsApp" : "Telegram"}</span>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#00E676] group-hover:gap-3 transition-all">
                     <Send className="w-4 h-4" />
                     <span>S'inscrire maintenant</span>
                   </div>
@@ -910,9 +915,9 @@ export default function AuthPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
-              { step: "01", icon: Zap, title: "Choisissez votre agent", desc: "Restaurant, Salon, Pharmacie, Taxi... Un clic et c'est configuré avec tous les services." },
-              { step: "02", icon: Bot, title: "Activez sur Telegram", desc: "Collez votre token @BotFather. Le bot est immédiatement en ligne et prêt à recevoir des commandes." },
-              { step: "03", icon: TrendingUp, title: "Recevez des commandes", desc: "Vos clients commandent 24h/24. Vous recevez les notifications et gérez tout depuis le dashboard." },
+              { step: "01", icon: Zap, title: "Choisissez votre agent", desc: "Restaurant, Salon, Pharmacie, Taxi... Un clic et c'est configuré sur WhatsApp et Telegram avec tous les services." },
+              { step: "02", icon: Bot, title: "Connectez WhatsApp ou Telegram", desc: "Collez votre token @BotFather ou connectez votre numéro WhatsApp Business. L'agent est immédiatement en ligne." },
+              { step: "03", icon: TrendingUp, title: "Recevez des commandes", desc: "Vos clients commandent 24h/24 sur les deux canaux. Vous recevez les notifications et gérez tout depuis le dashboard." },
             ].map((s, i) => (
               <div key={s.step} className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-br from-[#00E676]/10 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -948,7 +953,7 @@ export default function AuthPage() {
               Tout pour <span className="text-[#00E676]">dominer</span> votre marché
             </h2>
             <p className="text-zinc-400 max-w-2xl mx-auto text-lg text-balance">
-              Un CRM complet intégré avec des bots Telegram puissants. Gérez votre activité depuis une seule plateforme.
+              Un CRM complet intégré avec des agents WhatsApp et Telegram puissants. Gérez votre activité depuis une seule plateforme.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1103,7 +1108,7 @@ export default function AuthPage() {
                 Prêt à automatiser votre <span className="text-[#00E676]">activité</span> ?
               </h2>
               <p className="text-lg text-zinc-400 max-w-xl mx-auto">
-                Rejoignez des centaines de commerçants africains qui vendent 24h/24 avec des bots Telegram.
+                Rejoignez des centaines de commerçants africains qui vendent 24h/24 avec des agents WhatsApp et Telegram.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
@@ -1367,10 +1372,10 @@ export default function AuthPage() {
                 {/* Plan Cards - 2x2 grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { key: "starter", name: "Starter", icon: Rocket, price: "5 000", features: ["500 contacts", "3 agents", "50 produits", "1 000 messages"], color: "border-border" },
-                    { key: "pro", name: "Pro", icon: Zap, price: "14 900", features: ["2 000 contacts", "5 agents", "IA Assistant", "Campagnes Ads"], color: "border-[#25D366]", popular: true },
-                    { key: "business", name: "Business", icon: Crown, price: "29 900", features: ["5 000 contacts", "10 agents", "Mobile Money", "Rapports PDF"], color: "border-blue-400" },
-                    { key: "enterprise", name: "Enterprise", icon: Sparkles, price: "69 900", features: ["Illimité", "API + White-label", "Support 24/7", "Sur mesure"], color: "border-purple-300" },
+                    { key: "starter", name: "Starter", icon: Rocket, price: "5 000", features: ["500 contacts", "2 agents", "WhatsApp ou Telegram", "50 produits"], color: "border-border" },
+                    { key: "pro", name: "Pro", icon: Zap, price: "14 900", features: ["2 000 contacts", "5 agents", "WhatsApp + Telegram", "IA + Vocaux (2)"], color: "border-[#25D366]", popular: true },
+                    { key: "business", name: "Business", icon: Crown, price: "29 900", features: ["5 000 contacts", "10 agents", "Mobile Money", "IA + Vocaux (5)"], color: "border-blue-400" },
+                    { key: "enterprise", name: "Enterprise", icon: Sparkles, price: "69 900", features: ["Illimite", "API + White-label", "Tous canaux", "Support 24/7"], color: "border-purple-300" },
                   ].map((p) => (
                     <Card key={p.key} className={`border-2 ${p.color} relative cursor-pointer transition-all hover:shadow-lg ${selectedPlan === p.key ? "ring-2 ring-[#00E676] ring-offset-2 ring-offset-zinc-900" : ""}`} onClick={() => setSelectedPlan(p.key)}>
                       {p.popular && (
