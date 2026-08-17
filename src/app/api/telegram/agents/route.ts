@@ -113,6 +113,7 @@ export async function POST(request: Request) {
     const VALID_BUSINESS_TYPES = [
       "restaurant", "salon_coiffure", "pharmacie", "taxi_transport", "pressing_laverie",
       "ecole_formation", "supermarche", "clinique", "agence_voyage", "boulangerie", "garage_auto", "salle_sport",
+      "braiseuse_poisson",
     ];
     if (!VALID_BUSINESS_TYPES.includes(businessType)) {
       return NextResponse.json({ error: "Type de business invalide" }, { status: 400 });

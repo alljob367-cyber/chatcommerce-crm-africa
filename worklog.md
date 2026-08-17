@@ -1,36 +1,22 @@
+# ChatCommerce CRM Africa — Work Log
+
 ---
-Task ID: 2
-Agent: Super Z (Main)
-Task: Migration Float→Decimal, Upstash Redis rate limiting, configuration Vercel
+Task ID: 1
+Agent: Main Agent
+Task: Configurer le bot Telegram "A la Brasa" (braiseuse de poisson)
 
 Work Log:
-- Migration Prisma: driverEarnings Decimal@db.Decimal(19,2) ajouté
-- Installé @upstash/redis + @upstash/ratelimit
-- Créé src/lib/rate-limit.ts: module complet Upstash Redis rate limiting
-  - Sliding window algorithm (10 req / 10s)
-  - Fallback in-memory pour développement
-  - Fonction rateLimitMiddleware() Edge-compatible
-- Mis à jour src/middleware.ts: rate limiting sur login/register/OTP routes
-- Ajouté toNum() helper dans src/lib/utils.ts
-- Corrigé 45+ erreurs TypeScript Decimal→Number dans 15 fichiers:
-  - admin/route.ts, ai/route.ts, campaigns/route.ts, chariow/webhook/route.ts
-  - dashboard/route.ts, deliveries/[id]/route.ts, orders/route.ts
-  - payments/confirm/route.ts, payments/merchant/route.ts, products/route.ts
-  - reports/route.ts, telegram/ai/route.ts, telegram/webhook/route.ts
-  - seed.ts, seed-demo.ts
-- Prisma Client régénéré avec succès
-- TypeScript check: 0 erreurs
-- Build Next.js: RÉUSSI (toutes les 45+ routes compilées)
-- Guide VERCEL_DEPLOY_GUIDE.md mis à jour avec:
-  - DATABASE_URL PostgreSQL Neon
-  - JWT_SECRET (min 32 chars)
-  - UPSTASH_REDIS_REST_URL + TOKEN
-  - Instructions de configuration complète
+- Valide le token Telegram `8699939596:AAHYnRSWZ1kbFtanDGp8uqY390UJDCzj0HE` → Bot: @Alabrasa_bot ("A la brasa")
+- Met a jour `.env` et cree `.env.local` avec le DATABASE_URL Neon PostgreSQL
+- Pousse le schema Prisma vers Neon DB (migration Float→Decimal appliquee)
+- Ajoute le type `braiseuse_poisson` dans: agents/route.ts (VALID_BUSINESS_TYPES), telegram-page.tsx (BUSINESS_TYPE_CONFIG + grid), setup/route.ts (template + services), global-token/route.ts (bot commands), ai-bot-engine.ts (system prompt)
+- Cree l'agent TelegramAgent dans la DB Neon (ID: cmsxlu9rd0001sml92dy161wh)
+- Cree 8 services: Poisson braise complet/demi/simple, Bar braise, Maquereau, Tilapia, Poisson+boisson, Commande groupe
+- Configure les commandes du bot via Telegram API (setMyCommands)
+- Build Next.js reussi sans erreur
 
 Stage Summary:
-- Migration Decimal: complété, 0 erreurs TypeScript
-- Rate limiting Redis: implémenté avec fallback dev
-- Build: succès, prêt pour déploiement Vercel
-- Déploiement: bloqué (pas de token Vercel dans l'environnement)
-- L'utilisateur doit configurer: DATABASE_URL, JWT_SECRET, UPSTASH_REDIS_* dans Vercel Dashboard
-- Guide complet: /home/z/my-project/download/VERCEL_DEPLOY_GUIDE.md
+- Bot @Alabrasa_bot valide et configure
+- 8 services de poisson braise dans la DB a 1000-10000 FCFA
+- Type braiseuse_poisson ajoute dans 5 fichiers (backend + frontend + AI)
+- Prochain: Deployer sur Vercel et configurer le webhook Telegram

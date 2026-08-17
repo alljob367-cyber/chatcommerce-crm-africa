@@ -130,12 +130,14 @@ export async function POST(request: Request) {
       const businessTypes = agentsToActivate.map((a) => a.businessType);
       const uniqueTypes = [...new Set(businessTypes)];
       for (const bt of uniqueTypes) {
-        const commands = bt === "restaurant"
+        const commands = bt === "restaurant" || bt === "braiseuse_poisson"
           ? [
               { command: "start", description: "Commencer une commande" },
               { command: "menu", description: "Voir le menu" },
               { command: "contact", description: "Nos coordonnees" },
               { command: "horaire", description: "Horaires d'ouverture" },
+              { command: "commander", description: "Passer une commande" },
+              { command: "payer", description: "Envoyer numero de transaction" },
               { command: "aide", description: "Comment utiliser le bot" },
             ]
           : [

@@ -10,7 +10,7 @@ async function auth(request: Request) {
   return verifyToken(token);
 }
 
-// ─── ALL 12 AGENT TEMPLATES ───
+// ─── ALL 13 AGENT TEMPLATES ───
 interface AgentTemplate {
   name: string;
   token: string;
@@ -171,6 +171,18 @@ const AGENT_TEMPLATES: Omit<AgentTemplate, "services">[] = [
     currency: "XAF",
     paymentMethod: "orange_money",
   },
+  {
+    name: "A la Brasa - Braiseuse de Poisson",
+    token: "PLACEHOLDER_BRAISEUSE_TOKEN",
+    botUsername: "alabrasa_bot",
+    businessType: "braiseuse_poisson",
+    welcomeMessage: "Bienvenue chez A la Brasa ! 🐟🔥\n\nPoisson braisé au feu de bois, préparé avec amour.\nCommandez directement ici.",
+    address: "Douala, Cameroun",
+    phone: "+237 6XX XXX XXX",
+    openHours: JSON.stringify({ lun: "10:00-22:00", mar: "10:00-22:00", mer: "10:00-22:00", jeu: "10:00-22:00", ven: "10:00-23:00", sam: "10:00-23:00", dim: "12:00-21:00" }),
+    currency: "XAF",
+    paymentMethod: "orange_money",
+  },
 ];
 
 const ALL_SERVICES: Record<string, { name: string; description: string; price: number; duration: number | null; sortOrder: number }[]> = {
@@ -327,6 +339,16 @@ const ALL_SERVICES: Record<string, { name: string; description: string; price: n
     { name: "Pack Minceur Femme", description: "Programme fitness + nutrition 2 mois", price: 60000, duration: null, sortOrder: 8 },
     { name: "Boxe / Arts Martiaux", description: "Cours de boxe ou muay thaï (1h)", price: 4000, duration: 60, sortOrder: 9 },
     { name: "Journée Découverte", description: "Pass journée pour tester toutes les activités", price: 2000, duration: null, sortOrder: 10 },
+  ],
+  braiseuse_poisson: [
+    { name: "Poisson braisé complet", description: "Poisson braisé au feu de bois avec plantain, macabo et épices", price: 2500, duration: null, sortOrder: 1 },
+    { name: "Poisson braisé demi", description: "Demi poisson braisé avec accompagnements", price: 1500, duration: null, sortOrder: 2 },
+    { name: "Poisson braisé simple", description: "Poisson braisé sans accompagnement", price: 1000, duration: null, sortOrder: 3 },
+    { name: "Bar braisé entier", description: "Bar braisé entier au feu de bois, sauce pimentée", price: 3500, duration: null, sortOrder: 4 },
+    { name: "Maquereau braisé", description: "Maquereau braisé grillé avec légumes", price: 1800, duration: null, sortOrder: 5 },
+    { name: "Tilapia braisé", description: "Tilapia braisé croustillant avec alloco", price: 2000, duration: null, sortOrder: 6 },
+    { name: "Poisson braisé + boisson", description: "Poisson braisé complet avec boisson incluse", price: 3000, duration: null, sortOrder: 7 },
+    { name: "Commande groupe (5 pers+)", description: "Menu spécial pour groupe de 5 personnes ou plus", price: 10000, duration: null, sortOrder: 8 },
   ],
 };
 

@@ -79,6 +79,7 @@ import {
   Plane,
   Wrench,
   Dumbbell,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import BookingCalendar from "@/components/app/booking-calendar";
@@ -276,6 +277,7 @@ const BUSINESS_TYPE_CONFIG: Record<string, { label: string; icon: LucideIcon; bg
   boulangerie:      { label: "Boulangerie",      icon: Sparkles,        bg: "bg-yellow-100",  bgDark: "dark:bg-yellow-900/30",  color: "text-yellow-600",  servicesLabel: "produits de boulangerie" },
   garage_auto:      { label: "Garage Auto",      icon: Wrench,          bg: "bg-zinc-100",    bgDark: "dark:bg-zinc-800/50",    color: "text-zinc-600",    servicesLabel: "services auto" },
   salle_sport:      { label: "Salle de Sport",   icon: Dumbbell,        bg: "bg-emerald-100", bgDark: "dark:bg-emerald-900/30", color: "text-emerald-600", servicesLabel: "abonnements" },
+  braiseuse_poisson:{ label: "Braiseuse Poisson", icon: Flame,           bg: "bg-rose-100",    bgDark: "dark:bg-rose-900/30",    color: "text-rose-600",    servicesLabel: "poissons braises" },
 };
 
 function getBusinessConfig(type: string) {
@@ -1068,7 +1070,7 @@ export default function TelegramPage() {
               <Sparkles className="w-10 h-10 text-[#0088cc]" />
             </div>
             <div className="space-y-2 max-w-lg">
-              <h2 className="text-xl font-bold text-foreground">12 Agents Telegram Prêts à l&apos;Emploi</h2>
+              <h2 className="text-xl font-bold text-foreground">13 Agents Telegram Prêts à l&apos;Emploi</h2>
               <p className="text-muted-foreground">
                 Créez instantanément des bots pour toutes vos activites commerciales.
                 Menus, services et tarifs sont pre-configures — collez votre token et c&apos;est parti.
@@ -1088,6 +1090,7 @@ export default function TelegramPage() {
                 { icon: Sparkles, label: "Boulangerie", type: "boulangerie", desc: "11 produits boulange", bg: "bg-yellow-100 dark:bg-yellow-900/30", color: "text-yellow-600" },
                 { icon: Zap, label: "Garage Auto", type: "garage_auto", desc: "10 services auto", bg: "bg-zinc-100 dark:bg-zinc-800/50", color: "text-zinc-600" },
                 { icon: Users, label: "Salle de Sport", type: "salle_sport", desc: "10 abonnements", bg: "bg-emerald-100 dark:bg-emerald-900/30", color: "text-emerald-600" },
+                { icon: Flame, label: "Braiseuse Poisson", type: "braiseuse_poisson", desc: "8 poissons braises", bg: "bg-rose-100 dark:bg-rose-900/30", color: "text-rose-600" },
               ].map((a) => (
                 <Card key={a.type} className={`border hover:shadow-md transition-shadow cursor-pointer ${settingUpType === a.type ? "ring-2 ring-[#0088cc]" : ""}`} onClick={() => handleOneClickSetup(a.type)}>
                   <CardContent className="p-4 flex flex-col items-center gap-2">
