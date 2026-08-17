@@ -49,7 +49,9 @@ model Company {
   subscriptions    Subscription[]
   payments         Payment[]
   telegramAgents   TelegramAgent[]
+  whatsappAgents  WhatsAppAgent[]
   telegramBookings TelegramBooking[]
+  whatsappBookings WhatsAppBooking[]
   drivers          Driver[]
   deliveries       Delivery[]
   chariowOrders    ChariowOrder[]
@@ -491,7 +493,8 @@ model TelegramAgent {
 
 model BusinessService {
   id          String   @id @default(cuid())
-  agentId     String
+  agentId         String?
+  whatsappAgentId String?
   name        String // ex: " Coupe homme", " Döner poulet"
   description String?
   price       Decimal  @db.Decimal(19, 2)
@@ -502,9 +505,11 @@ model BusinessService {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  agent TelegramAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent       TelegramAgent? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  whatsappAgent WhatsAppAgent? @relation(fields: [whatsappAgentId], references: [id], onDelete: Cascade)
 
   @@index([agentId])
+  @@index([whatsappAgentId])
 }
 
 model TelegramBooking {
@@ -686,4 +691,61 @@ model RateLimitLog {
   createdAt DateTime @default(now())
 
   @@index([key, createdAt])
+}
+
+// ============================================
+// WHATSAPP AGENTS - MULTI-AGENT SYSTEM
+// ============================================
+
+model WhatsAppAgent {
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String             // Nom affiche (ex: "WhatsApp Restaurant Le Paradis")
+  phoneNumber    String             // Numero WhatsApp Business (ex: +2376XXXXXXXX)
+  phoneId        String?            // Meta Phone Number ID
+  accessToken    String?            // Meta Access Token ( chiffre en base64 en DB)
+  businessType   String             // restaurant, salon_coiffure, pharmacie, etc.
+  isActive       Boolean  @default(true)
+  welcomeMessage String?            // Message d'accueil personnalise
+  address        String?            // Adresse de l'entreprise
+  phone          String?            // Numero de contact
+  openHours      String?            // JSON: {"mon":"09:00-22:00",...}
+  currency       String   @default("XAF")
+  paymentMethod  String?            // orange_money, mtn_money, cash, null
+  aiConfig       String?            // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company    Company           @relation(fields: [companyId], references: [id])
+  services   BusinessService[]
+  bookings   WhatsAppBooking[]
+
+  @@index([companyId])
+  @@index([phoneNumber])
+}
+
+model WhatsAppBooking {
+  id             String   @id @default(cuid())
+  agentId        String
+  companyId      String
+  waPhoneId      String             // WhatsApp phone ID du client (expediteur)
+  customerName   String             // Nom du client sur WhatsApp
+  customerPhone  String?            // Telephone (si fourni)
+  serviceId      String?            // Service choisi
+  serviceName    String?            // Nom du service (denormalise)
+  bookingDate    String?            // Date demandee (YYYY-MM-DD)
+  bookingTime    String?            // Heure demandee (HH:mm)
+  notes          String?            // Notes / commandes speciales
+  status         String   @default("pending") // pending, confirmed, completed, cancelled
+  waMessageId    String?            // ID du message WhatsApp
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  agent   WhatsAppAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  company Company       @relation(fields: [companyId], references: [id])
+
+  @@index([agentId])
+  @@index([companyId])
+  @@index([status])
+  @@index([bookingDate])
 }

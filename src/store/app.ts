@@ -15,6 +15,7 @@ export type Page =
   | "merchant-payments"
   | "admin-payments"
   | "telegram"
+  | "whatsapp"
   | "drivers"
   | "deliveries"
   | "campaigns"

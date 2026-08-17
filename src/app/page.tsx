@@ -18,6 +18,7 @@ import MerchantPaymentsPage from "@/components/app/merchant-payments-page";
 import AdminPaymentsPage from "@/components/app/admin-payments-page";
 import AdminPage from "@/components/app/admin-page";
 import TelegramPage from "@/components/app/telegram-page";
+import WhatsAppPage from "@/components/app/whatsapp-page";
 import DriversPage from "@/components/app/drivers-page";
 import DeliveriesPage from "@/components/app/deliveries-page";
 import SyncPage from "@/components/app/sync-page";
@@ -52,6 +53,7 @@ function PageRenderer({ page }: { page: string }) {
     case "admin-payments": return <AdminPaymentsPage />;
     case "admin": return <AdminPage />;
     case "telegram": return <TelegramPage />;
+    case "whatsapp": return <WhatsAppPage />;
     case "drivers": return <DriversPage />;
     case "deliveries": return <DeliveriesPage />;
     case "sync": return <SyncPage />;
