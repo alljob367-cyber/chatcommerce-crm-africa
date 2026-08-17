@@ -1,14 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/automations",
-      "schedule": "* * * * *"
-    }
-  ],
-  "functions": {
-    "api/cron/**": { "maxDuration": 60 },
-    "api/telegram/webhook/**": { "maxDuration": 30 },
-    "api/campaigns/launch/**": { "maxDuration": 60 },
-    "api/chariow/webhook/**": { "maxDuration": 15 }
-  }
-}
+{}
