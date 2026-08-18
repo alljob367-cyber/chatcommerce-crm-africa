@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
-import { listVoices, type ElevenLabsConfig } from "@/lib/elevenlabs";
+import { listVoices, getPlatformConfig, isPlatformKeyConfigured } from "@/lib/elevenlabs";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -15,12 +15,11 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
-    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
-    if (!ELEVEN_API_KEY) {
-      return NextResponse.json({ error: "ElevenLabs API key non configuree (ELEVENLABS_API_KEY)" }, { status: 400 });
+    if (!isPlatformKeyConfigured()) {
+      return NextResponse.json({ voices: [], platformReady: false });
     }
 
-    const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+    const config = getPlatformConfig();
     const voices = await listVoices(config);
 
     // Filter to French/multilingual voices

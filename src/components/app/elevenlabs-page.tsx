@@ -18,7 +18,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   AudioLines, Plus, Settings, Trash2, Play, Square,
   MessageCircle, Bot, Globe, RefreshCw, Send, Loader2,
-  AlertCircle, CheckCircle2, XCircle, Volume2, Brain, Zap, Store, Scissors, Pill, Car, Flame
+  AlertCircle, CheckCircle2, XCircle, Volume2, Brain, Zap, Store, Scissors, Pill, Car, Flame,
+  Phone, MessageSquare, PhoneCall, Link2, Info
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ export default function ElevenLabsPage() {
 
   const [agents, setAgents] = useState<ElevenLabsAgent[]>([]);
   const [stats, setStats] = useState({ totalAgents: 0, activeAgents: 0, connectedAgents: 0, totalMessages: 0 });
-  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
+  const [platformReady, setPlatformReady] = useState(true);
   const [voices, setVoices] = useState<{ id: string; name: string; category: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,7 +115,7 @@ export default function ElevenLabsPage() {
       const data = await res.json();
       setAgents(data.agents || []);
       setStats(data.stats || { totalAgents: 0, activeAgents: 0, connectedAgents: 0, totalMessages: 0 });
-      setApiKeyConfigured(data.apiKeyConfigured || false);
+      setPlatformReady(data.platformReady !== false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur de chargement");
     } finally {
@@ -278,7 +279,7 @@ export default function ElevenLabsPage() {
             </div>
             Agents Vocaux IA
           </h1>
-          <p className="text-muted-foreground mt-1">Agents conversationnels ElevenLabs avec voix AI</p>
+          <p className="text-muted-foreground mt-1">Agents IA ElevenLabs — Voix + WhatsApp</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => { fetchAgents(); fetchVoices(); }}>
@@ -292,20 +293,46 @@ export default function ElevenLabsPage() {
         </div>
       </div>
 
-      {/* ─── API Key Warning ─────────────────────────────────── */}
-      {!apiKeyConfigured && (
-        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+      {/* ─── Platform Service Banner ────────────────────────── */}
+      {!platformReady && (
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20">
           <CardContent className="p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <Info className="w-5 h-5 text-blue-600 shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Cle API ElevenLabs non configuree</p>
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                Ajoutez <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">ELEVENLABS_API_KEY</code> dans les variables d'environnement Vercel.
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Service IA en cours d'activation</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                Les agents vocaux et WhatsApp seront disponibles sous peu. Aucune configuration de votre part n'est requise.
               </p>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* ─── WhatsApp Integration Banner ────────────────────── */}
+      <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+              <Phone className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-green-800 dark:text-green-200">Intégration WhatsApp Agents</h3>
+                <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px]">Nouveau</Badge>
+              </div>
+              <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                Vos agents IA sont désormais disponibles sur WhatsApp. Messages vocaux, appels automatiques et réponses intelligentes — la plateforme gère tout.
+              </p>
+              <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />Messages &amp; notes vocales</span>
+                <span className="flex items-center gap-1"><PhoneCall className="w-3 h-3" />Appels entrants &amp; sortants</span>
+                <span className="flex items-center gap-1"><Zap className="w-3 h-3" />Réponses IA en temps réel</span>
+                <span className="flex items-center gap-1"><Volume2 className="w-3 h-3" />Voix naturelle multilingue</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ─── Stats ───────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -415,7 +442,7 @@ export default function ElevenLabsPage() {
                         <MessageCircle className="w-3.5 h-3.5 mr-1.5" />Tester
                       </Button>
                     )}
-                    {!agent.elevenAgentId && apiKeyConfigured && (
+                    {!agent.elevenAgentId && platformReady && (
                       <Button size="sm" variant="outline" onClick={() => handleConnect(agent)}>
                         <Globe className="w-3.5 h-3.5 mr-1.5" />Connecter
                       </Button>
@@ -447,7 +474,7 @@ export default function ElevenLabsPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Nouvel Agent Vocal IA</DialogTitle>
-            <DialogDescription>Creez un agent conversationnel ElevenLabs avec voix naturelle</DialogDescription>
+            <DialogDescription>L'agent sera automatiquement connecte et pret pour WhatsApp</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">

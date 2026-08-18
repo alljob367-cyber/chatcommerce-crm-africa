@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { handleError } from "@/lib/security";
-import { generateSpeech, generateSpeechWithWebhook, generateImageWithWebhook, type ElevenLabsConfig } from "@/lib/elevenlabs";
+import { generateSpeech, generateSpeechWithWebhook, generateImageWithWebhook, getPlatformConfig, isPlatformKeyConfigured } from "@/lib/elevenlabs";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -16,12 +16,11 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
-    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
-    if (!ELEVEN_API_KEY) {
-      return NextResponse.json({ error: "ElevenLabs API key non configuree" }, { status: 400 });
+    if (!isPlatformKeyConfigured()) {
+      return NextResponse.json({ error: "Service en cours d'activation. Contactez le support." }, { status: 503 });
     }
 
-    const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+    const config = getPlatformConfig();
     const body = await request.json();
     const { type, text, voiceId, webhookMode } = body;
 

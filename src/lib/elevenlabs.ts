@@ -1,9 +1,31 @@
 // ─────────────────────────────────────────────────────────────
 // ChatCommerce CRM Africa — ElevenLabs API Client
-// TTS, Image Generation, Conversational AI Agents
+// TTS, Image Generation, Conversational AI Agents, WhatsApp
+// ═══════════════════════════════════════════════════════════
+// La plateforme utilise sa PROPRE clé API ElevenLabs.
+// Les clients n'ont PAS besoin de configurer leur propre clé.
+// Tout est géré côté serveur de manière transparente.
 // ─────────────────────────────────────────────────────────────
 
 const ELEVEN_API_BASE = "https://api.elevenlabs.io/v1";
+
+// ─── Platform API Key (server-side only) ──────────────────
+// La clé est stockée dans ELEVENLABS_API_KEY (env var serveur).
+// Les clients ne voient jamais cette clé.
+
+export function getPlatformConfig(): ElevenLabsConfig {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new Error("ELEVENLABS_API_KEY non configuree coté serveur. Contactez l'administrateur.");
+  }
+  return { apiKey };
+}
+
+// ─── Check if platform key is configured (no throw) ───────
+
+export function isPlatformKeyConfigured(): boolean {
+  return !!process.env.ELEVENLABS_API_KEY;
+}
 
 export interface ElevenLabsConfig {
   apiKey: string;
@@ -358,4 +380,158 @@ export function parseConversationWebhook(body: Record<string, unknown>): ElevenL
     timestamp: body.timestamp ? String(body.timestamp) : undefined,
     metadata: body.metadata as Record<string, unknown> | undefined,
   };
+}
+
+// ═══════════════════════════════════════════════════════════
+// WHATSAPP — ElevenLabs WhatsApp API
+// ═══════════════════════════════════════════════════════════
+// ElevenLabs gère directement l'intégration WhatsApp.
+// Les clients importent leur compte WhatsApp Business via
+// le dashboard ElevenLabs, et assignent un agent.
+// Notre plateforme contrôle tout via l'API ElevenLabs.
+
+export interface WhatsAppAccount {
+  id: string;
+  phone_number: string;
+  phone_number_id: string;
+  agent_id?: string;
+  agent_name?: string;
+ enabled_messaging: boolean;
+  enabled_audio_response: boolean;
+  enabled_typing_indicator: boolean;
+  verified_name?: string;
+  status?: string;
+}
+
+export interface WhatsAppOutboundMessageParams {
+  whatsappAccountId: string;
+  recipientPhone: string;
+  templateName: string;
+  templateLanguage?: string;
+  templateParameters?: string[];
+}
+
+export interface WhatsAppOutboundCallParams {
+  whatsappAccountId: string;
+  recipientPhone: string;
+  templateName: string;
+  templateLanguage?: string;
+  templateParameters?: string[];
+}
+
+// ─── List WhatsApp accounts ───────────────────────────────
+// GET /v1/whatsapp/accounts
+
+export async function listWhatsAppAccounts(): Promise<WhatsAppAccount[]> {
+  const config = getPlatformConfig();
+  const res = await fetch(`${ELEVEN_API_BASE}/whatsapp/accounts`, {
+    headers: { "xi-api-key": config.apiKey },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(`ElevenLabs WhatsApp list error: ${JSON.stringify(err)}`);
+  }
+  const data = await res.json();
+  return data.accounts || data || [];
+}
+
+// ─── Get a WhatsApp account ───────────────────────────────
+// GET /v1/whatsapp/accounts/:id
+
+export async function getWhatsAppAccount(accountId: string): Promise<WhatsAppAccount> {
+  const config = getPlatformConfig();
+  const res = await fetch(`${ELEVEN_API_BASE}/whatsapp/accounts/${accountId}`, {
+    headers: { "xi-api-key": config.apiKey },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(`ElevenLabs WhatsApp get error: ${JSON.stringify(err)}`);
+  }
+  return res.json();
+}
+
+// ─── Update WhatsApp account (assign agent, settings) ─────
+// PATCH /v1/whatsapp/accounts/:id
+
+export async function updateWhatsAppAccount(
+  accountId: string,
+  params: {
+    agent_id?: string;
+    enabled_messaging?: boolean;
+    enabled_audio_response?: boolean;
+    enabled_typing_indicator?: boolean;
+  }
+): Promise<WhatsAppAccount> {
+  const config = getPlatformConfig();
+  const res = await fetch(`${ELEVEN_API_BASE}/whatsapp/accounts/${accountId}`, {
+    method: "PATCH",
+    headers: { "xi-api-key": config.apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(`ElevenLabs WhatsApp update error: ${JSON.stringify(err)}`);
+  }
+  return res.json();
+}
+
+// ─── Send outbound WhatsApp message ───────────────────────
+// POST /v1/whatsapp/outbound-message
+
+export async function sendWhatsAppMessage(params: WhatsAppOutboundMessageParams): Promise<{ success: boolean; message_id?: string }> {
+  const config = getPlatformConfig();
+  const body: Record<string, unknown> = {
+    whatsapp_account_id: params.whatsappAccountId,
+    recipient_phone_number: params.recipientPhone,
+    template_name: params.templateName,
+  };
+  if (params.templateLanguage) body.template_language_code = params.templateLanguage;
+  if (params.templateParameters) body.template_parameters = params.templateParameters;
+
+  const res = await fetch(`${ELEVEN_API_BASE}/whatsapp/outbound-message`, {
+    method: "POST",
+    headers: { "xi-api-key": config.apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(`ElevenLabs WhatsApp send error: ${JSON.stringify(err)}`);
+  }
+  const data = await res.json();
+  return { success: true, message_id: data.message_id };
+}
+
+// ─── Make outbound WhatsApp call ──────────────────────────
+// POST /v1/whatsapp/outbound-call
+
+export async function makeWhatsAppCall(params: WhatsAppOutboundCallParams): Promise<{ success: boolean; call_id?: string }> {
+  const config = getPlatformConfig();
+  const body: Record<string, unknown> = {
+    whatsapp_account_id: params.whatsappAccountId,
+    recipient_phone_number: params.recipientPhone,
+    template_name: params.templateName,
+  };
+  if (params.templateLanguage) body.template_language_code = params.templateLanguage;
+  if (params.templateParameters) body.template_parameters = params.templateParameters;
+
+  const res = await fetch(`${ELEVEN_API_BASE}/whatsapp/outbound-call`, {
+    method: "POST",
+    headers: { "xi-api-key": config.apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(`ElevenLabs WhatsApp call error: ${JSON.stringify(err)}`);
+  }
+  const data = await res.json();
+  return { success: true, call_id: data.call_id };
+}
+
+// ─── Assign an ElevenLabs Agent to a WhatsApp account ─────
+
+export async function assignAgentToWhatsApp(
+  whatsappAccountId: string,
+  elevenAgentId: string
+): Promise<WhatsAppAccount> {
+  return updateWhatsAppAccount(whatsappAccountId, { agent_id: elevenAgentId });
 }

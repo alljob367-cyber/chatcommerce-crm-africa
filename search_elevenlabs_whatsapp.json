@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://elevenlabs.io/blog/elevenlabs-agents-whatsapp-support",
+    "name": "ElevenLabs Agents now support WhatsApp",
+    "snippet": "Dec 17, 2025 — We are expanding our omnichannel agents platform to support WhatsApp , enabling teams to design an agent once and deploy it across web, ... Read more",
+    "host_name": "elevenlabs.io",
+    "rank": 0,
+    "date": "Dec 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/conversational-ai",
+    "name": "Build Conversational AI in minutes | Voice & Chat platform",
+    "snippet": "Can I integrate ElevenLabs Conversational AI into my own app? Yes, we have a WebSocket API and Javascript, React , Python and iOS SDKs.",
+    "host_name": "elevenlabs.io",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/docs/eleven-agents/overview",
+    "name": "ElevenAgents | ElevenLabs Documentation",
+    "snippet": "ElevenLabs provides voice-rich, expressive models, developer tools for building multimodal agents, and tools to monitor and evaluate agent performance at scale. Read more",
+    "host_name": "elevenlabs.io",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1qa5ulc/elevenlabs_whatsapp_agent_integration_related",
+    "name": "Elevenlabs WhatsApp Agent integration related : r/AI_Agents",
+    "snippet": "Elevenlabs just introduced their official integration with WhatsApp . If you have added an A2A interface to your AI agent then you can attach it ...",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://community.flutterflow.io/libraries-showcase/post/add-a-life-like-voice-agent-to-your-app-with-the-new-elevenlabs-cQnrzpvJoMxki9L",
+    "name": "Add a Life-Like Voice Agent to Your App with the New",
+    "snippet": "Jul 9, 2025 — Powered by ElevenLabs ' latest Conversational AI V2, this integration offers ultra-low latency and human-like voices, creating conversations so ... Read more",
+    "host_name": "community.flutterflow.io",
+    "rank": 4,
+    "date": "Jul 9, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/docs/eleven-agents/whatsapp",
+    "name": "WhatsApp | ElevenLabs Documentation",
+    "snippet": "You can connect your WhatsApp business account to an ElevenLabs Agent . The agent can then handle: Message conversations; Calls. Importing a WhatsApp business ... Read more",
+    "host_name": "elevenlabs.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/makeautomation/posts/1387877352190514",
+    "name": "Any tips for Eleven Lab's Conversational AI Get API?",
+    "snippet": "API allows you to pass text and receive audio data back in real-time . How to integrate EL conversational AI agents",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://growwstacks.com/blog/whatsapp-ai-voice-calling-agent-elevenlabs",
+    "name": "How to Set Up a WhatsApp AI Voice Calling Agent with",
+    "snippet": "Dec 27, 2025 — Learn how to connect ElevenLabs' AI voice technology to WhatsApp for automated customer support calls. This 2-minute setup requires no ...",
+    "host_name": "growwstacks.com",
+    "rank": 7,
+    "date": "Dec 27, 2025",
+    "favicon": ""
+  }
+]
