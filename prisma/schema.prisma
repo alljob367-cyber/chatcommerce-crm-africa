@@ -778,6 +778,10 @@ model ElevenLabsAgent {
   currency       String   @default("XAF")
   paymentMethod  String?
 
+  // WhatsApp via ElevenLabs
+  whatsappAccountId String?            // ID du compte WhatsApp ElevenLabs
+  whatsappEnabled  Boolean @default(false) // WhatsApp actif pour cet agent
+
   // AI Config (fallback si pas d'agent ElevenLabs)
   aiConfig       String?            // JSON: { enabled, provider, apiKey, model, systemPrompt, temperature, maxTokens, baseUrl }
 

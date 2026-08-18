@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { handleError } from "@/lib/security";
-import { listAgents, listVoices, getPlatformConfig, isPlatformKeyConfigured, type ElevenAgentResponse } from "@/lib/elevenlabs";
+import { listAgents, listVoices, type ElevenLabsConfig, type ElevenAgentResponse } from "@/lib/elevenlabs";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -49,6 +49,8 @@ export async function GET(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
+    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+
     // Fetch our DB agents
     const dbAgents = await db.elevenLabsAgent.findMany({
       where: { companyId: session.companyId },
@@ -56,11 +58,11 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Sync with ElevenLabs API (platform key)
+    // Try to sync with ElevenLabs API if key is set
     let elevenAgents: ElevenAgentResponse[] = [];
-    if (isPlatformKeyConfigured()) {
+    if (ELEVEN_API_KEY) {
       try {
-        const config = getPlatformConfig();
+        const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
         elevenAgents = await listAgents(config);
       } catch (e) {
         console.warn("[ElevenLabs] Could not list agents from API:", e);
@@ -89,7 +91,8 @@ export async function GET(request: Request) {
       agents: merged,
       elevenLabsAgents: elevenAgents.map((a) => ({ id: a.agent_id, name: a.name, model: a.model, language: a.language })),
       stats: { totalAgents, activeAgents, connectedAgents, totalMessages },
-      platformReady: isPlatformKeyConfigured(),
+      apiKeyConfigured: !!ELEVEN_API_KEY,
+      platformReady: !!ELEVEN_API_KEY,
     });
   } catch (error: unknown) {
     console.error("[API /elevenlabs/agents] Error:", error);
@@ -105,9 +108,9 @@ export async function POST(request: Request) {
     const session = await auth(request);
     if (!session) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
-    // La plateforme gère la clé API — le client n'a rien à configurer
-    if (!isPlatformKeyConfigured()) {
-      return NextResponse.json({ error: "Service ElevenLabs en cours de configuration. Contactez le support." }, { status: 503 });
+    const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+    if (!ELEVEN_API_KEY) {
+      return NextResponse.json({ error: "Cle API ElevenLabs non configuree. Ajoutez ELEVENLABS_API_KEY dans les variables d'environnement." }, { status: 400 });
     }
 
     const body = await request.json();
@@ -129,12 +132,12 @@ export async function POST(request: Request) {
     let elevenAgentId: string | null = null;
     let agentConfigJson: Record<string, unknown> | null = null;
 
-    const config = getPlatformConfig();
+    const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || "";
     const webhookUrl = baseUrl ? `${baseUrl}/api/elevenlabs/webhook` : undefined;
     const webhookSecret = `el_secret_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-    // Create on ElevenLabs (always — platform manages it)
+    // Create on ElevenLabs if requested
     if (createOnElevenLabs !== false) {
       try {
         const { createAgent } = await import("@/lib/elevenlabs");

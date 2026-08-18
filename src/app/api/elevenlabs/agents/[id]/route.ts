@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { handleError } from "@/lib/security";
-import { getAgent, updateAgent, deleteAgent, chatWithAgent, getPlatformConfig, isPlatformKeyConfigured, listAgents, createAgent, type ElevenAgentResponse } from "@/lib/elevenlabs";
+import { getAgent, updateAgent, deleteAgent, chatWithAgent, type ElevenLabsConfig, type ElevenAgentResponse } from "@/lib/elevenlabs";
 
 async function auth(request: Request) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -28,14 +28,17 @@ export async function GET(
 
     if (!agent) return NextResponse.json({ error: "Agent non trouve" }, { status: 404 });
 
-    // Get live status from ElevenLabs (platform key)
+    // Try to get live status from ElevenLabs
     let elevenLabsLive: ElevenAgentResponse | null = null;
-    if (agent.elevenAgentId && isPlatformKeyConfigured()) {
-      try {
-        const config = getPlatformConfig();
-        elevenLabsLive = await getAgent(config, agent.elevenAgentId);
-      } catch (e) {
-        console.warn(`[ElevenLabs] Could not fetch agent ${agent.elevenAgentId} from API:`, e);
+    if (agent.elevenAgentId) {
+      const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+      if (ELEVEN_API_KEY) {
+        try {
+          const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+          elevenLabsLive = await getAgent(config, agent.elevenAgentId);
+        } catch (e) {
+          console.warn(`[ElevenLabs] Could not fetch agent ${agent.elevenAgentId} from API:`, e);
+        }
       }
     }
 
@@ -67,11 +70,13 @@ export async function PATCH(
     const body = await request.json();
     const { name, businessType, welcomeMessage, address, phone, openHours, currency, paymentMethod, voiceId, prompt, isActive } = body;
 
-    // Update on ElevenLabs if connected (platform key)
-    if (agent.elevenAgentId && isPlatformKeyConfigured()) {
-      try {
-        const config = getPlatformConfig();
-        const updateParams: Record<string, unknown> = {};
+    // Update on ElevenLabs if connected
+    if (agent.elevenAgentId) {
+      const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+      if (ELEVEN_API_KEY) {
+        try {
+          const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+          const updateParams: Record<string, unknown> = {};
           if (name) updateParams.name = name;
           if (prompt) updateParams.prompt = prompt;
           if (welcomeMessage) updateParams.firstMessage = welcomeMessage;
@@ -83,6 +88,7 @@ export async function PATCH(
         } catch (e) {
           console.error("[ElevenLabs] Failed to update agent on ElevenLabs:", e);
         }
+      }
     }
 
     // Update in DB
@@ -126,13 +132,16 @@ export async function DELETE(
 
     if (!agent) return NextResponse.json({ error: "Agent non trouve" }, { status: 404 });
 
-    // Delete from ElevenLabs if connected (platform key)
-    if (agent.elevenAgentId && isPlatformKeyConfigured()) {
-      try {
-        const config = getPlatformConfig();
-        await deleteAgent(config, agent.elevenAgentId);
-      } catch (e) {
-        console.error("[ElevenLabs] Failed to delete agent on ElevenLabs:", e);
+    // Delete from ElevenLabs if connected
+    if (agent.elevenAgentId) {
+      const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+      if (ELEVEN_API_KEY) {
+        try {
+          const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+          await deleteAgent(config, agent.elevenAgentId);
+        } catch (e) {
+          console.error("[ElevenLabs] Failed to delete agent on ElevenLabs:", e);
+        }
       }
     }
 
@@ -161,10 +170,11 @@ export async function POST(
     const body = await request.json();
     const { message, action } = body;
 
-    // ─── Action: connect to ElevenLabs (platform manages key) ──
+    // ─── Action: connect to ElevenLabs ──────────────────────────
     if (action === "connect") {
-      if (!isPlatformKeyConfigured()) {
-        return NextResponse.json({ error: "Service ElevenLabs en cours de configuration. Contactez le support." }, { status: 503 });
+      const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+      if (!ELEVEN_API_KEY) {
+        return NextResponse.json({ error: "Cle API ElevenLabs non configuree" }, { status: 400 });
       }
 
       const agent = await db.elevenLabsAgent.findFirst({
@@ -172,8 +182,10 @@ export async function POST(
       });
       if (!agent) return NextResponse.json({ error: "Agent non trouve" }, { status: 404 });
 
-      const config = getPlatformConfig();
-      const elevenAgents = await listAgents(config);
+      // Import listAgents dynamically to avoid circular deps
+      const { listAgents: listAll, createAgent } = await import("@/lib/elevenlabs");
+      const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
+      const elevenAgents = await listAll(config);
 
       // Find by name match or use first available
       let match = elevenAgents.find((a) => a.name === agent.name);
@@ -241,15 +253,16 @@ export async function POST(
       });
       if (!agent) return NextResponse.json({ error: "Agent non trouve" }, { status: 404 });
 
-      if (!isPlatformKeyConfigured()) {
-        return NextResponse.json({ error: "Service ElevenLabs en cours de configuration." }, { status: 503 });
+      const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+      if (!ELEVEN_API_KEY) {
+        return NextResponse.json({ error: "Cle API ElevenLabs non configuree" }, { status: 400 });
       }
 
       if (!agent.elevenAgentId) {
         return NextResponse.json({ error: "Agent non connecte a ElevenLabs. Cliquez sur 'Connecter' d'abord." }, { status: 400 });
       }
 
-      const config = getPlatformConfig();
+      const config: ElevenLabsConfig = { apiKey: ELEVEN_API_KEY };
       const result = await chatWithAgent(config, agent.elevenAgentId, message, body.conversationId);
 
       // Update stats
