@@ -1,0 +1,175 @@
+import { NextResponse } from "next/server";
+import { db, resolveCompanyId } from "@/lib/db";
+import { verifyToken } from "@/lib/auth";
+import { sanitize, handleError } from "@/lib/security";
+
+async function auth(request: Request) {
+  const token = request.headers.get("authorization")?.replace("Bearer ", "");
+  if (!token) return null;
+  return verifyToken(token);
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth(request);
+    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
+
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    const { id } = await params;
+    const agent = await db.telegramAgent.findFirst({
+      where: { id, companyId: realCompanyId },
+      select: {
+        id: true,
+        companyId: true,
+        businessType: true,
+        name: true,
+        botUsername: true,
+        token: true,  // needed by frontend to detect placeholder
+        isActive: true,
+        welcomeMessage: true,
+        address: true,
+        phone: true,
+        openHours: true,
+        currency: true,
+        paymentMethod: true,
+        // SECURITY: Only expose full AI config to admins
+        ...(isAdmin ? { aiConfig: true } : { aiEnabled: true }),
+        createdAt: true,
+        updatedAt: true,
+        services: { orderBy: { sortOrder: "asc" } },
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    if (!agent) return NextResponse.json({ error: "Agent introuvable" }, { status: 404 });
+
+    // Strip token from non-admin and apiKey from aiConfig for safety
+    const agentRec = agent as Record<string, unknown>;
+    if (!isAdmin) delete agentRec.token;
+    if (isAdmin && agentRec.aiConfig && typeof agentRec.aiConfig === "string") {
+      try {
+        const parsed = JSON.parse(agentRec.aiConfig as string);
+        delete parsed.apiKey;
+        agentRec.aiConfig = JSON.stringify(parsed);
+      } catch { /* ignore */ }
+    }
+
+    return NextResponse.json({ agent });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth(request);
+    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
+
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    const { id } = await params;
+    const body = await request.json();
+
+    const existing = await db.telegramAgent.findFirst({
+      where: { id, companyId: realCompanyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
+
+    if (!isAdmin) {
+      // ── Agent / Viewer : ne peut modifier que le token ──
+      const { token: botToken } = body;
+      if (!botToken) {
+        return NextResponse.json({ error: "Token requis" }, { status: 400 });
+      }
+      const agent = await db.telegramAgent.update({
+        where: { id },
+        data: { token: botToken },
+      });
+      const { token: _botToken, ...safeAgent } = agent;
+      return NextResponse.json({ agent: safeAgent });
+    }
+
+    // ── Admin : modification complète ──
+    const { name, token: botToken, botUsername, businessType, isActive, welcomeMessage, address, phone, openHours, currency, paymentMethod, aiConfig: aiConfigStr, aiEnabled, aiProvider, aiApiKey, aiModel, aiBaseUrl, aiSystemPrompt } = body;
+
+    // Parse AI config from either aiConfig (JSON string) or individual fields
+    let aiConfigParsed: Record<string, unknown> = {};
+    if (aiConfigStr && typeof aiConfigStr === "string") {
+      try { aiConfigParsed = JSON.parse(aiConfigStr); } catch { /* ignore */ }
+    }
+
+    const agent = await db.telegramAgent.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name: sanitize(name) }),
+        ...(botToken !== undefined && { token: botToken }),
+        ...(botUsername !== undefined && { botUsername: sanitize(botUsername) }),
+        ...(businessType !== undefined && { businessType }),
+        ...(isActive !== undefined && { isActive }),
+        ...(welcomeMessage !== undefined && { welcomeMessage: welcomeMessage ? sanitize(welcomeMessage) : null }),
+        ...(address !== undefined && { address: address ? sanitize(address) : null }),
+        ...(phone !== undefined && { phone: phone ? sanitize(phone) : null }),
+        ...(openHours !== undefined && { openHours }),
+        ...(currency !== undefined && { currency }),
+        ...(paymentMethod !== undefined && { paymentMethod }),
+        // Support both aiConfig JSON and individual fields
+        ...(Object.keys(aiConfigParsed).length > 0 || aiEnabled !== undefined || aiProvider || aiApiKey ? {
+          aiConfig: JSON.stringify({
+            enabled: (aiConfigParsed.enabled as boolean) ?? aiEnabled ?? false,
+            provider: (aiConfigParsed.provider as string) || aiProvider || "openai",
+            apiKey: (aiConfigParsed.apiKey as string) || aiApiKey || "",
+            model: (aiConfigParsed.model as string) || aiModel || "",
+            baseUrl: (aiConfigParsed.baseUrl as string) || aiBaseUrl || "",
+            systemPrompt: (aiConfigParsed.systemPrompt as string) || aiSystemPrompt || "",
+          }),
+        } : {}),
+      },
+    });
+
+    const { token: _botToken, ...safeAgent } = agent;
+    return NextResponse.json({ agent: safeAgent });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth(request);
+    if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const realCompanyId = await resolveCompanyId(session);
+
+    // Suppression réservée à l'admin
+    const isAdmin = session.role === "company_admin" || session.role === "super_admin";
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Acces refuse. Seul un administrateur peut supprimer un agent." }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const existing = await db.telegramAgent.findFirst({
+      where: { id, companyId: realCompanyId },
+    });
+    if (!existing) return NextResponse.json({ error: "Agent Telegram introuvable" }, { status: 404 });
+
+    await db.telegramAgent.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    const { error: msg, status } = handleError(error);
+    return NextResponse.json({ error: msg }, { status });
+  }
+}

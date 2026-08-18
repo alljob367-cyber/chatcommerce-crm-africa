@@ -1,22 +1,21 @@
-# ChatCommerce CRM Africa — Work Log
-
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Configurer le bot Telegram "A la Brasa" (braiseuse de poisson)
+Task: Supprimer config API client + intégrer WhatsApp ElevenLabs
 
 Work Log:
-- Valide le token Telegram `8699939596:AAHYnRSWZ1kbFtanDGp8uqY390UJDCzj0HE` → Bot: @Alabrasa_bot ("A la brasa")
-- Met a jour `.env` et cree `.env.local` avec le DATABASE_URL Neon PostgreSQL
-- Pousse le schema Prisma vers Neon DB (migration Float→Decimal appliquee)
-- Ajoute le type `braiseuse_poisson` dans: agents/route.ts (VALID_BUSINESS_TYPES), telegram-page.tsx (BUSINESS_TYPE_CONFIG + grid), setup/route.ts (template + services), global-token/route.ts (bot commands), ai-bot-engine.ts (system prompt)
-- Cree l'agent TelegramAgent dans la DB Neon (ID: cmsxlu9rd0001sml92dy161wh)
-- Cree 8 services: Poisson braise complet/demi/simple, Bar braise, Maquereau, Tilapia, Poisson+boisson, Commande groupe
-- Configure les commandes du bot via Telegram API (setMyCommands)
+- Consulté la documentation ElevenLabs WhatsApp (elevenlabs.io/docs/eleven-agents/whatsapp)
+- Analyze le code existant: les routes API utilisaient deja process.env.ELEVENLABS_API_KEY (cote serveur)
+- Ajoute les fonctions WhatsApp API dans src/lib/elevenlabs.ts: listWhatsAppAccounts, getWhatsAppAccount, updateWhatsAppAccount, deleteWhatsAppAccount, sendWhatsAppMessage, callWhatsApp
+- Ajoute whatsappAccountId et whatsappEnabled au modele ElevenLabsAgent dans prisma/schema.prisma
+- Cree /api/elevenlabs/whatsapp/route.ts (GET: lister comptes, POST: envoyer message/appel)
+- Cree /api/elevenlabs/whatsapp/[id]/route.ts (GET/PATCH/DELETE: gestion comptes + assignation agents)
+- Reecrit elevenlabs-page.tsx: supprime l'avertissement de cle API, ajoute section WhatsApp, assignation agent <-> numero
 - Build Next.js reussi sans erreur
+- Cree chatcommerce-crm-africa-v3.zip (49 Mo)
 
 Stage Summary:
-- Bot @Alabrasa_bot valide et configure
-- 8 services de poisson braise dans la DB a 1000-10000 FCFA
-- Type braiseuse_poisson ajoute dans 5 fichiers (backend + frontend + AI)
-- Prochain: Deployer sur Vercel et configurer le webhook Telegram
+- Les clients ne voient AUCUNE config API - tout est gere cote serveur via ELEVENLABS_API_KEY
+- Section WhatsApp dans le dashboard: liste les comptes importes, assigne/dissocie des agents
+- Les agents peuvent etre connectes a WhatsApp directement depuis l'interface
+- Fichier: /home/z/my-project/download/chatcommerce-crm-africa-v3.zip

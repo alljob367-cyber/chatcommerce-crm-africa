@@ -1,0 +1,83 @@
+[
+  {
+    "url": "https://elevenlabs.io/docs/eleven-agents/whatsapp",
+    "name": "WhatsApp | ElevenLabs Documentation",
+    "snippet": "You can connect your WhatsApp business account to an ElevenLabs Agent. The agent can then handle: Message conversations; Calls. Importing a WhatsApp business ...",
+    "host_name": "elevenlabs.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/blog/elevenlabs-agents-whatsapp-support",
+    "name": "ElevenLabs Agents now support WhatsApp",
+    "snippet": "Integrating WhatsApp takes only a few steps in our agents platform. ... To learn more read the documentation or watch our live session.",
+    "host_name": "elevenlabs.io",
+    "rank": 1,
+    "date": "Dec 17, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=jFSyVpJzIyg",
+    "name": "How to Build WhatsApp AI Voice Agents (ElevenLabs Tutorial)",
+    "snippet": "Learn how to build a WhatsApp voice AI agent by connecting ElevenLabs to WhatsApp. I walk through the full setup, the best settings, how to ...",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com/reel/DSaNay7CihW/?hl=en",
+    "name": "ElevenLabs on Instagram: \"Introducing WhatsApp support for",
+    "snippet": "Our omnichannel platform is now integrated with WhatsApp, letting teams design an agent once and deploy it across web, mobile, phone lines, and ...",
+    "host_name": "www.instagram.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1qa5ulc/elevenlabs_whatsapp_agent_integration_related",
+    "name": "Elevenlabs WhatsApp Agent integration related : r/AI_Agents",
+    "snippet": "Elevenlabs just introduced their official integration with WhatsApp. check out our wiki at https://www.reddit.com/r/ai_agents/wiki",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://elevenlabs.io/agents",
+    "name": "Deploy AI Agents in Minutes, Not Months | Chat & Voice",
+    "snippet": "Build, test and deploy AI agents for your website, app or call center with ElevenAgents. Low latency, configurable and scalable.",
+    "host_name": "elevenlabs.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/posts/elevenlabsio_introducing-whatsapp-support-for-elevenlabs-activity-7407072318348480519-bPxN",
+    "name": "ElevenLabs Agents Now on WhatsApp | ElevenLabs posted",
+    "snippet": "Our omnichannel platform is now integrated with WhatsApp, letting teams design an agent once and deploy it across web, mobile, phone lines, and ...",
+    "host_name": "www.linkedin.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/groups/346974221415575/posts/842443841868608",
+    "name": "Help with elevenlabs agent setup and integration?",
+    "snippet": "Help with elevenlabs agent setup and integration? Deploy customized, conversational voice agents https://elevenlabs.io/docs/conversational- ai/ ...",
+    "host_name": "www.facebook.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.make.com/en/integrations/elevenlabs/whatsapp-business-cloud",
+    "name": "ElevenLabs and WhatsApp Business Cloud Integration",
+    "snippet": "Connect ElevenLabs and WhatsApp Business Cloud to sync data between apps and create powerful automated workflows. Integrate over 3000 apps on Make.",
+    "host_name": "www.make.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  }
+]
